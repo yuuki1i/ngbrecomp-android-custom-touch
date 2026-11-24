@@ -73,6 +73,7 @@ static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
 static float s_aspect = 16.0f / 9;
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
+static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL];
 static unsigned s_layout_revision, d_layout_revision;
 static bool s_layout_loaded, s_edit_mode, d_edit_mode;
 static int s_selected = -1, d_selected = -1;
@@ -94,6 +95,7 @@ static void layout_defaults(void)
         s_layout_y[i] = s_ctrl[i].y;
         s_layout_r[i] = s_ctrl[i].r;
         s_layout_alpha[i] = (i >= BA && i <= BY) ? 0.65f : 0.55f;
+        s_layout_custom[i] = false;
     }
 }
 static void layout_load(void)
@@ -107,10 +109,13 @@ static void layout_load(void)
     SDL_free(dir);
     FILE *fp = fopen(s_layout_path, "r");
     if (!fp) return;
-    int id; float x, y, r, a;
-    while (fscanf(fp, "%d %f %f %f %f", &id, &x, &y, &r, &a) == 5) {
-        if (id < 0 || id >= NCTRL) continue;
+    char line[256];
+    while (fgets(line, sizeof line, fp)) {
+        int id, custom = 0; float x, y, r, a;
+        int fields = sscanf(line, "%d %f %f %f %f %d", &id, &x, &y, &r, &a, &custom);
+        if (fields < 5 || id < 0 || id >= NCTRL) continue;
         s_layout_x[id] = x; s_layout_y[id] = y; s_layout_r[id] = r; s_layout_alpha[id] = a;
+        s_layout_custom[id] = fields >= 6 && custom != 0;
     }
     fclose(fp);
     for (int i = 0; i < NCTRL; i++) {
@@ -130,7 +135,7 @@ static void layout_save(void)
     FILE *fp = fopen(s_layout_path, "w");
     if (!fp) return;
     for (int i = 0; i < NCTRL; i++)
-        fprintf(fp, "%d %.5f %.5f %.5f %.5f\n", i, s_layout_x[i], s_layout_y[i], s_layout_r[i], s_layout_alpha[i]);
+        fprintf(fp, "%d %.5f %.5f %.5f %.5f %d\n", i, s_layout_x[i], s_layout_y[i], s_layout_r[i], s_layout_alpha[i], s_layout_custom[i] ? 1 : 0);
     fclose(fp);
 }
 static void clear_touch_state(void)
@@ -150,8 +155,9 @@ static void toggle_editor(void)
 }
 static float centre_x_at(const Ctrl *c, float aspect)
 {
-    float x = s_layout_x[ctrl_index(c)];
-    if (c == &s_ctrl[DPAD_ID] || c == &s_ctrl[RSTICK]) {   /* (in from the middle on a less wide screen) */
+    int ci = ctrl_index(c);
+    float x = s_layout_x[ci];
+    if (!s_layout_custom[ci] && (c == &s_ctrl[DPAD_ID] || c == &s_ctrl[RSTICK])) {   /* (in from the middle on a less wide screen) */
         float most = aspect / 2 - 0.16f;
         x = x < most ? x : most;
     }
@@ -161,8 +167,9 @@ static float centre_x_at(const Ctrl *c, float aspect)
 static float centre_x(const Ctrl *c) { return centre_x_at(c, s_aspect); }
 static float centre_x_draw_at(const Ctrl *c, float aspect)
 {
-    float x = d_layout_x[ctrl_index(c)];
-    if (c == &s_ctrl[DPAD_ID] || c == &s_ctrl[RSTICK]) {
+    int ci = ctrl_index(c);
+    float x = d_layout_x[ci];
+    if (!d_layout_custom[ci] && (c == &s_ctrl[DPAD_ID] || c == &s_ctrl[RSTICK])) {
         float most = aspect / 2 - 0.16f;
         x = x < most ? x : most;
     }
@@ -289,7 +296,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         ;
     if (ev->type == SDL_FINGERDOWN && f == MAX_FINGERS) {
         int c = hit(x, y, false);
-        for (f = 0; c >= 0 && f < MAX_FINGERS && s_finger[f].used; f++)
+        for (f = 0; f < MAX_FINGERS && s_finger[f].used; f++)
             ;
         if (f < MAX_FINGERS && s_edit_mode) {
             s_finger[f].used = true; s_finger[f].id = ev->tfinger.fingerId; s_finger[f].ctrl = c;
@@ -320,6 +327,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
             if (s_finger[f].moved) {
                 s_layout_x[c] += s_ctrl[c].right ? -dx : dx;
                 s_layout_y[c] += dy;
+                s_layout_custom[c] = true;
                 s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
                 s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
                 s_finger[f].x0 = x; s_finger[f].y0 = y;
@@ -528,7 +536,7 @@ static void draw_all(void)
     for (int i = 0; i < NCTRL; i++) {
         const Ctrl *c = &s_ctrl[i];
         float cx = centre_x_draw_at(c, d_aspect) * u, cy = d_layout_y[i] * u, r = d_layout_r[i] * u;
-        float alpha = s_layout_alpha[i];
+        float alpha = d_layout_alpha[i];
         bool on = d_down[i];
         if (c->kind == STICK) {
             int s = i == RSTICK;
@@ -592,6 +600,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_layout_y, s_layout_y, sizeof d_layout_y);
         memcpy(d_layout_r, s_layout_r, sizeof d_layout_r);
         memcpy(d_layout_alpha, s_layout_alpha, sizeof d_layout_alpha);
+        memcpy(d_layout_custom, s_layout_custom, sizeof d_layout_custom);
         d_layout_revision = s_layout_revision;
         d_edit_mode = s_edit_mode; d_selected = s_selected;
         d_aspect = s_aspect;
