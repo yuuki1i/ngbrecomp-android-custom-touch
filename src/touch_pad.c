@@ -277,64 +277,70 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         return 0;
     layout_load();
     pthread_mutex_lock(&s_lock);
-    {   /* (the window's own shape: the presenter's may not have come, where it cannot draw the picture) */
+    {
         SDL_Window *w = SDL_GetWindowFromID(ev->tfinger.windowID);
         int ww = 0, wh = 0;
-        if (w)
-            SDL_GetWindowSize(w, &ww, &wh);
-        if (ww > 0 && wh > 0)
-            s_aspect = (float)ww / (float)wh;
+        if (w) SDL_GetWindowSize(w, &ww, &wh);
+        if (ww > 0 && wh > 0) s_aspect = (float)ww / (float)wh;
     }
     float x = ev->tfinger.x * s_aspect, y = ev->tfinger.y;
+
+    /* Tap the top-centre empty area to toggle layout editing. */
     if (ev->type == SDL_FINGERDOWN && x > s_aspect * 0.42f && x < s_aspect * 0.58f && y < 0.12f) {
         toggle_editor();
         pthread_mutex_unlock(&s_lock);
         return 0;
     }
+
     int f;
     for (f = 0; f < MAX_FINGERS && !(s_finger[f].used && s_finger[f].id == ev->tfinger.fingerId); f++)
         ;
+
     if (ev->type == SDL_FINGERDOWN && f == MAX_FINGERS) {
         int c = hit(x, y, false);
         for (f = 0; f < MAX_FINGERS && s_finger[f].used; f++)
             ;
         if (f < MAX_FINGERS && s_edit_mode) {
-            s_finger[f].used = true; s_finger[f].id = ev->tfinger.fingerId; s_finger[f].ctrl = c;
-            s_finger[f].x0 = x; s_finger[f].y0 = y; s_finger[f].was_selected = c == s_selected;
+            s_finger[f].used = true;
+            s_finger[f].id = ev->tfinger.fingerId;
+            s_finger[f].ctrl = c;
+            s_finger[f].x0 = x;
+            s_finger[f].y0 = y;
+            s_finger[f].moved = false;
+            s_finger[f].was_selected = c == s_selected;
             if (c >= 0) s_selected = c;
             s_serial++;
         } else if (c >= 0 && f < MAX_FINGERS) {
             xbox_InputTouchUsed();
-            s_finger[f].used = true; s_finger[f].id = ev->tfinger.fingerId; s_finger[f].ctrl = c;
+            s_finger[f].used = true;
+            s_finger[f].id = ev->tfinger.fingerId;
+            s_finger[f].ctrl = c;
+            s_finger[f].moved = false;
             finger_on(c, x, y);
-            if (s_down[BACK] && s_down[START]) {
-                toggle_editor();
-                pthread_mutex_unlock(&s_lock);
-                return 0;
-            }
             s_serial++;
             static int log = -1;
-            if (log < 0)
-                log = getenv("NGB_TOUCH_LOG") != NULL;
-            if (log)
-                fprintf(stderr, "[TOUCH] %s at %.2f, %.2f\n", s_ctrl[c].name, x, y);
+            if (log < 0) log = getenv("NGB_TOUCH_LOG") != NULL;
+            if (log) fprintf(stderr, "[TOUCH] %s at %.2f, %.2f\\n", s_ctrl[c].name, x, y);
         }
-     } else if (ev->type == SDL_FINGERMOTION && f < MAX_FINGERS) {
+    } else if (ev->type == SDL_FINGERMOTION && f < MAX_FINGERS) {
         int c = s_finger[f].ctrl;
-        if (s_edit_mode && c >= 0) {
-            float dx = x - s_finger[f].x0, dy = y - s_finger[f].y0;
-            if (fabsf(dx) + fabsf(dy) > 0.015f) s_finger[f].moved = true;
-            if (s_finger[f].moved) {
-                s_layout_x[c] += s_ctrl[c].right ? -dx : dx;
-                s_layout_y[c] += dy;
-                s_layout_custom[c] = true;
-                s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
-                s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
-                s_finger[f].x0 = x; s_finger[f].y0 = y;
-                s_layout_revision++; s_serial++;
+        if (s_edit_mode) {
+            if (c >= 0) {
+                float dx = x - s_finger[f].x0, dy = y - s_finger[f].y0;
+                if (fabsf(dx) + fabsf(dy) > 0.015f) s_finger[f].moved = true;
+                if (s_finger[f].moved) {
+                    s_layout_x[c] += s_ctrl[c].right ? -dx : dx;
+                    s_layout_y[c] += dy;
+                    s_layout_custom[c] = true;
+                    s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
+                    s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
+                    s_finger[f].x0 = x;
+                    s_finger[f].y0 = y;
+                    s_layout_revision++;
+                    s_serial++;
+                }
             }
-        } else if (!s_edit_mode) {
-            if (s_ctrl[c].kind == BUTTON && c >= BA && c <= BY) {   /* sliding across the face buttons */
+        } else if (c >= 0 && s_ctrl[c].kind == BUTTON && c >= BA && c <= BY) {
             int to = hit(x, y, true);
             if (to >= BA && to <= BY && to != c) {
                 s_finger[f].ctrl = to;
@@ -342,26 +348,34 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
                 finger_on(to, x, y);
                 s_serial++;
             }
-        } else if (c == LSTICK || c == RSTICK || c == DPAD_ID) {   /* (the picture again only for a visible change) */
-            int s = c == RSTICK, was_dpad = s_dpad;
-            float was_x = c == DPAD_ID ? 0 : s_stick[s][0], was_y = c == DPAD_ID ? 0 : s_stick[s][1];
+        } else if (c == LSTICK || c == RSTICK || c == DPAD_ID) {
+            int stick = c == RSTICK, was_dpad = s_dpad;
+            float was_x = c == DPAD_ID ? 0 : s_stick[stick][0];
+            float was_y = c == DPAD_ID ? 0 : s_stick[stick][1];
             finger_on(c, x, y);
-            if (c == DPAD_ID ? s_dpad != was_dpad
-                             : fabsf(s_stick[s][0] - was_x) + fabsf(s_stick[s][1] - was_y) > 1.0f / 32)
+            if (c == DPAD_ID ? s_dpad != was_dpad :
+                fabsf(s_stick[stick][0] - was_x) + fabsf(s_stick[stick][1] - was_y) > 1.0f / 32)
                 s_serial++;
         }
-     } else if (ev->type == SDL_FINGERUP && f < MAX_FINGERS) {
-        int c = s_finger[f].ctrl, was_selected = s_finger[f].was_selected;
-        bool tap = !s_finger[f].moved;
+    } else if (ev->type == SDL_FINGERUP && f < MAX_FINGERS) {
+        int c = s_finger[f].ctrl;
+        bool moved = s_finger[f].moved;
+        bool was_selected = s_finger[f].was_selected;
+        float start_x = s_finger[f].x0, start_y = s_finger[f].y0;
         s_finger[f].used = false;
         if (s_edit_mode) {
-            if (tap && was_selected) edit_tap(c);
-            if (s_finger[f].moved) layout_save();
-            if (tap && c < 0 && s_finger[f].y0 > 0.86f &&
-                s_finger[f].x0 > s_aspect * 0.42f && s_finger[f].x0 < s_aspect * 0.58f) {
-                layout_defaults(); layout_save(); s_layout_revision++; s_selected = -1;
+            if (!moved && was_selected && c >= 0) edit_tap(c);
+            if (moved) layout_save();
+            if (!moved && c < 0 && start_y > 0.86f &&
+                start_x > s_aspect * 0.42f && start_x < s_aspect * 0.58f) {
+                layout_defaults();
+                layout_save();
+                s_layout_revision++;
+                s_selected = -1;
             }
-        } else if (c >= 0) finger_off(c);
+        } else if (c >= 0) {
+            finger_off(c);
+        }
         s_serial++;
     }
     pthread_mutex_unlock(&s_lock);
