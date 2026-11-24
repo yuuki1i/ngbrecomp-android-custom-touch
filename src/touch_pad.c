@@ -590,7 +590,7 @@ static void draw_all(void)
         } else if ((c->kind == BUTTON || c->kind == COMBO) && on) {
             if (c->kind == COMBO) {
                 draw(c->sprite, cx - 0.36f * r, cy, 1.8f * r, 1.8f * r, fmaxf(alpha, 0.85f));
-                draw(c->sprite2, cx + 0.36f * r, cy, 1.8f * r, 1.8f, fmaxf(alpha, 0.85f));
+                draw(c->sprite2, cx + 0.36f * r, cy, 1.8f * r, 1.8f * r, fmaxf(alpha, 0.85f));
             } else draw(c->sprite, cx, cy, 2.7f * r, 2.7f * r, fmaxf(alpha, 0.8f));
             if (i >= BA && i <= BY)
                 draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, fmaxf(alpha, 0.75f));
