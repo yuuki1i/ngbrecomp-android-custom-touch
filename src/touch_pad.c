@@ -267,7 +267,8 @@ static void edit_tap(int c)
     s_layout_revision++;
     static const float alpha[] = {0.35f, 0.50f, 0.65f, 0.80f, 1.0f};
     int next = 0;
-    while (next < 4 && s_layout_alpha[c] >= alpha[next] - 0.01f) next++;
+    while (next < 5 && s_layout_alpha[c] >= alpha[next] - 0.01f) next++;
+    if (next == 5) next = 0; /* wrap back to the most transparent setting */
     s_layout_alpha[c] = alpha[next];
     layout_save();
 }
