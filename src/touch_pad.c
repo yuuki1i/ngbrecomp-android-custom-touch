@@ -331,7 +331,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
                 s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
                 s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
                 s_finger[f].x0 = x; s_finger[f].y0 = y;
-                layout_save(); s_layout_revision++; s_serial++;
+                s_layout_revision++; s_serial++;
             }
         } else if (!s_edit_mode) {
             if (s_ctrl[c].kind == BUTTON && c >= BA && c <= BY) {   /* sliding across the face buttons */
@@ -354,8 +354,14 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int c = s_finger[f].ctrl, was_selected = s_finger[f].was_selected;
         bool tap = !s_finger[f].moved;
         s_finger[f].used = false;
-        if (s_edit_mode) { if (tap && was_selected) edit_tap(c); }
-        else if (c >= 0) finger_off(c);
+        if (s_edit_mode) {
+            if (tap && was_selected) edit_tap(c);
+            if (s_finger[f].moved) layout_save();
+            if (tap && c < 0 && s_finger[f].y0 > 0.86f &&
+                s_finger[f].x0 > s_aspect * 0.42f && s_finger[f].x0 < s_aspect * 0.58f) {
+                layout_defaults(); layout_save(); s_layout_revision++; s_selected = -1;
+            }
+        } else if (c >= 0) finger_off(c);
         s_serial++;
     }
     pthread_mutex_unlock(&s_lock);
