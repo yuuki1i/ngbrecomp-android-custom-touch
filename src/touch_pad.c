@@ -70,18 +70,85 @@ static const Ctrl s_ctrl[NCTRL] = {
 };
 
 static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
-static float s_aspect = 16.0f / 9;            /* the window's width over its height */
+static float s_aspect = 16.0f / 9;
+static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
+static bool s_layout_loaded, s_edit_mode;
+static int s_selected = -1;
+static char s_layout_path[512];
 static bool s_down[NCTRL];
 static float s_stick[2][2];                   /* each stick's knob, -1..1 (y down) */
 static int s_dpad;                            /* XBOX_GAMEPAD_DPAD_* bits */
 static unsigned s_serial = 1;                 /* +1 each change of what the picture shows */
 
 #define MAX_FINGERS 10
-static struct { SDL_FingerID id; int ctrl; bool used; } s_finger[MAX_FINGERS];
+static struct { SDL_FingerID id; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 
+static int ctrl_index(const Ctrl *c) { return (int)(c - s_ctrl); }
+
+static void layout_defaults(void)
+{
+    for (int i = 0; i < NCTRL; i++) {
+        s_layout_x[i] = s_ctrl[i].x;
+        s_layout_y[i] = s_ctrl[i].y;
+        s_layout_r[i] = s_ctrl[i].r;
+        s_layout_alpha[i] = (i >= BA && i <= BY) ? 0.65f : 0.55f;
+    }
+}
+static void layout_load(void)
+{
+    if (s_layout_loaded) return;
+    s_layout_loaded = true;
+    layout_defaults();
+    char *dir = SDL_GetPrefPath("NinjaGaidenBlack", "touch-controls");
+    if (!dir) return;
+    snprintf(s_layout_path, sizeof s_layout_path, "%s/touch-controls.cfg", dir);
+    SDL_free(dir);
+    FILE *fp = fopen(s_layout_path, "r");
+    if (!fp) return;
+    int id; float x, y, r, a;
+    while (fscanf(fp, "%d %f %f %f %f", &id, &x, &y, &r, &a) == 5) {
+        if (id < 0 || id >= NCTRL) continue;
+        s_layout_x[id] = x; s_layout_y[id] = y; s_layout_r[id] = r; s_layout_alpha[id] = a;
+    }
+    fclose(fp);
+    for (int i = 0; i < NCTRL; i++) {
+        s_layout_r[i] = fminf(0.25f, fmaxf(0.035f, s_layout_r[i]));
+        s_layout_y[i] = fminf(0.97f, fmaxf(0.03f, s_layout_y[i]));
+        s_layout_alpha[i] = fminf(1.0f, fmaxf(0.15f, s_layout_alpha[i]));
+    }
+}
+static void layout_save(void)
+{
+    if (!s_layout_path[0]) {
+        char *dir = SDL_GetPrefPath("NinjaGaidenBlack", "touch-controls");
+        if (!dir) return;
+        snprintf(s_layout_path, sizeof s_layout_path, "%s/touch-controls.cfg", dir);
+        SDL_free(dir);
+    }
+    FILE *fp = fopen(s_layout_path, "w");
+    if (!fp) return;
+    for (int i = 0; i < NCTRL; i++)
+        fprintf(fp, "%d %.5f %.5f %.5f %.5f\n", i, s_layout_x[i], s_layout_y[i], s_layout_r[i], s_layout_alpha[i]);
+    fclose(fp);
+}
+static void clear_touch_state(void)
+{
+    memset(s_finger, 0, sizeof s_finger);
+    memset(s_down, 0, sizeof s_down);
+    memset(s_stick, 0, sizeof s_stick);
+    s_dpad = 0;
+}
+static void toggle_editor(void)
+{
+    s_edit_mode = !s_edit_mode;
+    s_selected = -1;
+    clear_touch_state();
+    if (!s_edit_mode) layout_save();
+    s_serial++;
+}
 static float centre_x_at(const Ctrl *c, float aspect)
 {
-    float x = c->x;
+    float x = s_layout_x[ctrl_index(c)];
     if (c == &s_ctrl[DPAD_ID] || c == &s_ctrl[RSTICK]) {   /* (in from the middle on a less wide screen) */
         float most = aspect / 2 - 0.16f;
         x = x < most ? x : most;
@@ -103,8 +170,9 @@ static int hit(float x, float y, bool buttons_only)
         const Ctrl *c = &s_ctrl[i];
         if (buttons_only && c->kind != BUTTON)
             continue;
-        float dx = x - centre_x(c), dy = y - c->y, d;
-        float reach = c->kind == STICK ? c->r * 1.7f : c->kind == DPAD ? c->r * 1.4f : c->r * 1.35f;
+        int ci = ctrl_index(c);
+        float dx = x - centre_x(c), dy = y - s_layout_y[ci], d;
+        float reach = c->kind == STICK ? s_layout_r[ci] * 1.7f : c->kind == DPAD ? s_layout_r[ci] * 1.4f : s_layout_r[ci] * 1.35f;
         d = sqrtf(dx * dx + dy * dy);
         if (d > reach)
             continue;
@@ -120,7 +188,8 @@ static int hit(float x, float y, bool buttons_only)
 static void set_stick(int i, float x, float y)
 {
     const Ctrl *c = &s_ctrl[i];
-    float dx = (x - centre_x(c)) / c->r, dy = (y - c->y) / c->r, m = sqrtf(dx * dx + dy * dy);
+    int ci = ctrl_index(c);
+    float dx = (x - centre_x(c)) / s_layout_r[ci], dy = (y - s_layout_y[ci]) / s_layout_r[ci], m = sqrtf(dx * dx + dy * dy);
     if (m > 1) {
         dx /= m;
         dy /= m;
@@ -133,8 +202,9 @@ static void set_stick(int i, float x, float y)
 static int dpad_dirs(float x, float y)
 {
     const Ctrl *c = &s_ctrl[DPAD_ID];
-    float dx = x - centre_x(c), dy = y - c->y;
-    if (dx * dx + dy * dy < (c->r * 0.25f) * (c->r * 0.25f))
+    int ci = ctrl_index(c);
+    float dx = x - centre_x(c), dy = y - s_layout_y[ci];
+    if (dx * dx + dy * dy < (s_layout_r[ci] * 0.25f) * (s_layout_r[ci] * 0.25f))
         return 0;
     float a = atan2f(-dy, dx) * 180.0f / (float)M_PI;   /* 0 right, 90 up */
     int d = 0;
@@ -170,13 +240,26 @@ static void finger_off(int ctrl)
         s_dpad = 0;
 }
 
+static void edit_tap(int c)
+{
+    if (c < 0 || c >= NCTRL) return;
+    float base = s_ctrl[c].r;
+    float ratio = s_layout_r[c] / base;
+    s_layout_r[c] = base * (ratio < 0.88f ? 1.0f : ratio < 1.12f ? 1.25f : 0.75f);
+    static const float alpha[] = {0.35f, 0.50f, 0.65f, 0.80f, 1.0f};
+    int next = 0;
+    while (next < 4 && s_layout_alpha[c] >= alpha[next] - 0.01f) next++;
+    s_layout_alpha[c] = alpha[next];
+    layout_save();
+}
 static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
 {
     (void)unused;
     if (ev->type != SDL_FINGERDOWN && ev->type != SDL_FINGERMOTION && ev->type != SDL_FINGERUP)
         return 0;
     if (ev->type != SDL_FINGERUP && xbox_InputControllerPresent())
-        return 0;   /* (a finger lifting still lets go) */
+        return 0;
+    layout_load();
     pthread_mutex_lock(&s_lock);
     {   /* (the window's own shape: the presenter's may not have come, where it cannot draw the picture) */
         SDL_Window *w = SDL_GetWindowFromID(ev->tfinger.windowID);
@@ -187,6 +270,11 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
             s_aspect = (float)ww / (float)wh;
     }
     float x = ev->tfinger.x * s_aspect, y = ev->tfinger.y;
+    if (ev->type == SDL_FINGERDOWN && x > s_aspect * 0.42f && x < s_aspect * 0.58f && y < 0.12f) {
+        toggle_editor();
+        pthread_mutex_unlock(&s_lock);
+        return 0;
+    }
     int f;
     for (f = 0; f < MAX_FINGERS && !(s_finger[f].used && s_finger[f].id == ev->tfinger.fingerId); f++)
         ;
@@ -194,12 +282,20 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int c = hit(x, y, false);
         for (f = 0; c >= 0 && f < MAX_FINGERS && s_finger[f].used; f++)
             ;
-        if (c >= 0 && f < MAX_FINGERS) {
-            xbox_InputTouchUsed();   /* (the pad's prompts, not the keyboard's) */
-            s_finger[f].used = true;
-            s_finger[f].id = ev->tfinger.fingerId;
-            s_finger[f].ctrl = c;
+        if (f < MAX_FINGERS && s_edit_mode) {
+            s_finger[f].used = true; s_finger[f].id = ev->tfinger.fingerId; s_finger[f].ctrl = c;
+            s_finger[f].x0 = x; s_finger[f].y0 = y; s_finger[f].was_selected = c == s_selected;
+            if (c >= 0) s_selected = c;
+            s_serial++;
+        } else if (c >= 0 && f < MAX_FINGERS) {
+            xbox_InputTouchUsed();
+            s_finger[f].used = true; s_finger[f].id = ev->tfinger.fingerId; s_finger[f].ctrl = c;
             finger_on(c, x, y);
+            if (s_down[BACK] && s_down[START]) {
+                toggle_editor();
+                pthread_mutex_unlock(&s_lock);
+                return 0;
+            }
             s_serial++;
             static int log = -1;
             if (log < 0)
@@ -207,8 +303,20 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
             if (log)
                 fprintf(stderr, "[TOUCH] %s at %.2f, %.2f\n", s_ctrl[c].name, x, y);
         }
-    } else if (ev->type == SDL_FINGERMOTION && f < MAX_FINGERS) {
+     } else if (ev->type == SDL_FINGERMOTION && f < MAX_FINGERS) {
         int c = s_finger[f].ctrl;
+        if (s_edit_mode && c >= 0) {
+            float dx = x - s_finger[f].x0, dy = y - s_finger[f].y0;
+            if (fabsf(dx) + fabsf(dy) > 0.015f) s_finger[f].moved = true;
+            if (s_finger[f].moved) {
+                s_layout_x[c] += s_ctrl[c].right ? -dx : dx;
+                s_layout_y[c] += dy;
+                s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
+                s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
+                s_finger[f].x0 = x; s_finger[f].y0 = y;
+                layout_save(); s_serial++;
+            }
+        } else if (!s_edit_mode
         if (s_ctrl[c].kind == BUTTON && c >= BA && c <= BY) {   /* sliding across the face buttons */
             int to = hit(x, y, true);
             if (to >= BA && to <= BY && to != c) {
@@ -225,10 +333,12 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
                              : fabsf(s_stick[s][0] - was_x) + fabsf(s_stick[s][1] - was_y) > 1.0f / 32)
                 s_serial++;
         }
-    } else if (ev->type == SDL_FINGERUP && f < MAX_FINGERS) {
-        int c = s_finger[f].ctrl;
+     } else if (ev->type == SDL_FINGERUP && f < MAX_FINGERS) {
+        int c = s_finger[f].ctrl, was_selected = s_finger[f].was_selected;
+        bool tap = !s_finger[f].moved;
         s_finger[f].used = false;
-        finger_off(c);
+        if (s_edit_mode) { if (tap && was_selected) edit_tap(c); }
+        else if (c >= 0) finger_off(c);
         s_serial++;
     }
     pthread_mutex_unlock(&s_lock);
@@ -258,8 +368,8 @@ static void let_go(void)
 static void touch_init(void)
 {
     static int done;
-    if (__atomic_exchange_n(&done, 1, __ATOMIC_ACQ_REL))
-        return;
+    if (__atomic_exchange_n(&done, 1, __ATOMIC_ACQ_REL)) return;
+    layout_load();
     SDL_AddEventWatch(touch_watch, NULL);
 }
 
@@ -379,13 +489,11 @@ static void draw_idle(void)
     memset(s_px, 0, sizeof(uint32_t) * (size_t)s_w * s_h);
     for (int i = 0; i < NCTRL; i++) {
         const Ctrl *c = &s_ctrl[i];
-        float cx = centre_x_at(c, d_aspect) * u, cy = c->y * u, r = c->r * u;
-        if (c->kind == STICK)
-            draw("touch_pad", cx, cy, 2 * r, 2 * r, IDLE);
-        else if (c->kind == DPAD)
-            draw("touch_dpad", cx, cy, 2.2f * r, 2.2f * r, IDLE);
-        else   /* (the prompts fill about four fifths of their picture: drawn a little over the button's size) */
-            draw(c->sprite, cx, cy, 2.5f * r, 2.5f * r, IDLE + 0.1f);
+        float cx = centre_x_at(c, d_aspect) * u, cy = s_layout_y[i] * u, r = s_layout_r[i] * u;
+        float alpha = s_layout_alpha[i];
+        if (c->kind == STICK) draw("touch_pad", cx, cy, 2 * r, 2 * r, alpha);
+        else if (c->kind == DPAD) draw("touch_dpad", cx, cy, 2.2f * r, 2.2f * r, alpha);
+        else draw(c->sprite, cx, cy, 2.5f * r, 2.5f * r, alpha);
     }
 }
 
@@ -408,15 +516,16 @@ static void draw_all(void)
     }
     for (int i = 0; i < NCTRL; i++) {
         const Ctrl *c = &s_ctrl[i];
-        float cx = centre_x_at(c, d_aspect) * u, cy = c->y * u, r = c->r * u;
+        float cx = centre_x_at(c, d_aspect) * u, cy = s_layout_y[i] * u, r = s_layout_r[i] * u;
+        float alpha = s_layout_alpha[i];
         bool on = d_down[i];
         if (c->kind == STICK) {
             int s = i == RSTICK;
             float nx = cx + d_stick[s][0] * r * 0.55f, ny = cy + d_stick[s][1] * r * 0.55f;
-            draw("touch_nub", nx, ny, r, r, on ? 0.95f : IDLE + 0.2f);
+            draw("touch_nub", nx, ny, r, r, on ? fmaxf(alpha, 0.85f) : fminf(1.0f, alpha + 0.2f));
             if (on) {
-                draw("touch_pad_lit", cx, cy, 2 * r, 2 * r, 0.9f);
-                draw("touch_nub_lit", nx, ny, r, r, 0.9f);
+                draw("touch_pad_lit", cx, cy, 2 * r, 2 * r, fmaxf(alpha, 0.8f));
+                draw("touch_nub_lit", nx, ny, r, r, fmaxf(alpha, 0.8f));
             }
         } else if (c->kind == DPAD && on) {
             static const struct { int bit; const char *lit; float dx, dy; } arms[] = {
@@ -426,15 +535,19 @@ static void draw_all(void)
                 { XBOX_GAMEPAD_DPAD_RIGHT, "touch_dpad_east_lit", 1, 0 },
             };
             float size = 2.2f * r;   /* (the picture's arms are a third of it each) */
-            draw("touch_dpad", cx, cy, size, size, 0.45f);   /* (over the untouched one: less see-through) */
+            draw("touch_dpad", cx, cy, size, size, fmaxf(alpha, 0.65f));
             for (int a = 0; a < 4; a++)
                 if (d_dpad & arms[a].bit)
                     draw(arms[a].lit, cx + arms[a].dx * size / 3, cy + arms[a].dy * size / 3, size / 2, size / 2,
                          0.95f);
         } else if (c->kind == BUTTON && on) {
-            draw(c->sprite, cx, cy, 2.7f * r, 2.7f * r, 1.0f);
+            draw(c->sprite, cx, cy, 2.7f * r, 2.7f * r, fmaxf(alpha, 0.8f));
             if (i >= BA && i <= BY)
-                draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
+                draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, fmaxf(alpha, 0.75f));
+        }
+        if (s_edit_mode && i == s_selected) {
+            if (c->kind == STICK) draw("touch_pad_lit", cx, cy, 2.1f * r, 2.1f * r, 0.8f);
+            else draw("touch_button_lit", cx, cy, 2.6f * r, 2.6f, 0.75f);
         }
     }
 }
