@@ -40,7 +40,7 @@ release** (NTSC-U, title ID `5443000D`) and checks for it.
 ## Features
 
 - Native Linux (AppImage) and Windows (x64) builds; Steam Deck friendly
-- Android (arm64), **experimental**, with Xbox 360 touch controls
+- Android (arm64), **experimental**, with customizable Xbox 360 touch controls: move, resize and adjust opacity; dedicated Ninpo (Y+B) and Wind Run (X+A) combo buttons
 - Render resolution up to 10x, anisotropic filtering, MSAA, sharper shadows
 - 16:9, 16:10, 21:9 and 32:9 as well as 4:3: the 3D fills the screen, the HUD goes to the screen's
   corners, optional HUD-free view, menus keep the game's own 16:9
@@ -228,7 +228,7 @@ were.
 ## Controls
 
 On Android, an Xbox 360 pad is drawn over the screen: the two sticks, the d-pad, A B X Y, the bumpers
-and triggers, Back, Start and the stick clicks. It hides while a controller is connected.
+and triggers, Back, Start and the stick clicks. It hides while a controller is connected. The touch layout can be edited: tap the empty top-centre area to enter/leave edit mode, drag controls to move them, and tap a selected control repeatedly to cycle its size and opacity. In edit mode, tap the empty bottom-centre area to restore the default layout. Two extra combo buttons are available for Ninpo (Y+B) and Wind Run (X+A).
 
 A controller works as on the Xbox. The keyboard and mouse can be used at any time — the game follows
 whichever was touched last, and its button prompts change to match (or stay on one set: "Button
