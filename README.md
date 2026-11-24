@@ -411,3 +411,14 @@ the GNU General Public License as published by the Free Software Foundation, eit
 License, or (at your option) any later version (`GPL-3.0-or-later`; the text is in [LICENSE](LICENSE)).
 Up to 0.9.24 it was GPL-2.0-or-later. It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 The parts it is built from keep their own licenses: see [THIRD_PARTY.md](THIRD_PARTY.md).
+
+
+### Custom Android touch layout (experimental branch)
+
+- Tap the empty top-centre of the screen to enter or leave touch-layout editing.
+- Drag a control to reposition it. Positions are saved when you release your finger.
+- Tap a selected control again to cycle through size and opacity presets.
+- In edit mode, tap the empty bottom-centre area to restore the default layout.
+- The editor only affects the on-screen touch overlay; controller input mapping is unchanged.
+
+The layout is stored in the app's private preferences directory as `touch-controls.cfg`.
