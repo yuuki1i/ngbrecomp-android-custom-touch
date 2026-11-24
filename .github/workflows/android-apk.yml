@@ -1,0 +1,86 @@
+name: Android APK Build
+
+on:
+  push:
+    branches:
+      - feature/android-custom-touch-controls
+    paths:
+      - .github/workflows/android-apk.yml
+      - packaging/android/**
+      - src/**
+      - CMakeLists.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-arm64:
+    name: Build Android ARM64 APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install host build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison flex curl git python3-venv zip unzip pkg-config
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android toolchain
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Cache native Android dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/android-deps
+          key: ngb-android-deps-arm64-api29-mesa26.3-${{ runner.os }}-${{ hashFiles('packaging/android/build.sh') }}
+          restore-keys: |
+            ngb-android-deps-arm64-api29-mesa26.3-${{ runner.os }}-
+
+      - name: Check generated recompilation sources
+        run: |
+          if ! compgen -G 'src/recomp/gen/*.c' > /dev/null; then
+            echo "::error::Missing generated recompiled game source (src/recomp/gen/*.c)."
+            echo "The generation pipeline requires the user's legally obtained game files locally."
+            echo "Do not upload the game ISO or copyrighted game data to this repository or CI."
+            echo "A locally generated source bundle is required before the APK can be compiled."
+            exit 1
+          fi
+
+      - name: Build APK
+        run: packaging/android/build.sh build/android-release
+
+      - name: Verify APK metadata and architecture
+        run: |
+          APK=build/android-release/NinjaGaidenBlack-android-arm64.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "package: name='io.github.gamboozino.ngbrecomp' versionCode='985' versionName='0.9.85-touch-test'"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h build/android-release/build/libmain.so | grep 'Machine:.*AArch64'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NinjaGaidenBlack-Android-ARM64-0.9.85-touch-test
+          path: build/android-release/NinjaGaidenBlack-android-arm64.apk
+          if-no-files-found: error
+          retention-days: 30
