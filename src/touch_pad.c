@@ -39,8 +39,8 @@ void stbi_image_free(void *p);
 extern const struct { const char *name; const unsigned char *data; const unsigned int *len; } ngb_key_pngs[];
 extern const int ngb_key_png_count;   /* (CMakeLists.txt: the embedded pictures by file name) */
 
-enum Kind { BUTTON, STICK, DPAD };
-enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, NCTRL };
+enum Kind { BUTTON, COMBO, STICK, DPAD };
+enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, NINPO, WINDRUN, LB, RB, LT, RT, BACK, START, LS, RS, NCTRL };
 
 typedef struct {
     enum Kind kind;
@@ -48,25 +48,28 @@ typedef struct {
     float x, y, r;       /* centre and radius, in screen heights */
     const char *name;    /* (the log's) */
     const char *sprite;  /* its picture (a stick's or the d-pad's: Kenney's) */
+    const char *sprite2; /* second picture for combo controls */
 } Ctrl;
 
 static const Ctrl s_ctrl[NCTRL] = {
-    [LSTICK]  = { STICK,  0, 0.30f, 0.70f, 0.17f,  "left stick", "touch_pad" },
-    [RSTICK]  = { STICK,  1, 0.72f, 0.66f, 0.12f,  "right stick", "touch_pad" },   /* (above the game's
+    [LSTICK]  = { STICK,  0, 0.30f, 0.70f, 0.17f,  "left stick", "touch_pad" , NULL },
+    [RSTICK]  = { STICK,  1, 0.72f, 0.66f, 0.12f,  "right stick", "touch_pad" , NULL },   /* (above the game's
                                                        prompts, at the picture's lower right) */
-    [DPAD_ID] = { DPAD,   0, 0.74f, 0.84f, 0.12f,  "d-pad", "touch_dpad" },
-    [BA]      = { BUTTON, 1, 0.28f, 0.70f, 0.07f,  "A", "360_A" },
-    [BB]      = { BUTTON, 1, 0.16f, 0.58f, 0.07f,  "B", "360_B" },
-    [BX]      = { BUTTON, 1, 0.40f, 0.58f, 0.07f,  "X", "360_X" },
-    [BY]      = { BUTTON, 1, 0.28f, 0.46f, 0.07f,  "Y", "360_Y" },
-    [LB]      = { BUTTON, 0, 0.30f, 0.28f, 0.075f, "LB", "360_LB" },
-    [RB]      = { BUTTON, 1, 0.30f, 0.28f, 0.075f, "RB", "360_RB" },
-    [LT]      = { BUTTON, 0, 0.13f, 0.14f, 0.085f, "LT", "360_LT" },
-    [RT]      = { BUTTON, 1, 0.13f, 0.14f, 0.085f, "RT", "360_RT" },
-    [BACK]    = { BUTTON, 0, 0.09f, 0.37f, 0.06f,  "BACK", "360_Back" },
-    [START]   = { BUTTON, 1, 0.09f, 0.37f, 0.06f,  "START", "360_Start" },
-    [LS]      = { BUTTON, 0, 0.09f, 0.90f, 0.055f, "LS", "360_Left_Stick_Click" },
-    [RS]      = { BUTTON, 1, 0.09f, 0.90f, 0.055f, "RS", "360_Right_Stick_Click" },
+    [DPAD_ID] = { DPAD,   0, 0.74f, 0.84f, 0.12f,  "d-pad", "touch_dpad" , NULL },
+    [BA]      = { BUTTON, 1, 0.28f, 0.70f, 0.07f,  "A", "360_A" , NULL },
+    [BB]      = { BUTTON, 1, 0.16f, 0.58f, 0.07f,  "B", "360_B" , NULL },
+    [BX]      = { BUTTON, 1, 0.40f, 0.58f, 0.07f,  "X", "360_X" , NULL },
+    [BY]      = { BUTTON, 1, 0.28f, 0.46f, 0.07f,  "Y", "360_Y", NULL },
+    [NINPO]   = { COMBO,  1, 0.52f, 0.46f, 0.06f,  "Ninpo", "360_Y", "360_B" },
+    [WINDRUN] = { COMBO,  1, 0.52f, 0.62f, 0.06f,  "Wind Run", "360_X", "360_A" },
+    [LB]      = { BUTTON, 0, 0.30f, 0.28f, 0.075f, "LB", "360_LB" , NULL },
+    [RB]      = { BUTTON, 1, 0.30f, 0.28f, 0.075f, "RB", "360_RB" , NULL },
+    [LT]      = { BUTTON, 0, 0.13f, 0.14f, 0.085f, "LT", "360_LT" , NULL },
+    [RT]      = { BUTTON, 1, 0.13f, 0.14f, 0.085f, "RT", "360_RT" , NULL },
+    [BACK]    = { BUTTON, 0, 0.09f, 0.37f, 0.06f,  "BACK", "360_Back" , NULL },
+    [START]   = { BUTTON, 1, 0.09f, 0.37f, 0.06f,  "START", "360_Start" , NULL },
+    [LS]      = { BUTTON, 0, 0.09f, 0.90f, 0.055f, "LS", "360_Left_Stick_Click" , NULL },
+    [RS]      = { BUTTON, 1, 0.09f, 0.90f, 0.055f, "RS", "360_Right_Stick_Click" , NULL },
 };
 
 static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -426,6 +429,8 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         { BA, XBOX_BUTTON_A }, { BB, XBOX_BUTTON_B }, { BX, XBOX_BUTTON_X }, { BY, XBOX_BUTTON_Y },
         { LB, XBOX_BUTTON_BLACK }, { RB, XBOX_BUTTON_WHITE },   /* (as a 360 pad's bumpers are: input/xinput_device.c) */
         { LT, XBOX_BUTTON_LTRIGGER }, { RT, XBOX_BUTTON_RTRIGGER },
+        { NINPO, XBOX_BUTTON_Y }, { NINPO, XBOX_BUTTON_B },
+        { WINDRUN, XBOX_BUTTON_X }, { WINDRUN, XBOX_BUTTON_A },
     };
     for (size_t i = 0; i < sizeof analog / sizeof analog[0]; i++)
         if (s_down[analog[i].ctrl])
@@ -531,7 +536,10 @@ static void draw_idle(void)
         float alpha = d_layout_alpha[i];
         if (c->kind == STICK) draw("touch_pad", cx, cy, 2 * r, 2 * r, alpha);
         else if (c->kind == DPAD) draw("touch_dpad", cx, cy, 2.2f * r, 2.2f * r, alpha);
-        else draw(c->sprite, cx, cy, 2.5f * r, 2.5f * r, alpha);
+        else if (c->kind == COMBO) {
+            draw(c->sprite, cx - 0.36f * r, cy, 1.65f * r, 1.65f * r, alpha);
+            draw(c->sprite2, cx + 0.36f * r, cy, 1.65f * r, 1.65f * r, alpha);
+        } else draw(c->sprite, cx, cy, 2.5f * r, 2.5f * r, alpha);
     }
 }
 
@@ -579,10 +587,15 @@ static void draw_all(void)
                 if (d_dpad & arms[a].bit)
                     draw(arms[a].lit, cx + arms[a].dx * size / 3, cy + arms[a].dy * size / 3, size / 2, size / 2,
                          0.95f);
-        } else if (c->kind == BUTTON && on) {
-            draw(c->sprite, cx, cy, 2.7f * r, 2.7f * r, fmaxf(alpha, 0.8f));
+        } else if ((c->kind == BUTTON || c->kind == COMBO) && on) {
+            if (c->kind == COMBO) {
+                draw(c->sprite, cx - 0.36f * r, cy, 1.8f * r, 1.8f * r, fmaxf(alpha, 0.85f));
+                draw(c->sprite2, cx + 0.36f * r, cy, 1.8f * r, 1.8f, fmaxf(alpha, 0.85f));
+            } else draw(c->sprite, cx, cy, 2.7f * r, 2.7f * r, fmaxf(alpha, 0.8f));
             if (i >= BA && i <= BY)
                 draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, fmaxf(alpha, 0.75f));
+            else if (c->kind == COMBO)
+                draw("touch_button_lit", cx, cy, 2.1f * r, 2.1f * r, fmaxf(alpha, 0.75f));
         }
         if (d_edit_mode && i == d_selected) {
             if (c->kind == STICK) draw("touch_pad_lit", cx, cy, 2.1f * r, 2.1f * r, 0.8f);
