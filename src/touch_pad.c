@@ -40,7 +40,7 @@ extern const struct { const char *name; const unsigned char *data; const unsigne
 extern const int ngb_key_png_count;   /* (CMakeLists.txt: the embedded pictures by file name) */
 
 enum Kind { BUTTON, COMBO, STICK, DPAD };
-enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, NINPO, WINDRUN, LB, RB, LT, RT, BACK, START, LS, RS, NCTRL };
+enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, NINPO, WINDRUN, NCTRL };
 
 typedef struct {
     enum Kind kind;
