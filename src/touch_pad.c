@@ -85,7 +85,7 @@ static const Ctrl s_ctrl[NCTRL] = {
                                                        nearer each other, both pressed at once for a reset: #284) */
     [LS]      = { BUTTON, 0, 0.09f,  0.90f,  0.04f,  "LS", "LS", 0xE6E6E6, "click_l" },
     [RS]      = { BUTTON, 1, 0.09f,  0.90f,  0.045f, "RS", "RS", 0xE6E6E6, "click_r" },
-    [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.050f, "edit", "EDIT", 0x4C9BEA, "swap" },
+    [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.035f, "layout", "<>", 0xE6E6E6, "swap" },
     [NINPO]   = { COMBO, 1, 0.52f, 0.46f, 0.060f, "NINPO", "N", 0x4C9BEA, "button_y" },
     [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0x4C9BEA, "button_x" },
     [CUSTOM1] = { COMBO, 1, 0.52f, 0.32f, 0.055f, "C1", "C1", 0x4C9BEA, "button_a" },
@@ -350,7 +350,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
     if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();s_layout=s_layout!=1;s_layout_save=1;s_serial++;pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
@@ -762,7 +762,7 @@ static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME && c != &s_ctrl[SWAP]) {
+    if (s_art == ART_GAME) {
         char n[40];
         snprintf(n, sizeof n, lit ? "%s_lit" : "%s", c->piece);
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
