@@ -328,7 +328,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
-    if(ev->type==SDL_FINGERDOWN&&y<.105f&&s_edit_mode){editor_toolbar_action(x);pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
@@ -931,8 +931,8 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    if (d_edit_mode) draw_editor_badge();
-    for (int i=0;i<NCTRL;i++) if (d_edit_mode && i==d_selected) { Place p=place_at(&s_ctrl[i],d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=s_ctrl[i].edge==2?d_aspect/2+d_layout_x[i]:s_ctrl[i].edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} draw_style_outline(p.x*u,p.y*u,p.r*u,d_layout_color[i],d_layout_shape[i],true); }
+    for (int i=0;i<NCTRL;i++) { const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw(\"touch_button_lit\",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    draw_editor_badge();
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
