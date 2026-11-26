@@ -385,7 +385,8 @@ int ngb_menu_row_get(int row) {
     if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl_toggle_get(row - NGB_MENU_CTL_BASE);
     if (row == NGB_MENU_CTL_MOUSE) return ngb_bind_mouse_sensitivity();
     if (row == NGB_MENU_CTL_PROMPTS) return ngb_bind_prompts();
-    if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) return ngb_bind_get(row - NGB_MENU_BIND_BASE, s_menu_bind_slot);\n    return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row);
+    if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) return ngb_bind_get(row - NGB_MENU_BIND_BASE, s_menu_bind_slot);
+    return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row);
 }
 void ngb_menu_row_value(int row, char *out, size_t n) {
     if (!n) return;
@@ -6724,4 +6725,5 @@ int ngb_game_text_picture(const char *s, float cap, uint32_t *out, int maxw, int
     *oh = h;
     return 1;
 }
-\nvoid ngb_menu_row_activate(int row) { if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot); }\n
+
+void ngb_menu_row_activate(int row) { if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot); }\n
