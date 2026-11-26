@@ -550,6 +550,7 @@ static const Sprite *user_skin(void) {
         snprintf(loaded, sizeof loaded, "%s", d_skin_path);
         int channels = 0;
         image.px = stbi_load(loaded, &image.w, &image.h, &channels, 4);
+        if (image.px && (image.w > 2048 || image.h > 2048 || image.w < 8 || image.h < 8)) { stbi_image_free(image.px); memset(&image, 0, sizeof image); }
     }
     return image.px ? &image : NULL;
 }
