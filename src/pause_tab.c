@@ -335,35 +335,78 @@ static void change(int row, int step)
 #define NGB_MENU_ROW_TOUCH 1000
 int ngb_menu_tab_count(void) { return CATS; }
 const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_name[tab] : ""; }
+#define NGB_MENU_CTL_BASE 1100
+#define NGB_MENU_CTL_MOUSE 1105
+#define NGB_MENU_CTL_PROMPTS 1106
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CAT_CTL) return 1;
+    if (tab == CAT_CTL) return 9;
     if (tab < 0 || tab >= CATS) return 0;
-    if (tab == CAT_CHEAT) return 7; /* S_UNLOCKS opens a separate page in the game's pause UI. */
+    if (tab == CAT_CHEAT) return 7;
     int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0) n++;
     return n;
 }
 int ngb_menu_tab_row(int tab, int index) {
-    if (tab == CAT_CTL) return index == 0 ? NGB_MENU_ROW_TOUCH : -1;
+    if (tab == CAT_CTL) {
+        if (index >= 0 && index < 5) return NGB_MENU_CTL_BASE + index;
+        if (index == 5) return NGB_MENU_CTL_MOUSE;
+        if (index == 6) return NGB_MENU_CTL_PROMPTS;
+        return index == 8 ? NGB_MENU_ROW_TOUCH : -1;
+    }
     if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
     return s_cat_rows[tab][index];
 }
 const char *ngb_menu_row_label(int row) {
+    static const char *const ctl[] = { "Invert Camera X", "Invert Camera Y", "Invert First-Person X",
+        "Start in Third Person", "Start+Back Reset", "Camera Sensitivity", "Button Prompts" };
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl[row - NGB_MENU_CTL_BASE];
+    if (row == NGB_MENU_CTL_MOUSE) return ctl[5];
+    if (row == NGB_MENU_CTL_PROMPTS) return ctl[6];
     return row == NGB_MENU_ROW_TOUCH ? "Touch Layout Editor" :
            row >= 0 && row < S_COUNT ? s_label[row] : "";
 }
 const char *ngb_menu_row_help(int row) {
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return s_ctl_toggle_help[row - NGB_MENU_CTL_BASE];
+    if (row == NGB_MENU_CTL_MOUSE) return "Camera sensitivity for the right stick and mouse-look.";
+    if (row == NGB_MENU_CTL_PROMPTS) return "Choose the button symbols shown by the game: Auto, Xbox, PlayStation, Nintendo or PC.";
     return row == NGB_MENU_ROW_TOUCH ? "Open the touch editor over the game. Drag controls, resize them and adjust their appearance." :
            row >= 0 && row < S_COUNT ? s_help[row] : "";
 }
-int ngb_menu_row_get(int row) { return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row); }
+int ngb_menu_row_get(int row) {
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl_toggle_get(row - NGB_MENU_CTL_BASE);
+    if (row == NGB_MENU_CTL_MOUSE) return ngb_bind_mouse_sensitivity();
+    if (row == NGB_MENU_CTL_PROMPTS) return ngb_bind_prompts();
+    return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row);
+}
 void ngb_menu_row_value(int row, char *out, size_t n) {
     if (!n) return;
-    if (row == NGB_MENU_ROW_TOUCH) snprintf(out, n, "OPEN");
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5)
+        snprintf(out, n, "%s", ngb_menu_row_get(row) ? "On" : "Off");
+    else if (row == NGB_MENU_CTL_MOUSE)
+        snprintf(out, n, "%d%%", ngb_bind_mouse_sensitivity());
+    else if (row == NGB_MENU_CTL_PROMPTS)
+        snprintf(out, n, "%s", ngb_bind_prompts_name(ngb_bind_prompts()));
+    else if (row == NGB_MENU_ROW_TOUCH) snprintf(out, n, "OPEN");
     else if (row >= 0 && row < S_COUNT) value_text(row, out, n);
     else out[0] = 0;
 }
-void ngb_menu_row_change(int row, int dir) { if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir); }
-void ngb_menu_row_set(int row, int value) { if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) ngb_pc_set_setting(row, value); }
+void ngb_menu_row_change(int row, int dir) {
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) ctl_toggle_flip(row - NGB_MENU_CTL_BASE);
+    else if (row == NGB_MENU_CTL_MOUSE) ngb_bind_step_mouse_sensitivity(dir);
+    else if (row == NGB_MENU_CTL_PROMPTS) ngb_bind_step_prompts(dir);
+    else if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir);
+}
+void ngb_menu_row_set(int row, int value) {
+    if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) {
+        int r = row - NGB_MENU_CTL_BASE;
+        if (ctl_toggle_get(r) != !!value) ctl_toggle_flip(r);
+    } else if (row == NGB_MENU_CTL_MOUSE) {
+        for (int i = 0; i < 40 && ngb_bind_mouse_sensitivity() != value; i++)
+            ngb_bind_step_mouse_sensitivity(ngb_bind_mouse_sensitivity() < value ? 1 : -1);
+    } else if (row == NGB_MENU_CTL_PROMPTS) {
+        for (int i = 0; i < 8 && ngb_bind_prompts() != value; i++)
+            ngb_bind_step_prompts(ngb_bind_prompts() < value ? 1 : -1);
+    } else if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) ngb_pc_set_setting(row, value);
+}
 
 /* ---------- pictures: RGBA (0xAARRGGBB) to and from the guest ---------- */
 
