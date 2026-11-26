@@ -162,14 +162,14 @@ static void layout_load(void) {
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir); SDL_free(dir);
     FILE *fp=fopen(s_layout_path,"r"); if(!fp)return; char line[192]; bool legacy_ids=true;
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V2"))legacy_ids=false;continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir);SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    fprintf(fp,"# NGB_TOUCH_LAYOUT_V2\n");
+    fprintf(fp,"# NGB_TOUCH_LAYOUT_V2 %d\n",s_haptics?1:0);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i]);
     fclose(fp);
 }
@@ -190,7 +190,7 @@ static void delete_selected_combo(void) {
     s_layout_revision++; layout_save(); s_serial++;
 }
 
-static void editor_toolbar_action(float x){float q=x/s_aspect;if(q<.105f){add_custom_combo();return;}if(q>.895f){delete_selected_combo();return;}if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f){if(s_ctrl[s_selected].kind==COMBO)s_layout_combo[s_selected]=(s_layout_combo[s_selected]+1)%7;else s_layout_skin[s_selected]^=1;}else return;s_layout_revision++;layout_save();s_serial++;}
+static void editor_toolbar_action(float x){float q=x/s_aspect;if(q>.12f&&q<.22f){s_haptics=!s_haptics;layout_save();s_serial++;return;}if(q<.105f){add_custom_combo();return;}if(q>.895f){delete_selected_combo();return;}if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f){if(s_ctrl[s_selected].kind==COMBO)s_layout_combo[s_selected]=(s_layout_combo[s_selected]+1)%7;else s_layout_skin[s_selected]^=1;}else return;s_layout_revision++;layout_save();s_serial++;}
 
 /* Where a control is on a screen this wide: its place (in screen heights) and radius. On a squarer screen than
  * about 16:10 (4:3, 3:2, 5:4: below NARROW) there is no room beside the player for the right stick and LT, which
@@ -927,6 +927,7 @@ static void draw_editor_badge(void)
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
     if (d_edit_mode) {
         draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
+        draw_badge_text(s_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
         draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
         draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
