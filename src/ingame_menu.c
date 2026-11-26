@@ -2057,6 +2057,9 @@ static void activate(int key)
         } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1100 + 20))) {
             if (s_sel == 1100) {
 #ifdef __ANDROID__
+                /* Keep the game's settings menu open underneath the Android
+                 * touch-control panel. Dismissing the panel returns to the
+                 * same in-game menu instead of dropping back into gameplay. */
                 extern void ngb_touch_menu_show_android(void);
                 ngb_touch_menu_show_android();
 #else
