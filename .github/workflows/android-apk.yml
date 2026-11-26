@@ -32,7 +32,7 @@ jobs:
       - name: Install host build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex curl git python3-venv zip unzip pkg-config libsdl2-dev
+          sudo apt-get install -y bison flex curl git python3-venv zip unzip pkg-config libsdl2-dev glslang-tools
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -71,9 +71,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/android-deps
-          key: ngb-android-deps-arm64-api29-mesa26.3-${{ runner.os }}-${{ hashFiles('packaging/android/build.sh') }}
+          key: ngb-android-deps-arm64-api29-mesa26.3-glslanghost1-${{ runner.os }}-${{ hashFiles('packaging/android/build.sh') }}
           restore-keys: |
-            ngb-android-deps-arm64-api29-mesa26.3-${{ runner.os }}-
+            ngb-android-deps-arm64-api29-mesa26.3-glslanghost1-${{ runner.os }}-
 
       - name: Syntax-check Android touch controls
         run: |
