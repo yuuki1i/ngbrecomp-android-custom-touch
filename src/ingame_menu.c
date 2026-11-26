@@ -1433,8 +1433,12 @@ void nv2a_window_event_hook(const void *sdl_event)
             return;
         }
         SDL_Window *tw = SDL_GetWindowFromID(ev->tfinger.windowID);
+        /* SDL_FingerEvent coordinates are normalized in the window's
+         * logical coordinate space. game_point() performs the logical-to-
+         * drawable DPI conversion itself; using drawable dimensions here
+         * would scale touch coordinates twice on high-DPI Android screens. */
         int tw_w = 1, tw_h = 1;
-        if (tw) SDL_Vulkan_GetDrawableSize(tw, &tw_w, &tw_h);
+        if (tw) SDL_GetWindowSize(tw, &tw_w, &tw_h);
         SDL_Event mouse;
         SDL_zero(mouse);
         if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERUP) {
