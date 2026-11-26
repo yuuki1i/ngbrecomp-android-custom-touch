@@ -67,6 +67,9 @@ jobs:
         run: |
           tools/pipeline.sh game-xbe/default.xbe
 
+      - name: Fetch NV2A Vulkan third-party sources
+        run: bash xboxrecomp/third_party/fetch.sh
+
       - name: Cache native Android dependencies
         uses: actions/cache@v4
         with:
