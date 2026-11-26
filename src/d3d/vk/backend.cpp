@@ -2211,7 +2211,7 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
                            "    float4 t = tex1.SampleLevel(smp1, float2((round(saturate(v) * 255) + 0.5) / 256, 0.5), 0);\n"
                            "    return c == 0 ? t.r : c == 1 ? t.g : t.b;\n}\n"
                            "float4 main(VO i) : SV_Target {\n"
-                           "    float4 c = tex0.Sample(smp0, i.uv);\n") +
+                           "    float4 c = tex0.Sample(smp0, i.uv);\n" +
                (edge ? std::string("    if (i.uv.x < ") + e + ") {\n" + bar +
                            "        return tex2.SampleLevel(smp2, float2(i.uv.y, 0.375), 0);\n    }\n"
                            "    if (i.uv.x > 1 - " + e + ") {\n" + bar +
