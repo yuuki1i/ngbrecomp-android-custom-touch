@@ -761,10 +761,12 @@ int ngb_touch_360(float *lx, float *ly, int *y_down)
     pthread_mutex_lock(&s_lock);
     Uint32 now = SDL_GetTicks();
     for (int i = NINPO; i < NCTRL; i++) {
-        if (s_layout_combo[i] != 6 || !s_down[i] || !s_combo_active[i]) continue;
+        /* The finger may already be up: one press is one full 360Y, the turn and the strike finish on their
+         * own. Holding it down does not repeat, a fresh press does. */
+        if (s_layout_combo[i] != 6 || !s_combo_active[i]) continue;
         Uint32 elapsed = now - s_combo_started[i];
-        const Uint32 sweep = 140;   /* (a full turn of the stick, quick: the strike must not wait for it) */
-        const Uint32 pulse = 70;    /* (Y down this long, then up: held, it would swallow the next attack) */
+        const Uint32 sweep = 110;   /* (a full turn of the stick, quick: the strike must not wait for it) */
+        const Uint32 pulse = 90;    /* (Y down this long, then up: held, it would swallow the next attack) */
         if (elapsed < sweep) {
             float t = (float)elapsed / (float)sweep;   /* (an even turn: even steps for the game to see) */
             float angle = t * 2.0f * (float)M_PI;
