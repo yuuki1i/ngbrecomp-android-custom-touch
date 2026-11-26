@@ -1,6 +1,14 @@
 package io.github.gamboozino.ngbrecomp;
 
 import android.content.Intent;
+import android.app.AlertDialog;
+import android.graphics.Color;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -31,6 +39,98 @@ public class NgbActivity extends SDLActivity {
     private volatile boolean mTouchSkinReady;
 
     private String mLib = "main";
+
+    private native int nativeTouchGet(int item);
+    private native void nativeTouchChange(int item, int direction);
+    private native void nativeTouchActivate(int item);
+    private native void nativeTouchEditorRequest();
+
+    private String touchValue(int item) {
+        int v = nativeTouchGet(item);
+        switch (item) {
+            case 1: return new String[] {"默认布局", "经典布局", "自定义布局"}[Math.max(0, Math.min(2, v))];
+            case 2: return v != 0 ? "开启" : "关闭";
+            case 3: return v != 0 ? "开启" : "关闭";
+            case 4: {
+                String[] names = {"左摇杆","右摇杆","方向键","A键","B键","X键","Y键","LB","RB","LT","RT","返回","开始","左摇杆按下","右摇杆按下","布局切换","忍法组合","风驱组合","自定义组合1","自定义组合2","自定义组合3","自定义组合4"};
+                return names[Math.max(0, Math.min(names.length - 1, v))];
+            }
+            case 5: case 10: return v != 0 ? "开启" : "关闭";
+            case 6: return v + "%";
+            case 7: return v + "%";
+            case 8: return new String[] {"白色","蓝色","红色","绿色","金色","紫色"}[Math.max(0, Math.min(5, v))];
+            case 9: return new String[] {"圆形","方形","菱形"}[Math.max(0, Math.min(2, v))];
+            default: return new String[] {"A+B","A+X","A+Y","B+X","B+Y","X+Y","摇杆转圈 + Y（360Y）"}[Math.max(0, Math.min(6, v))];
+        }
+    }
+
+    private void showTouchControlCenter() {
+        runOnUiThread(() -> {
+            LinearLayout content = new LinearLayout(this);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(20, 12, 20, 12);
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(content);
+            TextView intro = new TextView(this);
+            intro.setText("独立的 Android 触屏控制中心\n直接点按选项；拖动布局编辑器中的按键可移动，双指捏合可缩放。");
+            intro.setTextColor(Color.WHITE);
+            intro.setTextSize(15);
+            intro.setPadding(8, 8, 8, 18);
+            content.addView(intro);
+            final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("忍者龙剑传 黑之章 · 触屏控制中心")
+                .setView(scroll)
+                .setNegativeButton("关闭", (d, w) -> d.dismiss())
+                .create();
+
+            String[] labels = {"布局预设","触摸震动","空白区域滑动镜头","选中控件","控件显示","控件大小","控件透明度","控件颜色","控件形状","自定义图片皮肤","忍法组合键","风驱组合键","自定义组合键 1","自定义组合键 2","自定义组合键 3","自定义组合键 4"};
+            int[] items = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
+            for (int n = 0; n < items.length; n++) {
+                final int item = items[n];
+                LinearLayout row = new LinearLayout(this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(4, 5, 4, 5);
+                TextView label = new TextView(this);
+                label.setText(labels[n]);
+                label.setTextColor(Color.WHITE);
+                label.setTextSize(14);
+                label.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.4f));
+                Button minus = new Button(this);
+                minus.setText("−");
+                Button value = new Button(this);
+                value.setText(touchValue(item));
+                Button plus = new Button(this);
+                plus.setText("+");
+                Runnable refresh = () -> value.setText(touchValue(item));
+                minus.setOnClickListener(v -> { nativeTouchChange(item, -1); refresh.run(); });
+                plus.setOnClickListener(v -> { nativeTouchChange(item, 1); refresh.run(); });
+                value.setOnClickListener(v -> { nativeTouchChange(item, 1); refresh.run(); });
+                row.addView(label);
+                row.addView(minus, new LinearLayout.LayoutParams(52, 48));
+                row.addView(value, new LinearLayout.LayoutParams(120, 48));
+                row.addView(plus, new LinearLayout.LayoutParams(52, 48));
+                content.addView(row);
+            }
+
+            Button editor = new Button(this);
+            editor.setText("打开触屏布局编辑器");
+            editor.setOnClickListener(v -> { dialog.dismiss(); nativeTouchEditorRequest(); });
+            content.addView(editor);
+            Button import = new Button(this);
+            import.setText("导入自定义图片");
+            import.setOnClickListener(v -> { dialog.dismiss(); nativeTouchActivate(17); });
+            content.addView(import);
+            Button add = new Button(this);
+            add.setText("添加自定义组合按键");
+            add.setOnClickListener(v -> { nativeTouchActivate(18); });
+            content.addView(add);
+            Button delete = new Button(this);
+            delete.setText("删除当前选中控件");
+            delete.setOnClickListener(v -> { nativeTouchActivate(19); });
+            content.addView(delete);
+            dialog.show();
+        });
+    }
 
     /* Started by relaunch: the library to run, and the variables the program that launched it left ("NAME=value",
      * each ended by a 0 byte, UTF-8), set before SDL loads the library and starts it. Only at that start: the activity
@@ -102,6 +202,8 @@ public class NgbActivity extends SDLActivity {
             }
         });
     }
+
+    public void showTouchControlCenterFromNative() { showTouchControlCenter(); }
 
     /* Import a player-supplied PNG/JPEG button texture without broad storage permissions. */
     public void pickTouchSkin() {
