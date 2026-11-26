@@ -348,6 +348,14 @@ const char *ngb_menu_tab_name(int tab) {
 #define NGB_MENU_CTL_PROMPTS 56
 #define NGB_MENU_BIND_BASE 100
 static int s_menu_bind_slot; /* keyboard 1, keyboard 2, controller */
+int ngb_touch_bind_count(void) { return A_COUNT; }
+int ngb_touch_bind_slot(void) { return s_menu_bind_slot; }
+void ngb_touch_bind_slot_change(int dir) { s_menu_bind_slot = (s_menu_bind_slot + dir + 3) % 3; }
+const char *ngb_touch_bind_name(int action) { return action >= 0 && action < A_COUNT ? ngb_bind_name(action) : ""; }
+int ngb_touch_bind_value(int action) { return action >= 0 && action < A_COUNT ? ngb_bind_get(action, s_menu_bind_slot) : 0; }
+void ngb_touch_bind_capture(int action) { if (action >= 0 && action < A_COUNT) ngb_bind_capture_begin(action, s_menu_bind_slot); }
+int ngb_touch_bind_capturing(void) { return ngb_bind_capturing(); }
+
 int ngb_menu_tab_row_count(int tab) {
     if (tab == CATS - 1) return NGB_MENU_TOUCH_ROWS;
     int actual = tab >= CAT_CTL ? tab + 1 : tab;
