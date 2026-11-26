@@ -116,10 +116,10 @@ public class NgbActivity extends SDLActivity {
             editor.setText("打开触屏布局编辑器");
             editor.setOnClickListener(v -> { dialog.dismiss(); nativeTouchEditorRequest(); });
             content.addView(editor);
-            Button import = new Button(this);
-            import.setText("导入自定义图片");
-            import.setOnClickListener(v -> { dialog.dismiss(); nativeTouchActivate(17); });
-            content.addView(import);
+            Button importButton = new Button(this);
+            importButton.setText("导入自定义图片");
+            importButton.setOnClickListener(v -> { dialog.dismiss(); nativeTouchActivate(17); });
+            content.addView(importButton);
             Button add = new Button(this);
             add.setText("添加自定义组合按键");
             add.setOnClickListener(v -> { nativeTouchActivate(18); });
