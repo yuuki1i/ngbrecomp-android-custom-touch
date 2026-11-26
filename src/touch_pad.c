@@ -717,7 +717,7 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
 /* A button's picture, idle or held */
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME) {
+    if (s_art == ART_GAME && c != &s_ctrl[SWAP]) {
         char n[40];
         snprintf(n, sizeof n, lit ? "%s_lit" : "%s", c->piece);
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
@@ -749,11 +749,11 @@ static void draw_idle(void)
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         if (c->kind == STICK)
-            draw_piece("pad", cx, cy, 2 * r, 2 * r, d_layout_alpha[i]);
+            draw_piece("pad", cx, cy, 2 * r, 2 * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
         else if (c->kind == DPAD)
-            draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_layout_alpha[i]);
+            draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
         else   /* (the pieces fill about four fifths of their picture: drawn a little over the button's size) */
-            draw_button(c, false, cx, cy, r, d_layout_alpha[i]);   /* (the face buttons
+            draw_button(c, false, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);   /* (the face buttons
                                                        a little less see-through: X and A were faint) */
     }
 }
