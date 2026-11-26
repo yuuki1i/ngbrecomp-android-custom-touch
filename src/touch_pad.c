@@ -43,6 +43,7 @@
 
 #include "platform/xbox_winnt.h"
 #include "input/xinput_xbox.h"
+#include "bindings.h"
 #include "game_prompts.h"
 
 int xbox_InputControllerPresent(void);
