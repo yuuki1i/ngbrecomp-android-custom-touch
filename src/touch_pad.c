@@ -145,6 +145,7 @@ static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTR
 static Uint32 s_combo_started[NCTRL];
 static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
+static bool d_haptics = true;
 static int s_selected = -1, d_selected = -1;
 static unsigned s_layout_revision, d_layout_revision;
 static char s_layout_path[512];
@@ -931,7 +932,7 @@ static void draw_editor_badge(void)
     draw_badge_text(d_edit_mode ? "X" : "E", s_w - 24, s_h / 2 - 9, 42);
     if (d_edit_mode) {
         draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
-        draw_badge_text(s_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
+        draw_badge_text(d_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
         draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
         draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
@@ -1141,7 +1142,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
         memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
-        d_edit_mode=s_edit_mode; d_selected=s_selected; d_layout_revision=s_layout_revision;
+        d_edit_mode=s_edit_mode; d_haptics=s_haptics; d_selected=s_selected; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
     }
