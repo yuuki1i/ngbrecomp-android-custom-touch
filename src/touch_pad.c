@@ -329,11 +329,11 @@ static void touch_vibrate(void) {
     if (!env || !activity) return;
     jclass cls = (*env)->GetObjectClass(env, activity);
     jmethodID get_service = cls ? (*env)->GetMethodID(env, cls, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;") : NULL;
-    if (!get_service) return;
+    if (!get_service) { if (cls) (*env)->DeleteLocalRef(env, cls); return; }
     jstring service_name = (*env)->NewStringUTF(env, "vibrator");
     jobject vibrator = (*env)->CallObjectMethod(env, activity, get_service, service_name);
     if (service_name) (*env)->DeleteLocalRef(env, service_name);
-    if (!vibrator) return;
+    if (!vibrator) { if (cls) (*env)->DeleteLocalRef(env, cls); return; }
     jclass vcls = (*env)->GetObjectClass(env, vibrator);
     jmethodID vibrate = vcls ? (*env)->GetMethodID(env, vcls, "vibrate", "(J)V") : NULL;
     if (vibrate) (*env)->CallVoidMethod(env, vibrator, vibrate, (jlong)18);
