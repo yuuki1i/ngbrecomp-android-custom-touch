@@ -780,8 +780,12 @@ static const char *combo_second(int id) { return id == NINPO ? "button_b" : "but
 
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a)
 {
-    draw_piece(c->piece, cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
-    draw_piece(combo_second(id), cx + 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
+    if (s_art == ART_GAME) {
+        draw_piece(c->piece, cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
+        draw_piece(combo_second(id), cx + 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
+    } else {
+        draw_sprite(standin_button(id), cx, cy, 2.5f * r, 2.5f * r, a);
+    }
 }
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
@@ -796,6 +800,51 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
     }
 }
+
+
+static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    if (x < 0 || y < 0 || x >= s_w || y >= s_h || !a) return;
+    uint32_t *p = &s_px[(size_t)y * s_w + x];
+    unsigned inv = 255 - a;
+    uint32_t old = *p;
+    uint8_t ob = (uint8_t)(old & 255), og = (uint8_t)(old >> 8), orr = (uint8_t)(old >> 16), oa = (uint8_t)(old >> 24);
+    uint8_t nb = (uint8_t)((b * a + ob * inv + 127) / 255);
+    uint8_t ng = (uint8_t)((g * a + og * inv + 127) / 255);
+    uint8_t nr = (uint8_t)((r * a + orr * inv + 127) / 255);
+    uint8_t na = (uint8_t)(a + (oa * inv + 127) / 255);
+    *p = (uint32_t)nb | (uint32_t)ng << 8 | (uint32_t)nr << 16 | (uint32_t)na << 24;
+}
+
+static void draw_editor_badge(void)
+{
+    const char *label = d_edit_mode ? "DONE" : "EDIT";
+    const int bw = 58, bh = 18, x0 = s_w / 2 - bw / 2, y0 = 2;
+    over_box(x0, y0, x0 + bw, y0 + bh);
+    for (int y = y0; y < y0 + bh; y++)
+        for (int x = x0; x < x0 + bw; x++) {
+            bool edge = x == x0 || x == x0 + bw - 1 || y == y0 || y == y0 + bh - 1;
+            badge_pixel(x, y, edge ? 210 : 27, edge ? 177 : 34, edge ? 92 : 45, edge ? 220 : 190);
+        }
+    int total = 0, n = (int)strlen(label);
+    for (int i = 0; i < n; i++) total += launcher_font_w[label[i] - 32];
+    float scale = fminf(0.62f, fminf(42.0f / (total ? total : 1), 10.0f / LAUNCHER_FONT_H_PX));
+    float pen = s_w / 2.0f - total * scale / 2.0f;
+    int top = y0 + (bh - (int)ceilf(LAUNCHER_FONT_H_PX * scale)) / 2;
+    for (int i = 0; i < n; i++) {
+        int g = label[i] - 32, gw = launcher_font_w[g];
+        const uint8_t *src = launcher_font_px + launcher_font_off[g];
+        for (int sy = 0; sy < LAUNCHER_FONT_H_PX; sy++)
+            for (int sx = 0; sx < gw; sx++) {
+                uint8_t a = src[sy * gw + sx];
+                if (!a) continue;
+                int dx = (int)floorf(pen + sx * scale), dy = top + (int)floorf(sy * scale);
+                badge_pixel(dx, dy, 248, 248, 250, a);
+            }
+        pen += gw * scale;
+    }
+}
+
 
 #define IDLE 0.55f   /* how see-through a control is, untouched */
 
@@ -815,9 +864,9 @@ static void draw_idle(void)
         Place at = place_draw_at(c, d_aspect, s_art == ART_STANDIN);
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         if (c->kind == STICK)
-            draw_piece("pad", cx, cy, 2 * r, 2 * r, IDLE);
+            draw_piece("pad", cx, cy, 2 * r, 2 * r, d_layout_alpha[i]);
         else if (c->kind == DPAD)
-            draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, IDLE);
+            draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_layout_alpha[i]);
         else if (c->kind == COMBO)
             draw_combo(c, i, cx, cy, r, d_layout_alpha[i]);
         else
@@ -880,10 +929,10 @@ static void draw_all(void)
             float nx = cx + d_stick[s][0] * r * 0.55f, ny = cy + d_stick[s][1] * r * 0.55f;
             nx = roundf(nx - r / 2) + r / 2;   /* (moved by whole pixels: its picture at this size made once) */
             ny = roundf(ny - r / 2) + r / 2;
-            draw_piece("nub", nx, ny, r, r, on ? 0.95f : IDLE + 0.2f);
+            draw_piece("nub", nx, ny, r, r, on ? fmaxf(d_layout_alpha[i], 0.9f) : fminf(1.0f, d_layout_alpha[i] + 0.2f));
             if (on) {
-                draw_piece("pad_lit", cx, cy, 2 * r, 2 * r, 0.9f);
-                draw_piece("nub_lit", nx, ny, r, r, 0.9f);
+                draw_piece("pad_lit", cx, cy, 2 * r, 2 * r, fmaxf(d_layout_alpha[i], 0.9f));
+                draw_piece("nub_lit", nx, ny, r, r, fmaxf(d_layout_alpha[i], 0.9f));
             }
         } else if (c->kind == DPAD && on) {
             static const struct { int bit; const char *lit; float dx, dy; } arms[] = {
@@ -893,7 +942,7 @@ static void draw_all(void)
                 { XBOX_GAMEPAD_DPAD_RIGHT, "dpad_east_lit", 1, 0 },
             };
             float size = 2.2f * r;   /* (the picture's arms are a third of it each) */
-            draw_piece("dpad", cx, cy, size, size, 0.45f);   /* (over the untouched one: less see-through) */
+            draw_piece("dpad", cx, cy, size, size, fmaxf(d_layout_alpha[i], 0.55f));   /* (over the untouched one: less see-through) */
             for (int a = 0; a < 4; a++)
                 if (d_dpad & arms[a].bit)
                     draw_piece(arms[a].lit, cx + arms[a].dx * size / 3, cy + arms[a].dy * size / 3, size / 2,
@@ -909,6 +958,7 @@ static void draw_all(void)
             else draw_piece("button_a_lit", cx, cy, 2.7f * r, 2.7f * r, 0.75f);
         }
     }
+    draw_editor_badge();
     s_rec = NULL;
 }
 
