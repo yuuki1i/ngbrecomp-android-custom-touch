@@ -305,6 +305,8 @@ static int pop_key(void)
 #define MOUSE_MOVE  0x10000000
 #define MOUSE_CLICK 0x20000000
 #define MOUSE_WHEEL 0x40000000   /* low bit: 1 up, 0 down */
+#define MOUSE_UP    0x08000000
+#define MOUSE_DRAG  0x04000000
 
 static void push_mouse(int kind, const SDL_Event *ev, int x, int y)
 {
@@ -1397,7 +1399,11 @@ void nv2a_window_event_hook(const void *sdl_event)
             return;
     }
     if (s_open && ev->type == SDL_MOUSEMOTION) {
-        push_mouse(MOUSE_MOVE, ev, ev->motion.x, ev->motion.y);
+        push_mouse((ev->motion.state & SDL_BUTTON_LMASK) ? MOUSE_DRAG : MOUSE_MOVE, ev, ev->motion.x, ev->motion.y);
+        return;
+    }
+    if (s_open && ev->type == SDL_MOUSEBUTTONUP && ev->button.button == SDL_BUTTON_LEFT) {
+        push_mouse(MOUSE_UP, ev, ev->button.x, ev->button.y);
         return;
     }
     if (s_open && ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT) {
@@ -1498,6 +1504,11 @@ static const char *s_test_keys;
 static int row_y(int row);
 static float s_k, s_ox, s_oy;
 static int s_w, s_h;
+/* Scroll state is owned by the renderer thread. Values are logical menu pixels. */
+static float s_list_scroll, s_list_velocity;
+static float s_drag_last_y;
+static bool s_list_dragging;
+static uint64_t s_scroll_tick;
 
 static void menu_test_poll(void)
 {
@@ -1701,6 +1712,28 @@ static int row_y(int row)
     return ROW_Y0 + row * ROW_H + (row >= ROW_RESUME ? 16 : 0);
 }
 
+#define LIST_TOP (ROW_Y0 - 8)
+#define LIST_BOTTOM (LH - 88)
+#define LIST_VIEW_H (LIST_BOTTOM - LIST_TOP)
+#define LIST_CONTENT_H (NGB_SETTINGS_ITEMS * ROW_H + 12)
+#define LIST_MAX_SCROLL (LIST_CONTENT_H > LIST_VIEW_H ? LIST_CONTENT_H - LIST_VIEW_H : 0)
+
+static void list_scroll_step(void)
+{
+    uint64_t now = mono_ms();
+    if (!s_scroll_tick) { s_scroll_tick = now; return; }
+    float dt = (float)(now - s_scroll_tick) / 16.6667f;
+    s_scroll_tick = now;
+    if (dt > 3.0f) dt = 3.0f;
+    if (s_list_dragging) return;
+    if (fabsf(s_list_velocity) > 0.02f) {
+        s_list_scroll += s_list_velocity * dt;
+        s_list_velocity *= powf(0.91f, dt);
+    } else s_list_velocity = 0;
+    if (s_list_scroll < 0) { s_list_scroll = 0; s_list_velocity = 0; }
+    if (s_list_scroll > LIST_MAX_SCROLL) { s_list_scroll = LIST_MAX_SCROLL; s_list_velocity = 0; }
+}
+
 /* The row under a point in logical units, or -1; *zone: -1 the "<",
  * +1 the ">", 0 elsewhere on the row. */
 static int row_hit(float lx, float ly, int *zone)
@@ -1708,6 +1741,7 @@ static int row_hit(float lx, float ly, int *zone)
     *zone = 0;
     for (int row = 0; row < NROWS; row++) {
         int y = row_y(row);
+        if (row < ROW_RESUME) y -= (int)lroundf(s_list_scroll);
         if (ly < y + 2 || ly >= y + ROW_H - 4)
             continue;
         if (row >= ROW_RESUME)
@@ -1739,6 +1773,8 @@ static void draw(const uint32_t *backdrop)
 
     for (int row = 0; row < NROWS; row++) {
         int y = row_y(row);
+        if (row < ROW_RESUME) y -= (int)lroundf(s_list_scroll);
+        if (row < ROW_RESUME && (y + ROW_H <= LIST_TOP || y >= LIST_BOTTOM)) continue;
         bool sel = row == s_sel;
         if (row >= ROW_RESUME) {
             const char *label = row == ROW_RESUME ? "Resume"
@@ -1760,7 +1796,15 @@ static void draw(const uint32_t *backdrop)
         text(val, 736, y + 8, 23, white, 255, 1);
         text(">", LW - 92, y + 8, 23, sel ? white : grey, 255, 0);
     }
-    text("Up/Down or mouse: choose    Left/Right or click: change    A / Enter: select    B / Esc / F1: resume",
+    fill(60, LIST_TOP, LW - 120, 2, 0x4C6D91, 180);
+    fill(60, LIST_BOTTOM, LW - 120, 2, 0x4C6D91, 180);
+    if (LIST_MAX_SCROLL > 0) {
+        float thumb_h = fmaxf(34.0f, LIST_VIEW_H * (float)LIST_VIEW_H / LIST_CONTENT_H);
+        float thumb_y = LIST_TOP + (LIST_VIEW_H - thumb_h) * s_list_scroll / LIST_MAX_SCROLL;
+        fill(LW - 72, LIST_TOP, 5, LIST_VIEW_H, 0x34465B, 170);
+        fill(LW - 74, thumb_y, 9, thumb_h, 0x69A9F4, 235);
+    }
+    text("Swipe list to scroll    Up/Down: choose    Left/Right: change    A: select    B / Esc: resume",
          LW / 2, LH - 56, 17, grey, 255, 1);
     text("Changes apply when you resume. Skip intros and the startup screen take effect next start.",
          LW / 2, LH - 32, 15, grey, 255, 1);
@@ -1836,6 +1880,9 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
             s_have_running = true;
         }
         s_cfg = s_running;
+        s_list_scroll = s_list_velocity = 0;
+        s_list_dragging = false;
+        s_scroll_tick = mono_ms();
         s_sel = ROW_RESUME;
         s_quit_armed = false;
         s_repeat_bit = 0;
@@ -1849,22 +1896,41 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
     s_w = w;
     s_h = h;
     s_k = fminf((float)w / LW, (float)h / LH);
+    list_scroll_step();
     s_ox = (w - LW * s_k) / 2;
     s_oy = (h - LH * s_k) / 2;
 
     int key;
     while (s_open && (key = pop_key())) {
-        if (key & (MOUSE_MOVE | MOUSE_CLICK)) {
+        if (key & (MOUSE_MOVE | MOUSE_CLICK | MOUSE_UP | MOUSE_DRAG)) {
             float lx = ((key >> 14 & 0x3FFF) - s_ox) / s_k;
             float ly = ((key & 0x3FFF) - s_oy) / s_k;
-            int zone, row = row_hit(lx, ly, &zone);
-            if (row < 0)
+            if (key & MOUSE_CLICK) {
+                s_list_dragging = ly >= LIST_TOP && ly < LIST_BOTTOM;
+                s_drag_last_y = ly;
+                s_list_velocity = 0;
+            } else if ((key & MOUSE_DRAG) && s_list_dragging) {
+                float dy = s_drag_last_y - ly;
+                s_list_scroll += dy;
+                s_list_velocity = dy * 0.72f;
+                s_drag_last_y = ly;
+                if (s_list_scroll < 0) { s_list_scroll = 0; s_list_velocity = 0; }
+                if (s_list_scroll > LIST_MAX_SCROLL) { s_list_scroll = LIST_MAX_SCROLL; s_list_velocity = 0; }
                 continue;
-            if (row != s_sel)
-                s_quit_armed = false;
+            } else if (key & MOUSE_UP) {
+                s_list_dragging = false;
+                continue;
+            } else if (key & MOUSE_MOVE) {
+                if (s_list_dragging) continue;
+            }
+            int zone, row = row_hit(lx, ly, &zone);
+            if (row < 0) continue;
+            if (row != s_sel) s_quit_armed = false;
             s_sel = row;
-            if (key & MOUSE_CLICK)
-                activate(zone < 0 ? KEY_LEFT : zone > 0 ? KEY_RIGHT : KEY_OK);
+            if (key & MOUSE_CLICK) {
+                if (row >= ROW_RESUME) activate(KEY_OK);
+                else activate(zone < 0 ? KEY_LEFT : zone > 0 ? KEY_RIGHT : KEY_OK);
+            }
             continue;
         }
         activate(key);
