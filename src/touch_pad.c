@@ -52,7 +52,7 @@ extern const int ngb_touch_png_count;   /* (CMakeLists.txt: the stand-in pieces 
 __attribute__((weak)) const NgbPic *ngb_gp_touch(const char *piece);
 
 enum Kind { BUTTON, COMBO, STICK, DPAD };
-enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, NINPO, WINDRUN, NCTRL };
+enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, NINPO, WINDRUN, CUSTOM1, CUSTOM2, CUSTOM3, CUSTOM4, NCTRL };
 
 typedef struct {
     enum Kind kind;
@@ -87,6 +87,10 @@ static const Ctrl s_ctrl[NCTRL] = {
     [RS]      = { BUTTON, 1, 0.09f,  0.90f,  0.045f, "RS", "RS", 0xE6E6E6, "click_r" },
     [NINPO]   = { COMBO,  1, 0.52f,  0.46f,  0.060f, "NINPO", "N", 0xE8C45A, "button_y" },
     [WINDRUN] = { COMBO,  1, 0.52f,  0.62f,  0.060f, "WIND RUN", "W", 0x72B7E8, "button_x" },
+    [CUSTOM1] = { COMBO,  1, 0.52f,  0.32f,  0.055f, "C1", "C1", 0x70C8E8, "button_a" },
+    [CUSTOM2] = { COMBO,  1, 0.52f,  0.44f,  0.055f, "C2", "C2", 0x70C8E8, "button_b" },
+    [CUSTOM3] = { COMBO,  1, 0.52f,  0.56f,  0.055f, "C3", "C3", 0x70C8E8, "button_x" },
+    [CUSTOM4] = { COMBO,  1, 0.52f,  0.68f,  0.055f, "C4", "C4", 0x70C8E8, "button_y" },
 };
 
 static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -94,6 +98,7 @@ static float s_aspect = 16.0f / 9;            /* the window's width over its hei
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL];
+static uint8_t s_layout_enabled[NCTRL], d_layout_enabled[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL];
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL];
 static unsigned s_layout_revision, d_layout_revision;
 static bool s_layout_loaded, s_edit_mode, d_edit_mode;
@@ -125,7 +130,12 @@ static void layout_defaults(void)
         s_layout_x[i] = s_ctrl[i].x; s_layout_y[i] = s_ctrl[i].y; s_layout_r[i] = s_ctrl[i].r;
         s_layout_alpha[i] = (i >= BA && i <= BY) ? 0.72f : 0.55f;
         s_layout_color[i] = s_layout_shape[i] = s_layout_skin[i] = 0;
+        s_layout_enabled[i] = i < CUSTOM1;
+        s_layout_combo[i] = 0;
         s_layout_custom[i] = false;
+    }
+    s_layout_combo[NINPO] = 4;
+    s_layout_combo[WINDRUN] = 1;
     }
 }
 static void layout_load(void)
@@ -141,14 +151,16 @@ static void layout_load(void)
     if (!fp) return;
     char line[256];
     while (fgets(line, sizeof line, fp)) {
-        int id, custom = 0, color = 0, shape = 0, skin = 0; float x, y, r, a;
-        int n = sscanf(line, "%d %f %f %f %f %d %d %d %d", &id, &x, &y, &r, &a, &custom, &color, &shape, &skin);
+        int id, custom = 0, color = 0, shape = 0, skin = 0, enabled = 1, combo = 0; float x, y, r, a;
+        int n = sscanf(line, "%d %f %f %f %f %d %d %d %d %d %d", &id, &x, &y, &r, &a, &custom, &color, &shape, &skin, &enabled, &combo);
         if (n < 5 || id < 0 || id >= NCTRL) continue;
         s_layout_x[id] = x; s_layout_y[id] = y; s_layout_r[id] = r; s_layout_alpha[id] = a;
         s_layout_custom[id] = n >= 6 && custom != 0;
         if (n >= 7) s_layout_color[id] = (uint8_t)(color < 0 ? 0 : color > 5 ? 5 : color);
         if (n >= 8) s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 2 ? 2 : shape);
         if (n >= 9) s_layout_skin[id] = (uint8_t)(skin < 0 ? 0 : skin > 1 ? 1 : skin);
+        if (n >= 10) s_layout_enabled[id] = enabled != 0;
+        if (n >= 11) s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 5 ? 5 : combo);
     }
     fclose(fp);
     for (int i = 0; i < NCTRL; i++) {
@@ -169,9 +181,9 @@ static void layout_save(void)
     FILE *fp = fopen(s_layout_path, "w");
     if (!fp) return;
     for (int i = 0; i < NCTRL; i++)
-        fprintf(fp, "%d %.5f %.5f %.5f %.5f %d %u %u %u\n", i, s_layout_x[i], s_layout_y[i],
+        fprintf(fp, "%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n", i, s_layout_x[i], s_layout_y[i],
                 s_layout_r[i], s_layout_alpha[i], s_layout_custom[i] ? 1 : 0,
-                s_layout_color[i], s_layout_shape[i], s_layout_skin[i]);
+                s_layout_color[i], s_layout_shape[i], s_layout_skin[i], s_layout_enabled[i], s_layout_combo[i]);
     fclose(fp);
 }
 static void clear_touch_state(void)
@@ -198,11 +210,32 @@ static void edit_control(int c, int action)
         s_layout_shape[c] = (uint8_t)((s_layout_shape[c] + 1) % 3);
     } else if (action == 4) {
         s_layout_skin[c] = (uint8_t)((s_layout_skin[c] + 1) % 2);
+    } else if (action == 5 && s_ctrl[c].kind == COMBO) {
+        s_layout_combo[c] = (uint8_t)((s_layout_combo[c] + 1) % 6);
     } else {
         float ratio = s_layout_r[c] / s_ctrl[c].r;
         s_layout_r[c] = s_ctrl[c].r * (ratio < 0.88f ? 1.0f : ratio < 1.12f ? 1.25f : 0.75f);
     }
     s_layout_revision++; layout_save(); s_serial++;
+}
+
+
+static void add_custom_combo(void)
+{
+    for (int i = CUSTOM1; i <= CUSTOM4; i++) {
+        if (s_layout_enabled[i]) continue;
+        s_layout_enabled[i] = true;
+        s_layout_x[i] = 0.52f; s_layout_y[i] = 0.32f + 0.12f * (i - CUSTOM1);
+        s_layout_r[i] = s_ctrl[i].r; s_layout_alpha[i] = 0.72f; s_layout_custom[i] = true;
+        s_layout_combo[i] = (uint8_t)((i - CUSTOM1) % 6); s_selected = i;
+        s_layout_revision++; layout_save(); s_serial++; return;
+    }
+}
+static void delete_selected_combo(void)
+{
+    if (s_selected < CUSTOM1 || s_selected > CUSTOM4) return;
+    s_layout_enabled[s_selected] = false; s_down[s_selected] = false; s_selected = -1;
+    layout_save(); s_layout_revision++; s_serial++;
 }
 
 static int s_standin_places;   /* the stand-ins shown (under s_lock; d_standin the picture's copy) */
@@ -269,6 +302,7 @@ static int hit(float x, float y, bool buttons_only)
     float best_d = 1e9f;
     for (int i = 0; i < NCTRL; i++) {
         const Ctrl *c = &s_ctrl[i];
+        if (!s_layout_enabled[i]) continue;
         if (buttons_only && c->kind != BUTTON && c->kind != COMBO)
             continue;
         Place at = place(c);
@@ -354,6 +388,13 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     if (ww > 0 && wh > 0) s_aspect = (float)ww / (float)wh;
     float x = ev->tfinger.x * s_aspect, y = ev->tfinger.y;
 
+    /* Editor toolbar: add at top-left; delete the selected custom combo at top-right. */
+    if (ev->type == SDL_FINGERDOWN && s_edit_mode && y < 0.12f && x < s_aspect * 0.16f) {
+        add_custom_combo(); pthread_mutex_unlock(&s_lock); return 0;
+    }
+    if (ev->type == SDL_FINGERDOWN && s_edit_mode && y < 0.12f && x > s_aspect * 0.84f) {
+        delete_selected_combo(); pthread_mutex_unlock(&s_lock); return 0;
+    }
     /* Tap the small EDIT badge at the top centre to enter/leave layout editing. */
     if (ev->type == SDL_FINGERDOWN && x > s_aspect * 0.42f && x < s_aspect * 0.58f && y < 0.12f) {
         toggle_editor(); pthread_mutex_unlock(&s_lock); return 0;
@@ -410,7 +451,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         s_finger[f].used = false;
         if (s_edit_mode) {
             if (!moved && was_selected && c >= 0)
-                edit_control(c, held >= 2500 ? 4 : held >= 1800 ? 3 : held >= 1200 ? 2 : held >= 500 ? 1 : 0);
+                edit_control(c, held >= 3500 ? 5 : held >= 2500 ? 4 : held >= 1800 ? 3 : held >= 1200 ? 2 : held >= 500 ? 1 : 0);
             if (moved) layout_save();
             if (!moved && c < 0 && sy > 0.86f && sx > s_aspect * 0.42f && sx < s_aspect * 0.58f) {
                 layout_defaults(); layout_save(); s_layout_revision++; s_selected = -1;
@@ -464,12 +505,22 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         { BA, XBOX_BUTTON_A }, { BB, XBOX_BUTTON_B }, { BX, XBOX_BUTTON_X }, { BY, XBOX_BUTTON_Y },
         { LB, XBOX_BUTTON_BLACK }, { RB, XBOX_BUTTON_WHITE },   /* (as a 360 pad's bumpers are: input/xinput_device.c) */
         { LT, XBOX_BUTTON_LTRIGGER }, { RT, XBOX_BUTTON_RTRIGGER },
-        { NINPO, XBOX_BUTTON_Y }, { NINPO, XBOX_BUTTON_B },
-        { WINDRUN, XBOX_BUTTON_X }, { WINDRUN, XBOX_BUTTON_A },
+
     };
     for (size_t i = 0; i < sizeof analog / sizeof analog[0]; i++)
         if (s_down[analog[i].ctrl])
             st->Gamepad.bAnalogButtons[analog[i].button] = 255;
+    static const int combo_buttons[6][2] = {
+        {XBOX_BUTTON_A, XBOX_BUTTON_B}, {XBOX_BUTTON_A, XBOX_BUTTON_X},
+        {XBOX_BUTTON_A, XBOX_BUTTON_Y}, {XBOX_BUTTON_B, XBOX_BUTTON_X},
+        {XBOX_BUTTON_B, XBOX_BUTTON_Y}, {XBOX_BUTTON_X, XBOX_BUTTON_Y}
+    };
+    for (int i = NINPO; i < NCTRL; i++)
+        if (s_down[i]) {
+            int p = s_layout_combo[i] % 6;
+            st->Gamepad.bAnalogButtons[combo_buttons[p][0]] = 255;
+            st->Gamepad.bAnalogButtons[combo_buttons[p][1]] = 255;
+        }
     if (s_down[LSTICK]) {
         st->Gamepad.sThumbLX = (SHORT)(s_stick[0][0] * 32767);
         st->Gamepad.sThumbLY = (SHORT)(-s_stick[0][1] * 32767);
@@ -789,12 +840,21 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
 }
 
 /* A button's picture, idle or held */
-static const char *combo_second(int id) { return id == NINPO ? "button_b" : "button_a"; }
+static const char *combo_first(int id)
+{
+    static const char *first[6] = {"button_a", "button_a", "button_a", "button_b", "button_b", "button_x"};
+    return first[d_layout_combo[id] % 6];
+}
+static const char *combo_second(int id)
+{
+    static const char *second[6] = {"button_b", "button_x", "button_y", "button_x", "button_y", "button_y"};
+    return second[d_layout_combo[id] % 6];
+}
 
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a)
 {
     if (s_art == ART_GAME && !s_layout_skin[id]) {
-        draw_piece(c->piece, cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
+        draw_piece(combo_first(id), cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
         draw_piece(combo_second(id), cx + 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
     } else {
         draw_sprite(standin_button(id), cx, cy, 2.5f * r, 2.5f * r, a);
@@ -854,10 +914,10 @@ static void draw_style_outline(float cx, float cy, float r, int color, int shape
         }
 }
 
-static void draw_editor_badge(void)
+
+static void draw_badge_text(const char *label, int centre, int y0, int bw)
 {
-    const char *label = d_edit_mode ? "DONE" : "EDIT";
-    const int bw = 58, bh = 18, x0 = s_w / 2 - bw / 2, y0 = 2;
+    const int bh = 18, x0 = centre - bw / 2;
     over_box(x0, y0, x0 + bw, y0 + bh);
     for (int y = y0; y < y0 + bh; y++)
         for (int x = x0; x < x0 + bw; x++) {
@@ -866,8 +926,8 @@ static void draw_editor_badge(void)
         }
     int total = 0, n = (int)strlen(label);
     for (int i = 0; i < n; i++) total += launcher_font_w[label[i] - 32];
-    float scale = fminf(0.62f, fminf(42.0f / (total ? total : 1), 10.0f / LAUNCHER_FONT_H_PX));
-    float pen = s_w / 2.0f - total * scale / 2.0f;
+    float scale = fminf(0.62f, fminf((bw - 12.0f) / (total ? total : 1), 10.0f / LAUNCHER_FONT_H_PX));
+    float pen = centre - total * scale / 2.0f;
     int top = y0 + (bh - (int)ceilf(LAUNCHER_FONT_H_PX * scale)) / 2;
     for (int i = 0; i < n; i++) {
         int g = label[i] - 32, gw = launcher_font_w[g];
@@ -875,14 +935,19 @@ static void draw_editor_badge(void)
         for (int sy = 0; sy < LAUNCHER_FONT_H_PX; sy++)
             for (int sx = 0; sx < gw; sx++) {
                 uint8_t a = src[sy * gw + sx];
-                if (!a) continue;
-                int dx = (int)floorf(pen + sx * scale), dy = top + (int)floorf(sy * scale);
-                badge_pixel(dx, dy, 248, 248, 250, a);
+                if (a) badge_pixel((int)floorf(pen + sx * scale), top + (int)floorf(sy * scale), 248, 248, 250, a);
             }
         pen += gw * scale;
     }
 }
-
+static void draw_editor_badge(void)
+{
+    draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
+    if (d_edit_mode) {
+        draw_badge_text("ADD", 24, 2, 42);
+        draw_badge_text("DEL", s_w - 24, 2, 42);
+    }
+}
 
 #define IDLE 0.55f   /* how see-through a control is, untouched */
 
@@ -898,6 +963,7 @@ static void draw_idle(void)
     float u = (float)s_h;
     memset(s_px, 0, sizeof(uint32_t) * (size_t)s_w * s_h);
     for (int i = 0; i < NCTRL; i++) {
+        if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_draw_at(c, d_aspect, s_art == ART_STANDIN);
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
@@ -958,6 +1024,7 @@ static void draw_all(void)
     o->n = s_bg ? 0 : -1;
     s_rec = o;
     for (int i = 0; i < NCTRL; i++) {
+        if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_draw_at(c, d_aspect, s_art == ART_STANDIN);
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
@@ -1059,6 +1126,8 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_layout_color, s_layout_color, sizeof d_layout_color);
         memcpy(d_layout_shape, s_layout_shape, sizeof d_layout_shape);
         memcpy(d_layout_skin, s_layout_skin, sizeof d_layout_skin);
+        memcpy(d_layout_enabled, s_layout_enabled, sizeof d_layout_enabled);
+        memcpy(d_layout_combo, s_layout_combo, sizeof d_layout_combo);
         d_layout_revision = s_layout_revision; d_edit_mode = s_edit_mode; d_selected = s_selected;
         d_aspect = s_aspect;
     }
