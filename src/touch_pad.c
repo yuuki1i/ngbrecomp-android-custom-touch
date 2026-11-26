@@ -705,6 +705,7 @@ typedef struct { uint32_t *px; int w, h, n; unsigned bg; int box[OVER_BOXES][4];
 static Over s_over[OVER_BUFS];
 static Over *s_rec;      /* the buffer being drawn over (NULL: the untouched picture itself) */
 static unsigned s_bg_gen;   /* +1 each untouched picture made */
+static unsigned s_bg_layout_revision;
 
 static void over_box(int x0, int y0, int x1, int y1)
 {
@@ -983,7 +984,7 @@ static void draw_all(void)
     float u = (float)s_h;
     size_t px = (size_t)s_w * s_h;
     bool fresh = false;
-    if (!s_bg || s_bg_w != s_w || s_bg_h != s_h || s_bg_aspect != d_aspect || s_bg_art != s_art) {
+    if (!s_bg || s_bg_w != s_w || s_bg_h != s_h || s_bg_aspect != d_aspect || s_bg_art != s_art || s_bg_layout_revision != d_layout_revision) {
         free(s_bg);
         s_bg = NULL;
         draw_idle();
@@ -994,6 +995,7 @@ static void draw_all(void)
         s_bg_h = s_h;
         s_bg_aspect = d_aspect;
         s_bg_art = s_art;
+        s_bg_layout_revision = d_layout_revision;
         s_bg_gen++;
         fresh = true;
     }
