@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;
 import android.app.AlertDialog;
 import android.widget.EditText;
 import android.view.Gravity;
@@ -89,6 +90,7 @@ public class TouchLayoutEditor extends FrameLayout {
         "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
     };
     private int mSelected = 0;
+    boolean mGrid = true;        /* (the ruled sheet: the player may want a clean picture behind the keys) */
 
     public TouchLayoutEditor(NgbActivity activity) {
         super(activity);
@@ -262,11 +264,68 @@ public class TouchLayoutEditor extends FrameLayout {
 
     /* A row of choices, the Winlator way: tap the value, a list comes up, tap the one wanted. */
     private void choose(String title, String[] items, int selected, Pick pick) {
-        new AlertDialog.Builder(mActivity)
-            .setTitle(title)
-            .setSingleChoiceItems(items, selected, (d, which) -> { pick.at(which); d.dismiss(); })
-            .setNegativeButton("取消", null)
-            .show();
+        waterfall(title, items, selected, pick);
+    }
+
+    /* The list of what a row can become: it drops from the top of the screen like a waterfall, the rows
+     * sliding down one under the next, rather than a dialog in the middle that hides the canvas. */
+    private FrameLayout mFall;
+
+    private void waterfall(String title, String[] items, int selected, Pick pick) {
+        if (mFall != null || items == null || items.length == 0) return;
+        final FrameLayout holder = new FrameLayout(mActivity);
+        View dim = new View(mActivity);
+        dim.setBackgroundColor(0x99000000);
+        dim.setOnClickListener(v -> closeWaterfall());
+        holder.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                         ViewGroup.LayoutParams.MATCH_PARENT));
+        final LinearLayout col = new LinearLayout(mActivity);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setBackground(glass(14, 0xF00D1014, 0x33FFFFFF, 1));
+        col.setPadding(dp(4), dp(4), dp(4), dp(6));
+        TextView head = label(title, 13, 0xFFDCE1E9, true);
+        head.setPadding(dp(12), dp(10), dp(12), dp(6));
+        col.addView(head);
+        LinearLayout rows = new LinearLayout(mActivity);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        for (int i = 0; i < items.length; i++) {
+            TextView row = label(items[i], 13, i == selected ? 0xFFFFFFFF : 0xFFC2C9D4, i == selected);
+            row.setPadding(dp(14), dp(11), dp(14), dp(11));
+            row.setBackgroundColor(i == selected ? 0x5C647280 : 0x00000000);
+            final int at = i;
+            row.setOnClickListener(v -> {
+                pick.at(at);
+                closeWaterfall();
+            });
+            rows.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                            ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        ScrollView list = new ScrollView(mActivity);
+        list.addView(rows);
+        int shown = Math.min(items.length, 8);
+        col.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(shown * 42 + 4)));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(320), ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        lp.setMargins(0, dp(52), 0, 0);
+        holder.addView(col, lp);
+        addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                     ViewGroup.LayoutParams.MATCH_PARENT));
+        mFall = holder;
+        col.post(() -> {
+            col.setTranslationY(-(col.getHeight() + dp(70)));
+            col.animate().translationY(0f).setDuration(200).start();
+        });
+    }
+
+    private void closeWaterfall() {
+        if (mFall == null) return;
+        final FrameLayout holder = mFall;
+        mFall = null;
+        View col = holder.getChildAt(1);
+        col.animate().translationY(-(col.getHeight() + dp(70))).setDuration(160)
+            .withEndAction(() -> {
+                if (holder.getParent() == this) removeView(holder);
+            }).start();
     }
 
     private Button tool(String text, Runnable action) {
@@ -302,7 +361,18 @@ public class TouchLayoutEditor extends FrameLayout {
         topParams.setMargins(dp(10), dp(8), dp(10), dp(4));
         top.setLayoutParams(topParams);
         Button cancel = button("取消", 14, 0x1FFFFFFF);
-        top.addView(cancel, new LinearLayout.LayoutParams(dp(72), dp(40)));
+        top.addView(cancel, new LinearLayout.LayoutParams(dp(64), dp(40)));
+        Button grid = button("网格", 12, 0x26FFFFFF);
+        LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(dp(56), dp(40));
+        gridParams.setMargins(dp(6), 0, 0, 0);
+        top.addView(grid, gridParams);
+        grid.setOnClickListener(v -> {
+            mGrid = !mGrid;
+            grid.setText(mGrid ? "网格" : "无网格");
+            grid.setTextColor(mGrid ? 0xFFFFFFFF : 0x88C2C9D4);
+            mPreview.invalidate();
+            mHint.setText(mGrid ? "网格开着，方便对位" : "网格关了，只剩按键");
+        });
         mMenu = button("按键菜单", 15, 0x26FFFFFF);
         LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(0, dp(40), 1f);
         menuParams.setMargins(dp(10), 0, dp(10), 0);
@@ -310,6 +380,14 @@ public class TouchLayoutEditor extends FrameLayout {
         Button save = button("保存", 14, 0x26FFFFFF);
         top.addView(save, new LinearLayout.LayoutParams(dp(72), dp(40)));
         column.addView(top);
+
+        /* ＋ 添加按键, on its own bar above the canvas: every control the pad can carry, the combos included. */
+        Button add = button("＋ 添加按键（组合键也在里面）", 13, 0x26FFFFFF);
+        LinearLayout.LayoutParams addParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38));
+        addParams.setMargins(dp(10), 0, dp(10), dp(6));
+        add.setLayoutParams(addParams);
+        add.setOnClickListener(v -> addControl());
+        column.addView(add);
 
         View hairline = new View(mActivity);       /* a single line under the title, as the open-source sheets have */
         hairline.setBackgroundColor(0x1FFFFFFF);
@@ -596,19 +674,15 @@ public class TouchLayoutEditor extends FrameLayout {
         }
         String[] shown = new String[count];
         System.arraycopy(items, 0, shown, 0, count);
-        new AlertDialog.Builder(mActivity)
-            .setTitle("加一个按键")
-            .setItems(shown, (d, which) -> {
-                int id = ids[which];
-                mShown[id] = true;
-                mX[id] = 0.5f;
-                mY[id] = 0.5f;
-                mSelected = id;
-                refresh();
-                mHint.setText("已加 " + NAMES[id] + "，拖到想放的位置");
-            })
-            .setNegativeButton("取消", null)
-            .show();
+        waterfall("加一个按键", shown, -1, which -> {
+            int id = ids[which];
+            mShown[id] = true;
+            mX[id] = 0.5f;
+            mY[id] = 0.5f;
+            mSelected = id;
+            refresh();
+            mHint.setText("已加 " + NAMES[id] + "，拖到想放的位置");
+        });
     }
 
     /* - : the selected key leaves the pad (it can be added back with +). */
@@ -839,6 +913,9 @@ public class TouchLayoutEditor extends FrameLayout {
         private float mLastX, mLastY, mPinch;
         private float mHandleX, mHandleY, mHandleR;   /* the stretch grip of the key being edited */
         private boolean mResize;
+        private float mTapX = -1f, mTapY = -1f;       /* the red crosshair under the last touch */
+        private boolean mTapLive;
+        private long mTapTime;
 
         Preview(TouchLayoutEditor editor) {
             super(editor.mActivity);
@@ -856,24 +933,47 @@ public class TouchLayoutEditor extends FrameLayout {
             mHeight = viewH;
             /* The whole screen is the sheet, ruled like Winlator's editor: fine grid to place by, a stronger
              * line every sixth, and the centre crosshair the eye lines a pad up with. */
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setStrokeWidth(1);
-            mPaint.setColor(0x14FFFFFF);
-            for (int i = 1; i < 36; i++) {
-                if (i % 6 == 0) continue;
-                float x = viewW * i / 36f, y = viewH * i / 36f;
-                canvas.drawLine(x, 0, x, viewH, mPaint);
-                canvas.drawLine(0, y, viewW, y, mPaint);
+            if (mEditor.mGrid) {
+                mPaint.setStyle(Paint.Style.STROKE);
+                mPaint.setStrokeWidth(1);
+                mPaint.setColor(0x14FFFFFF);
+                for (int i = 1; i < 36; i++) {
+                    if (i % 6 == 0) continue;
+                    float x = viewW * i / 36f, y = viewH * i / 36f;
+                    canvas.drawLine(x, 0, x, viewH, mPaint);
+                    canvas.drawLine(0, y, viewW, y, mPaint);
+                }
+                mPaint.setColor(0x2EFFFFFF);
+                for (int i = 1; i < 6; i++) {
+                    float x = viewW * i / 6f, y = viewH * i / 6f;
+                    canvas.drawLine(x, 0, x, viewH, mPaint);
+                    canvas.drawLine(0, y, viewW, y, mPaint);
+                }
+                mPaint.setColor(0x44FFFFFF);
+                canvas.drawLine(viewW / 2f, 0, viewW / 2f, viewH, mPaint);
+                canvas.drawLine(0, viewH / 2f, viewW, viewH / 2f, mPaint);
             }
-            mPaint.setColor(0x2EFFFFFF);
-            for (int i = 1; i < 6; i++) {
-                float x = viewW * i / 6f, y = viewH * i / 6f;
-                canvas.drawLine(x, 0, x, viewH, mPaint);
-                canvas.drawLine(0, y, viewW, y, mPaint);
+
+            /* Where the finger is: a red crosshair, so a tap is seen before anything moves. It stays a moment
+             * after the finger is up, and then goes. */
+            long tapNow = SystemClock.uptimeMillis();
+            if (mTapX >= 0f && (mTapLive || tapNow - mTapTime < 320)) {
+                float fade = mTapLive ? 1f : 1f - (tapNow - mTapTime) / 320f;
+                int alpha = (int)(fade * 255);
+                float arm = 14 * mEditor.mDp, gap = 4 * mEditor.mDp;
+                mPaint.setStyle(Paint.Style.STROKE);
+                mPaint.setStrokeWidth(Math.max(2f, 2 * mEditor.mDp));
+                mPaint.setColor((alpha << 24) | 0x00FF3B30);   /* (red) */
+                canvas.drawCircle(mTapX, mTapY, arm, mPaint);
+                mPaint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(mTapX, mTapY, Math.max(2f, 2 * mEditor.mDp), mPaint);
+                mPaint.setStyle(Paint.Style.STROKE);
+                canvas.drawLine(mTapX - arm - gap, mTapY, mTapX - gap, mTapY, mPaint);
+                canvas.drawLine(mTapX + gap, mTapY, mTapX + arm + gap, mTapY, mPaint);
+                canvas.drawLine(mTapX, mTapY - arm - gap, mTapX, mTapY - gap, mPaint);
+                canvas.drawLine(mTapX, mTapY + gap, mTapX, mTapY + arm + gap, mPaint);
+                if (!mTapLive) postInvalidateDelayed(40);
             }
-            mPaint.setColor(0x44FFFFFF);
-            canvas.drawLine(viewW / 2f, 0, viewW / 2f, viewH, mPaint);
-            canvas.drawLine(0, viewH / 2f, viewW, viewH / 2f, mPaint);
 
             for (int id = 0; id < N; id++) {
                 if (id == SWAP || !mEditor.mShown[id])
@@ -925,6 +1025,21 @@ public class TouchLayoutEditor extends FrameLayout {
 
         @Override
         public boolean onTouchEvent(MotionEvent ev) {
+            int masked = ev.getActionMasked();
+            if (masked == MotionEvent.ACTION_DOWN || masked == MotionEvent.ACTION_MOVE) {
+                mTapX = ev.getX();
+                mTapY = ev.getY();
+                mTapLive = true;
+                mTapTime = SystemClock.uptimeMillis();
+                invalidate();
+            } else if (masked == MotionEvent.ACTION_UP || masked == MotionEvent.ACTION_POINTER_UP
+                       || masked == MotionEvent.ACTION_CANCEL) {
+                if (ev.getPointerCount() <= 1 || masked == MotionEvent.ACTION_CANCEL
+                    || masked == MotionEvent.ACTION_UP)
+                    mTapLive = false;
+                mTapTime = SystemClock.uptimeMillis();
+                invalidate();
+            }
             int id;
             switch (ev.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
