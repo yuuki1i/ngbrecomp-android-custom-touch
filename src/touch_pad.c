@@ -1044,7 +1044,15 @@ static void draw_editor_badge(void)
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
         draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
         draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
-        draw_badge_text(d_selected >= 0 && d_selected < NCTRL && s_ctrl[d_selected].kind == COMBO ? "MAP" : "SKIN", (int)(s_w * 0.82f), 2, 42);
+        /* Show the actual action assigned to a selected combo, not the opaque "MAP" label.
+         * In particular, make the requested 360-degree stick sweep followed by Y discoverable. */
+        if (d_selected >= NINPO && d_selected < NCTRL) {
+            static const char *const names[7] = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360Y"};
+            unsigned map = d_layout_combo[d_selected] < 7 ? d_layout_combo[d_selected] : 0;
+            draw_badge_text(names[map], (int)(s_w * 0.82f), 2, 52);
+        } else {
+            draw_badge_text("SKIN", (int)(s_w * 0.82f), 2, 42);
+        }
     }
 }
 
