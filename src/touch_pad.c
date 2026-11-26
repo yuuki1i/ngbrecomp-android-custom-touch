@@ -444,7 +444,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
     if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){if(s_edit_mode)touch_pick_skin();else toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&s_edit_mode&&y>.115f&&y<.18f&&x>s_aspect*.40f&&x<s_aspect*.60f){layout_switch_preset();pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&s_edit_mode&&y>.02f&&y<.045f&&x>s_aspect*.40f&&x<s_aspect*.60f){layout_switch_preset();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();s_layout=s_layout!=1;s_layout_save=1;s_serial++;pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
