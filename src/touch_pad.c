@@ -146,6 +146,7 @@ static Uint32 s_combo_started[NCTRL];
 static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
 static bool d_haptics = true;
+static char s_skin_path[512], d_skin_path[512];
 static int s_selected = -1, d_selected = -1;
 static unsigned s_layout_revision, d_layout_revision;
 static char s_layout_path[512];
@@ -374,6 +375,47 @@ static void finger_off(int ctrl)
         s_dpad = 0;
 }
 
+static void touch_pick_skin(void) {
+    if (s_selected < 0 || s_selected >= NCTRL) return;
+    s_layout_skin[s_selected] = true;
+    s_layout_revision++; layout_save(); s_serial++;
+#if defined(__ANDROID__)
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity = SDL_AndroidGetActivity();
+    if (!env || !activity) return;
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID method = cls ? (*env)->GetMethodID(env, cls, "pickTouchSkin", "()V") : NULL;
+    if (method) (*env)->CallVoidMethod(env, activity, method);
+    if (cls) (*env)->DeleteLocalRef(env, cls);
+#endif
+}
+static void touch_poll_skin(void) {
+#if defined(__ANDROID__)
+    static Uint32 next_poll;
+    Uint32 now = SDL_GetTicks();
+    if ((Sint32)(now - next_poll) < 0) return;
+    next_poll = now + 250;
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity = SDL_AndroidGetActivity();
+    if (!env || !activity) return;
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID method = cls ? (*env)->GetMethodID(env, cls, "takeTouchSkinPath", "()Ljava/lang/String;") : NULL;
+    jstring result = method ? (jstring)(*env)->CallObjectMethod(env, activity, method) : NULL;
+    char path[512] = {0};
+    if (result) {
+        const char *utf = (*env)->GetStringUTFChars(env, result, NULL);
+        if (utf) { snprintf(path, sizeof path, "%s", utf); (*env)->ReleaseStringUTFChars(env, result, utf); }
+        (*env)->DeleteLocalRef(env, result);
+    }
+    if (cls) (*env)->DeleteLocalRef(env, cls);
+    if (path[0]) {
+        pthread_mutex_lock(&s_lock);
+        if (strcmp(path, s_skin_path)) { snprintf(s_skin_path, sizeof s_skin_path, "%s", path); s_layout_revision++; s_serial++; }
+        pthread_mutex_unlock(&s_lock);
+    }
+#endif
+}
+
 static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
 {
     (void)unused;
@@ -383,7 +425,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
-    if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){if(s_edit_mode)touch_pick_skin();else toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();s_layout=s_layout!=1;s_layout_save=1;s_serial++;pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
@@ -497,6 +539,20 @@ static int d_layout;
 static int d_dpad;
 
 typedef struct { uint8_t *px; int w, h; } Sprite;   /* straight-alpha RGBA */
+static const Sprite *user_skin(void) {
+    static Sprite image;
+    static char loaded[512];
+    if (!d_skin_path[0]) return NULL;
+    if (strcmp(loaded, d_skin_path)) {
+        if (image.px) stbi_image_free(image.px);
+        memset(&image, 0, sizeof image);
+        snprintf(loaded, sizeof loaded, "%s", d_skin_path);
+        int channels = 0;
+        image.px = stbi_load(loaded, &image.w, &image.h, &channels, 4);
+    }
+    return image.px ? &image : NULL;
+}
+
 
 /* A stand-in piece by name (assets/touch), decoded the first time (drawing is one thread at a time: the
  * presenter's lock) */
@@ -812,7 +868,8 @@ static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float
     if (s_art == ART_GAME && !d_layout_skin[id]) {
         draw_piece(combo_first(id), cx - 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
         draw_piece(combo_second(id), cx + 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
-    } else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
+    } else if (d_layout_skin[id] && user_skin()) draw_sprite(user_skin(), cx, cy, 2.5f*r, 2.5f*r, a);
+    else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
 }
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
@@ -822,7 +879,10 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
         snprintf(n, sizeof n, lit ? "%s_lit" : "%s", c->piece);
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
     } else {   /* (the disc about the button's size) */
-        draw_sprite(standin_button((int)(c - s_ctrl)), cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
+        int id = (int)(c - s_ctrl);
+        const Sprite *skin = d_layout_skin[id] ? user_skin() : NULL;
+        if (skin) draw_sprite(skin, cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
+        else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
         if (lit)
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
     }
@@ -929,7 +989,7 @@ static void draw_badge_text(const char *label, int centre, int y0, int bw)
 static void draw_editor_badge(void)
 {
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
-    draw_badge_text(d_edit_mode ? "X" : "E", s_w - 24, s_h / 2 - 9, 42);
+    draw_badge_text(d_edit_mode ? "LOAD" : "EDIT", s_w - 30, s_h / 2 - 9, 54);
     if (d_edit_mode) {
         draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
         draw_badge_text(d_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
@@ -1119,6 +1179,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
     }
     if (!w || !h || (size_t)w * h > max)
         return false;
+    touch_poll_skin();
     pthread_mutex_lock(&s_lock);
     s_aspect = (float)win_w / (float)win_h;
     enum Art art = art_now();
@@ -1142,7 +1203,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
         memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
-        d_edit_mode=s_edit_mode; d_haptics=s_haptics; d_selected=s_selected; d_layout_revision=s_layout_revision;
+        d_edit_mode=s_edit_mode; d_haptics=s_haptics; memcpy(d_skin_path,s_skin_path,sizeof d_skin_path); d_selected=s_selected; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
     }
