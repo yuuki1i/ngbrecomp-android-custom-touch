@@ -371,6 +371,7 @@ const char *ngb_menu_row_label(int row) {
     if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl[row - NGB_MENU_CTL_BASE];
     if (row == NGB_MENU_CTL_MOUSE) return ctl[5];
     if (row == NGB_MENU_CTL_PROMPTS) return ctl[6];
+    if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) return ngb_bind_name(row - NGB_MENU_BIND_BASE);
     return row == NGB_MENU_ROW_TOUCH ? "Touch Layout Editor" :
            row >= 0 && row < S_COUNT ? s_label[row] : "";
 }
@@ -396,7 +397,11 @@ void ngb_menu_row_value(int row, char *out, size_t n) {
         snprintf(out, n, "%d%%", ngb_bind_mouse_sensitivity());
     else if (row == NGB_MENU_CTL_PROMPTS)
         snprintf(out, n, "%s", ngb_bind_prompts_name(ngb_bind_prompts()));
-    else if (row == NGB_MENU_ROW_TOUCH) snprintf(out, n, "OPEN");
+    else if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) {
+        int in = ngb_bind_get(row - NGB_MENU_BIND_BASE, s_menu_bind_slot);
+        char name[64]; ngb_bind_input_name(in, name, sizeof name);
+        snprintf(out, n, "%s: %s", s_menu_bind_slot == 0 ? "Key 1" : s_menu_bind_slot == 1 ? "Key 2" : "Pad", name);
+    } else if (row == NGB_MENU_ROW_TOUCH) snprintf(out, n, "OPEN");
     else if (row >= 0 && row < S_COUNT) value_text(row, out, n);
     else out[0] = 0;
 }
@@ -404,6 +409,7 @@ void ngb_menu_row_change(int row, int dir) {
     if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) ctl_toggle_flip(row - NGB_MENU_CTL_BASE);
     else if (row == NGB_MENU_CTL_MOUSE) ngb_bind_step_mouse_sensitivity(dir);
     else if (row == NGB_MENU_CTL_PROMPTS) ngb_bind_step_prompts(dir);
+    else if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) s_menu_bind_slot = (s_menu_bind_slot + dir + 3) % 3;
     else if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir);
 }
 void ngb_menu_row_set(int row, int value) {
