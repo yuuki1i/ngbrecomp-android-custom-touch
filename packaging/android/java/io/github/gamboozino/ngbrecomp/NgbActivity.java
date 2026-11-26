@@ -41,6 +41,10 @@ public class NgbActivity extends SDLActivity {
     private String mLib = "main";
 
     private native int nativeTouchGet(int item);
+    private native String nativeTouchLayoutGet();
+    private native void nativeTouchLayoutApply(String text);
+    private native void nativeTouchLayoutDefaults();
+    private native void nativeTouchSkinPick(int id);
     private native void nativeTouchChange(int item, int direction);
     private native void nativeTouchActivate(int item);
     private native void nativeTouchEditorRequest();
@@ -314,6 +318,33 @@ public class NgbActivity extends SDLActivity {
     }
 
     public void showTouchControlCenterFromNative() { showTouchControlCenter(); }
+
+    /* The touch layout editor (TouchLayoutEditor): laid over the game's surface, so the game keeps its window
+     * and the finger events go to the editor rather than the pad. Opened by the pad's layout button, by the
+     * game's own Touch row and by the editor's request on the renderer's thread. */
+    private TouchLayoutEditor mTouchEditor;
+
+    public void showTouchEditor() {
+        runOnUiThread(() -> {
+            if (mTouchEditor != null)
+                return;
+            mTouchEditor = new TouchLayoutEditor(this);
+            addContentView(mTouchEditor, new android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        });
+    }
+
+    void editorClosed(TouchLayoutEditor editor) {
+        if (mTouchEditor == editor)
+            mTouchEditor = null;
+    }
+
+    /* What the editor works on: the layout as the game holds it (src/touch_pad.c). */
+    public String getTouchLayout() { return nativeTouchLayoutGet(); }
+    public void applyTouchLayout(String text) { nativeTouchLayoutApply(text); }
+    public void resetTouchLayout() { nativeTouchLayoutDefaults(); }
+    public void pickTouchSkinFor(int id) { nativeTouchSkinPick(id); }
 
     /* Import a player-supplied PNG/JPEG button texture without broad storage permissions. */
     public void pickTouchSkin() {

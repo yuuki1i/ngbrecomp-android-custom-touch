@@ -122,6 +122,7 @@ static const struct { int edge; float x, y, r; } s_classic[NCTRL] = {
     [SWAP]    = { 0, 0.05f, 0.40f, 0.035f },
 };
 int ngb_pc_setting(int which);                    /* src/ingame_menu.c (48: the touch layout) */
+void ngb_touch_editor_open(void);   /* the Android touch editor (NgbActivity), src/touch_pad.c below */
 void ngb_pc_set_setting(int which, int value);
 #pragma weak ngb_pc_setting
 #pragma weak ngb_pc_set_setting
@@ -146,6 +147,10 @@ static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
+/* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
+ * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
+enum { PA_A, PA_B, PA_X, PA_Y, PA_BLACK, PA_WHITE, PA_LT, PA_RT, PA_BACK, PA_START, PA_LS, PA_RS, PA_COUNT, PA_NONE = -1 };
+static int s_layout_action[NCTRL];
 static Uint32 s_combo_started[NCTRL];
 static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
@@ -165,7 +170,13 @@ static int s_art_shown;                       /* the controls drawn (the last pi
 #define MAX_FINGERS 10
 static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 static void layout_defaults(void) {
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
+    /* What each virtual button pressed before the layout was editable: its own place on the pad. */
+    static const int own[NCTRL] = {
+        [BA]=PA_A, [BB]=PA_B, [BX]=PA_X, [BY]=PA_Y, [LB]=PA_BLACK, [RB]=PA_WHITE,
+        [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
+        [SWAP]=PA_NONE,
+    };
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0;
@@ -177,7 +188,7 @@ static void layout_load(void) {
     FILE *fp=fopen(s_layout_path,"r");
     if(!fp&&s_preset==0){char *legacy=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(legacy){snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",legacy);SDL_free(legacy);fp=fopen(s_layout_path,"r");}}
     if(!fp)return; char line[192]; bool legacy_ids=true;
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V4")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V4 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -186,9 +197,9 @@ static void layout_save(void) {
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    fprintf(fp,"# NGB_TOUCH_LAYOUT_V3 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
+    fprintf(fp,"# NGB_TOUCH_LAYOUT_V4 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
-    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i]);
+    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i]);
     fclose(fp);
 }
 static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);s_dpad=0;}
@@ -203,8 +214,7 @@ static void layout_switch_preset(void) {
     s_selected=-1; clear_touch_state();
     s_layout_revision++; layout_save(); s_serial++;
 }
-static void toggle_editor(void){s_edit_mode=!s_edit_mode;s_selected=-1;clear_touch_state();if(!s_edit_mode)layout_save();s_layout_revision++;s_serial++;}
-void ngb_touch_editor_open(void){if(!s_edit_mode)toggle_editor();}
+
 static void edit_selected(Uint32 held){if(s_selected<0||s_selected>=NCTRL)return;if(held>=650){float q=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(q<.88f?1.f:q<1.12f?1.25f:.75f);}else{static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}s_layout_revision++;layout_save();s_serial++;}
 static void add_custom_combo(void) {
     for (int i=CUSTOM1;i<=CUSTOM4;i++) if(!s_layout_enabled[i]) {
@@ -220,7 +230,6 @@ static void delete_selected_combo(void) {
     s_layout_revision++; layout_save(); s_serial++;
 }
 
-static void editor_toolbar_action(float x){float q=x/s_aspect;if(q>.12f&&q<.22f){s_haptics=!s_haptics;layout_save();s_serial++;return;}if(q<.105f){add_custom_combo();return;}if(q>.895f){delete_selected_combo();return;}if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f){if(s_ctrl[s_selected].kind==COMBO)s_layout_combo[s_selected]=(s_layout_combo[s_selected]+1)%7;else s_layout_skin[s_selected]^=1;}else return;s_layout_revision++;layout_save();s_serial++;}
 
 /* Where a control is on a screen this wide: its place (in screen heights) and radius. On a squarer screen than
  * about 16:10 (4:3, 3:2, 5:4: below NARROW) there is no room beside the player for the right stick and LT, which
@@ -455,10 +464,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
-    if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){if(s_edit_mode)touch_pick_skin();else toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&s_edit_mode&&y>.02f&&y<.045f&&x>s_aspect*.40f&&x<s_aspect*.60f){layout_switch_preset();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();extern void ngb_menu_open(void);ngb_menu_open();pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();pthread_mutex_unlock(&s_lock);ngb_touch_editor_open();return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
@@ -516,19 +522,25 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         ngb_pc_set_setting(48, save);
     pthread_mutex_lock(&s_lock);
     WORD b = st->Gamepad.wButtons | (WORD)s_dpad;
-    if (s_down[BACK]) b |= XBOX_GAMEPAD_BACK;
-    if (s_down[START]) b |= XBOX_GAMEPAD_START;
-    if (s_down[LS]) b |= XBOX_GAMEPAD_LEFT_THUMB;
-    if (s_down[RS]) b |= XBOX_GAMEPAD_RIGHT_THUMB;
-    st->Gamepad.wButtons = b;
-    static const struct { int ctrl, button; } analog[] = {
-        { BA, XBOX_BUTTON_A }, { BB, XBOX_BUTTON_B }, { BX, XBOX_BUTTON_X }, { BY, XBOX_BUTTON_Y },
-        { LB, XBOX_BUTTON_BLACK }, { RB, XBOX_BUTTON_WHITE },   /* (as a 360 pad's bumpers are: input/xinput_device.c) */
-        { LT, XBOX_BUTTON_LTRIGGER }, { RT, XBOX_BUTTON_RTRIGGER },
+    /* Each button pressed as the layout has it bound: its own place on the pad unless the player moved the action
+     * to another button (src/menu, the touch editor). A button no action is bound to presses nothing. */
+    static const int analog_of[8] = {
+        XBOX_BUTTON_A, XBOX_BUTTON_B, XBOX_BUTTON_X, XBOX_BUTTON_Y,
+        XBOX_BUTTON_BLACK, XBOX_BUTTON_WHITE,   /* (as a 360 pad's bumpers are: input/xinput_device.c) */
+        XBOX_BUTTON_LTRIGGER, XBOX_BUTTON_RTRIGGER,
     };
-    for (size_t i = 0; i < sizeof analog / sizeof analog[0]; i++)
-        if (s_down[analog[i].ctrl])
-            st->Gamepad.bAnalogButtons[analog[i].button] = 255;
+    static const WORD digital_of[4] = {
+        XBOX_GAMEPAD_BACK, XBOX_GAMEPAD_START, XBOX_GAMEPAD_LEFT_THUMB, XBOX_GAMEPAD_RIGHT_THUMB,
+    };
+    for (int i = 0; i < NCTRL; i++) {
+        if (!s_down[i] || s_layout_action[i] == PA_NONE)
+            continue;
+        if (s_layout_action[i] < 8)
+            st->Gamepad.bAnalogButtons[analog_of[s_layout_action[i]]] = 255;
+        else if (s_layout_action[i] < PA_COUNT)
+            b |= digital_of[s_layout_action[i] - 8];
+    }
+    st->Gamepad.wButtons = b;
     static const int combo_buttons[6][2] = {
         {XBOX_BUTTON_A,XBOX_BUTTON_B},{XBOX_BUTTON_A,XBOX_BUTTON_X},{XBOX_BUTTON_A,XBOX_BUTTON_Y},
         {XBOX_BUTTON_B,XBOX_BUTTON_X},{XBOX_BUTTON_B,XBOX_BUTTON_Y},{XBOX_BUTTON_X,XBOX_BUTTON_Y}
@@ -1294,6 +1306,79 @@ void ngb_touch_menu_activate(int item)
     pthread_mutex_unlock(&s_lock);
 }
 
+/* The layout as the phone's editor reads it and writes it back: a "V4 <aspect>" line, then one line per control,
+ * "<id> <x> <y> <r> <alpha> <colour> <shape> <action> <combo> <shown> <skin>", x and y its centre across and down
+ * the screen (0..1 of the width and of the height), r its radius down the screen (0..1 of the height). */
+void ngb_touch_layout_get(char *out, size_t n)
+{
+    if (!n)
+        return;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    layout_known();
+    float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
+    int k = snprintf(out, n, "V4 %.4f\n", aspect);
+    for (int i = 0; i < NCTRL && k > 0; i++) {
+        if ((size_t)k >= n)
+            break;
+        Place at = place(&s_ctrl[i]);
+        k += snprintf(out + k, n - (size_t)k, "%d %.5f %.5f %.5f %.5f %u %u %d %u %u %u\n",
+                      i, at.x / aspect, at.y, at.r, s_layout_alpha[i], s_layout_color[i], s_layout_shape[i],
+                      s_layout_action[i], s_layout_combo[i], s_layout_enabled[i] ? 1 : 0, s_layout_skin[i] ? 1 : 0);
+    }
+    pthread_mutex_unlock(&s_lock);
+}
+
+/* Everything the editor changed, in one go: the controls it sent keep the places it gave them. */
+void ngb_touch_layout_apply(const char *text)
+{
+    if (!text)
+        return;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    layout_known();
+    float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
+    const char *line = text;
+    while (line && *line) {
+        const char *end = strchr(line, '\n');
+        size_t len = end ? (size_t)(end - line) : strlen(line);
+        if (len && line[0] != 'V' && line[0] != 'M') {
+            char row[256];
+            if (len >= sizeof row)
+                len = sizeof row - 1;
+            memcpy(row, line, len);
+            row[len] = 0;
+            int id, colour, shape, action, combo, shown, skin;
+            float x, y, r, alpha;
+            if (sscanf(row, "%d %f %f %f %f %d %d %d %d %d %d", &id, &x, &y, &r, &alpha, &colour, &shape,
+                       &action, &combo, &shown, &skin) >= 11 && id >= 0 && id < NCTRL) {
+                const Ctrl *c = &s_ctrl[id];
+                float across = x * aspect;   /* (as the height: what place_at works in) */
+                s_layout_x[id] = c->edge == 2 ? across - aspect / 2 : c->edge == 1 ? aspect - across : across;
+                if (c->edge == 2)
+                    s_layout_x[id] = fminf(aspect / 2 - 0.04f, fmaxf(-aspect / 2 + 0.04f, s_layout_x[id]));
+                else
+                    s_layout_x[id] = fminf(aspect - 0.04f, fmaxf(0.04f, s_layout_x[id]));
+                s_layout_y[id] = fminf(.97f, fmaxf(.03f, y));
+                s_layout_r[id] = fminf(.25f, fmaxf(.035f, r));
+                s_layout_alpha[id] = fminf(1.f, fmaxf(.15f, alpha));
+                s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
+                s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 2 ? 2 : shape);
+                s_layout_action[id] = action >= 0 && action < PA_COUNT ? action : PA_NONE;
+                s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 6 ? 6 : combo);
+                s_layout_enabled[id] = shown != 0;
+                s_layout_skin[id] = skin != 0;
+                s_layout_custom[id] = true;
+            }
+        }
+        line = end ? end + 1 : NULL;
+    }
+    layout_save();
+    s_layout_revision++;
+    s_serial++;
+    pthread_mutex_unlock(&s_lock);
+}
+
 #if defined(__ANDROID__)
 extern int ngb_menu_row_get(int row);
 extern void ngb_menu_row_change(int row,int dir);
@@ -1343,18 +1428,67 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTou
     JNIEnv *env, jobject activity, jint item) { (void)env; (void)activity; ngb_touch_menu_activate(item); }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchEditorRequest(
     JNIEnv *env, jobject activity) { (void)env; (void)activity; extern void ngb_menu_request_touch_editor(void); ngb_menu_request_touch_editor(); }
-void ngb_touch_menu_show_android(void)
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchLayoutGet(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    char *text = malloc(4096);
+    if (!text)
+        return NULL;
+    ngb_touch_layout_get(text, 4096);
+    jstring result = (*env)->NewStringUTF(env, text);
+    free(text);
+    return result;
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchLayoutDefaults(
+    JNIEnv *env, jobject activity) {
+    (void)env; (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    layout_known();
+    layout_defaults();
+    s_preset = 0;
+    s_selected = -1;
+    layout_save();
+    s_layout_revision++;
+    s_serial++;
+    pthread_mutex_unlock(&s_lock);
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchSkinPick(
+    JNIEnv *env, jobject activity, jint id) {
+    (void)env; (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (id >= 0 && id < NCTRL) {
+        s_selected = id;
+        touch_pick_skin();
+    }
+    pthread_mutex_unlock(&s_lock);
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchLayoutApply(
+    JNIEnv *env, jobject activity, jstring text) {
+    (void)activity;
+    if (!text)
+        return;
+    const char *utf = (*env)->GetStringUTFChars(env, text, NULL);
+    if (!utf)
+        return;
+    ngb_touch_layout_apply(utf);
+    (*env)->ReleaseStringUTFChars(env, text, utf);
+}
+/* The editor on the phone (NgbActivity's TouchLayoutEditor): the layout button on the pad, the game's own Touch
+ * row and the editor's own request all come here. */
+void ngb_touch_editor_open(void)
 {
     JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();
     jobject activity=SDL_AndroidGetActivity();
     if(!env||!activity)return;
     jclass cls=(*env)->GetObjectClass(env,activity);
-    jmethodID method=cls?(*env)->GetMethodID(env,cls,"showTouchControlCenterFromNative","()V"):NULL;
+    jmethodID method=cls?(*env)->GetMethodID(env,cls,"showTouchEditor","()V"):NULL;
     if(method)(*env)->CallVoidMethod(env,activity,method);
     if(cls)(*env)->DeleteLocalRef(env,cls);
 }
 #else
-void ngb_touch_menu_show_android(void) { ngb_touch_editor_open(); }
+void ngb_touch_editor_open(void) { }
 #endif
 
 /* The presenter asks first whether there is a picture at all */
