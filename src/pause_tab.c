@@ -423,6 +423,7 @@ const char *ngb_menu_row_help(int row) {
 }
 int ngb_touch_menu_get(int item);
 void ngb_touch_menu_change(int item, int dir);
+void ngb_touch_menu_set(int item, int value);
 void ngb_touch_menu_activate(int item);
 int ngb_menu_row_get(int row) {
     if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS) return ngb_touch_menu_get(row - NGB_MENU_TOUCH_BASE);
@@ -471,7 +472,7 @@ void ngb_menu_row_change(int row, int dir) {
     else if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir);
 }
 void ngb_menu_row_set(int row, int value) {
-    if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS) { while (ngb_touch_menu_get(row - NGB_MENU_TOUCH_BASE) != value) ngb_touch_menu_change(row - NGB_MENU_TOUCH_BASE, 1); }
+    if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS) { ngb_touch_menu_set(row - NGB_MENU_TOUCH_BASE, value); }
     else if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) {
         int r = row - NGB_MENU_CTL_BASE;
         if (ctl_toggle_get(r) != !!value) ctl_toggle_flip(r);
