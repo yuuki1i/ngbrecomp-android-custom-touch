@@ -149,6 +149,7 @@ static Uint32 s_combo_started[NCTRL];
 static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
 static bool d_haptics = true;
+static bool s_camera_swipe = true;
 static char s_skin_path[512], d_skin_path[512];
 static int s_selected = -1, d_selected = -1;
 static int s_preset, d_preset;
@@ -166,7 +167,7 @@ static void layout_defaults(void) {
     for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
-    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_skin_path[0]=0;
+    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0;
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     char active[512]; snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);
     FILE *af=fopen(active,"r"); if(af){int p;if(fscanf(af,"%d",&p)==1&&p>=0&&p<=2)s_preset=p;fclose(af);}
@@ -175,7 +176,7 @@ static void layout_load(void) {
     FILE *fp=fopen(s_layout_path,"r");
     if(!fp&&s_preset==0){char *legacy=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(legacy){snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",legacy);SDL_free(legacy);fp=fopen(s_layout_path,"r");}}
     if(!fp)return; char line[192]; bool legacy_ids=true;
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -458,7 +459,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
         if(f<MAX_FINGERS&&s_edit_mode){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].down_timestamp=ev->tfinger.timestamp;s_finger[f].ctrl=hit_id;s_finger[f].x0=x;s_finger[f].y0=y;s_finger[f].moved=false;s_finger[f].was_selected=hit_id==s_selected;if(hit_id>=0)s_selected=hit_id;s_serial++;}
         else if(hit_id>=0&&f<MAX_FINGERS){xbox_InputTouchUsed();s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=hit_id;finger_on(hit_id,x,y);s_serial++;}
-        else if(hit_id<0&&f<MAX_FINGERS){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;}
+        else if(hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;}
     }else if(ev->type==SDL_FINGERMOTION&&f<MAX_FINGERS){
         int id=s_finger[f].ctrl;
         if(!s_edit_mode&&id==-2){float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.002f){s_stick[1][0]=fminf(1.f,fmaxf(-1.f,dx*20.0f));s_stick[1][1]=fminf(1.f,fmaxf(-1.f,dy*20.0f));s_down[RSTICK]=true;xbox_InputTouchUsed();s_finger[f].x0=x;s_finger[f].y0=y;s_serial++;}}
@@ -1198,53 +1199,71 @@ int nv2a_overlay_changed(int (*box)[4], int max)
     return s_chg_n;
 }
 
-/* Settings-menu bridge: these are the native touch controls, not the game's
- * controller settings. All mutations share the touch-state lock and persist
- * to the active touch-layout preset. */
+/* Settings-menu bridge for the dedicated Android touch-control centre. */
+static int touch_menu_combo(int id) { return s_layout_combo[id]; }
 int ngb_touch_menu_get(int item)
 {
-    int value = 0;
+    int value=0;
     pthread_mutex_lock(&s_lock);
     layout_load();
-    switch (item) {
-    case 1: value = s_preset; break;
-    case 2: value = s_haptics ? 1 : 0; break;
-    case 3: value = s_layout_combo[NINPO]; break;
-    case 4: value = s_layout_combo[WINDRUN]; break;
-    default: break;
+    int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
+    switch(item) {
+    case 1:value=s_preset;break;
+    case 2:value=s_haptics;break;
+    case 3:value=s_camera_swipe;break;
+    case 4:value=id;break;
+    case 5:value=s_layout_enabled[id];break;
+    case 6:value=(int)lroundf(s_layout_r[id]/s_ctrl[id].r*100.f);break;
+    case 7:value=(int)lroundf(s_layout_alpha[id]*100.f);break;
+    case 8:value=s_layout_color[id];break;
+    case 9:value=s_layout_shape[id];break;
+    case 10:value=s_layout_skin[id];break;
+    case 11:value=touch_menu_combo(NINPO);break;
+    case 12:value=touch_menu_combo(WINDRUN);break;
+    case 13:value=touch_menu_combo(CUSTOM1);break;
+    case 14:value=touch_menu_combo(CUSTOM2);break;
+    case 15:value=touch_menu_combo(CUSTOM3);break;
+    case 16:value=touch_menu_combo(CUSTOM4);break;
+    default:break;
     }
     pthread_mutex_unlock(&s_lock);
     return value;
 }
-
-void ngb_touch_menu_change(int item, int dir)
+void ngb_touch_menu_change(int item,int dir)
 {
     pthread_mutex_lock(&s_lock);
     layout_load();
-    if (item == 1) {
-        layout_switch_preset();
-    } else if (item == 2) {
-        s_haptics = !s_haptics;
-        layout_save();
-        s_serial++;
-    } else if (item == 3 || item == 4) {
-        int id = item == 3 ? NINPO : WINDRUN;
-        s_layout_combo[id] = (uint8_t)((s_layout_combo[id] + (dir < 0 ? 6 : 1)) % 7);
-        layout_save();
-        s_layout_revision++;
-        s_serial++;
+    int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
+    switch(item) {
+    case 1: layout_switch_preset(); break;
+    case 2: s_haptics=!s_haptics; break;
+    case 3: s_camera_swipe=!s_camera_swipe; break;
+    case 4: s_selected=(id+(dir<0?NCTRL-1:1))%NCTRL; break;
+    case 5: s_layout_enabled[id]=!s_layout_enabled[id]; break;
+    case 6: s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,s_layout_r[id]/s_ctrl[id].r+(dir<0?-.1f:.1f)));s_layout_custom[id]=true;break;
+    case 7: s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,s_layout_alpha[id]+(dir<0?-.05f:.05f)));break;
+    case 8: s_layout_color[id]=(uint8_t)((s_layout_color[id]+(dir<0?5:1))%6);break;
+    case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?2:1))%3);break;
+    case 10: s_layout_skin[id]^=1;break;
+    case 11:s_layout_combo[NINPO]=(uint8_t)((s_layout_combo[NINPO]+(dir<0?6:1))%7);break;
+    case 12:s_layout_combo[WINDRUN]=(uint8_t)((s_layout_combo[WINDRUN]+(dir<0?6:1))%7);break;
+    case 13:case 14:case 15:case 16:{int ci=CUSTOM1+item-13;s_layout_combo[ci]=(uint8_t)((s_layout_combo[ci]+(dir<0?6:1))%7);break;}
+    default:break;
     }
+    if(item!=1){layout_save();s_layout_revision++;s_serial++;}
     pthread_mutex_unlock(&s_lock);
 }
-
 void ngb_touch_menu_activate(int item)
 {
     pthread_mutex_lock(&s_lock);
     layout_load();
-    if (item == 0)
-        toggle_editor();
-    else if (item == 5)
-        add_custom_combo();
+    int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
+    if(item==17) touch_pick_skin();
+    else if(item==18) add_custom_combo();
+    else if(item==19) delete_selected_combo();
+    else if(item==10) s_layout_skin[id]^=1;
+    else if(item==5) s_layout_enabled[id]=!s_layout_enabled[id];
+    if(item==5||item==10){layout_save();s_layout_revision++;s_serial++;}
     pthread_mutex_unlock(&s_lock);
 }
 
