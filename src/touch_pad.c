@@ -180,7 +180,7 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
 {
     if (standin && (c == &s_ctrl[LB] || c == &s_ctrl[RB]))
         c = &s_ctrl[c == &s_ctrl[LB] ? RB : LB];
-    int ci=(int)(c-s_ctrl); Place p={s_layout_x[ci],s_layout_y[ci],s_layout_r[ci]}; if(!s_layout_custom[ci]) p=(Place){c->x,c->y,c->r};
+    int ci=(int)(c-s_ctrl); bool custom=s_layout_custom[ci]; Place p=custom?(Place){s_layout_x[ci],s_layout_y[ci],s_layout_r[ci]}:(Place){c->x,c->y,c->r};
     int edge = c->edge;
     if (layout == 1) {
         int i = (int)(c - s_ctrl);
@@ -189,7 +189,7 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
         p.r = s_classic[i].r;
         edge = s_classic[i].edge;
     }
-    if (aspect < NARROW && layout != 1) {
+    if (!custom && aspect < NARROW && layout != 1) {
         if (c == &s_ctrl[LT]) {
             p.x = 0.44f;
             p.y = 0.27f;
@@ -217,17 +217,17 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
         p.x = edge == 2 ? aspect / 2 + p.x : edge ? aspect - p.x : p.x;
         return p;
     }
-    if (c == &s_ctrl[DPAD_ID]) {   /* right of the game's quick menu (the items' cross, which it works): that is
+    if (!custom && c == &s_ctrl[DPAD_ID]) {   /* right of the game's quick menu (the items' cross, which it works): that is
                                     * at the lower left of a 16:9 picture, in the middle of a wider screen */
         float clear = (aspect - 16.0f / 9) / 2 + 0.50f, most = aspect / 2 - 0.28f;   /* (and left of Back) */
         p.x = p.x > clear ? p.x : clear;
         p.x = p.x < most ? p.x : most;
     }
-    if (c == &s_ctrl[RSTICK] && aspect >= NARROW && layout != 1) {   /* (in from the middle on a less wide screen) */
+    if (!custom && c == &s_ctrl[RSTICK] && aspect >= NARROW && layout != 1) {   /* (in from the middle on a less wide screen) */
         float most = aspect / 2 - 0.12f;   /* (at 3:2 the right stick clear of X) */
         p.x = p.x < most ? p.x : most;
     }
-    if (c == &s_ctrl[RT] && aspect < 1.7f && layout != 1)
+    if (!custom && c == &s_ctrl[RT] && aspect < 1.7f && layout != 1)
         p.y = 0.26f;   /* RT under the health emblem on a less wide screen (16:10, 4:3), where the HUD comes in
                         * over its corner */
     p.x = edge == 2 ? aspect / 2 + p.x : edge ? aspect - p.x : p.x;
@@ -817,6 +817,7 @@ static void draw_all(void)
     for (int i = 0; i < NCTRL; i++) {
         const Ctrl *c = &s_ctrl[i];
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
+        if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         bool on = d_down[i];
         if (c->kind == STICK) {
