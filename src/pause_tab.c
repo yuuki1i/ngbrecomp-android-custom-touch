@@ -337,7 +337,7 @@ static void change(int row, int step)
 #define NGB_MENU_TOUCH_ROWS 6
 int ngb_menu_tab_count(void) { return CATS + 1; }
 const char *ngb_menu_tab_name(int tab) {
-    return tab == CATS ? "Touch Controls" : tab >= 0 && tab < CATS ? s_cat_name[tab] : "";
+    return tab == CATS ? "Touch" : tab >= 0 && tab < CATS ? s_cat_name[tab] : "";
 }
 #define NGB_MENU_CTL_BASE 50
 #define NGB_MENU_CTL_MOUSE 55
