@@ -10,6 +10,8 @@ import android.provider.DocumentsContract;
 import android.system.Os;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import org.libsdl.app.SDLActivity;
@@ -20,10 +22,13 @@ import org.libsdl.app.SDLActivity;
  * the one file chosen (no storage permission), and the SD card. */
 public class NgbActivity extends SDLActivity {
     private static final int PICK_DISC = 0x4E47;
+    private static final int PICK_TOUCH_SKIN = 0x4E48;
     static final String EXTRA_LIB = "io.github.gamboozino.ngbrecomp.LIB";
     static final String EXTRA_ENV = "io.github.gamboozino.ngbrecomp.ENV";
     private volatile String mPicked;
     private volatile boolean mPickDone;
+    private volatile String mTouchSkinPath;
+    private volatile boolean mTouchSkinReady;
 
     private String mLib = "main";
 
@@ -98,6 +103,32 @@ public class NgbActivity extends SDLActivity {
         });
     }
 
+    /* Import a player-supplied PNG/JPEG button texture without broad storage permissions. */
+    public void pickTouchSkin() {
+        mTouchSkinPath = null;
+        mTouchSkinReady = false;
+        runOnUiThread(() -> {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            try {
+                startActivityForResult(i, PICK_TOUCH_SKIN);
+            } catch (Exception e) {
+                mTouchSkinReady = true;
+            }
+        });
+    }
+
+    /* Called by the native renderer after the document picker has finished copying the image. */
+    public String takeTouchSkinPath() {
+        if (!mTouchSkinReady)
+            return null;
+        mTouchSkinReady = false;
+        String path = mTouchSkinPath;
+        mTouchSkinPath = null;
+        return path;
+    }
+
     public boolean pickDone() {
         return mPickDone;
     }
@@ -108,6 +139,29 @@ public class NgbActivity extends SDLActivity {
 
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
+        if (request == PICK_TOUCH_SKIN) {
+            final Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
+            new Thread(() -> {
+                try {
+                    if (uri != null) {
+                        File target = new File(getFilesDir(), "ngb-touch-skin");
+                        try (InputStream in = getContentResolver().openInputStream(uri);
+                             FileOutputStream out = new FileOutputStream(target)) {
+                            if (in == null) throw new IllegalStateException("Unable to open selected image");
+                            byte[] buffer = new byte[32768];
+                            int n;
+                            while ((n = in.read(buffer)) >= 0) out.write(buffer, 0, n);
+                        }
+                        mTouchSkinPath = target.getAbsolutePath();
+                    }
+                } catch (Exception e) {
+                    mTouchSkinPath = null;
+                } finally {
+                    mTouchSkinReady = true;
+                }
+            }).start();
+            return;
+        }
         if (request == PICK_DISC) {   /* (off the UI thread: a cloud file is fetched whole when opened) */
             final Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
             new Thread(() -> {
