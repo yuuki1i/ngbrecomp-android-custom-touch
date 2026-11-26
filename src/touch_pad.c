@@ -164,7 +164,8 @@ static void layout_load(void)
     fclose(fp);
     for (int i = 0; i < NCTRL; i++) {
         s_layout_r[i] = fminf(0.25f, fmaxf(0.035f, s_layout_r[i]));
-        s_layout_x[i] = fminf(8.0f, fmaxf(0.04f, s_layout_x[i]));
+        if (s_ctrl[i].edge == 2) s_layout_x[i] = fminf(8.0f, fmaxf(-8.0f, s_layout_x[i]));
+        else s_layout_x[i] = fminf(8.0f, fmaxf(0.04f, s_layout_x[i]));
         s_layout_y[i] = fminf(0.97f, fmaxf(0.03f, s_layout_y[i]));
         s_layout_alpha[i] = fminf(1.0f, fmaxf(0.15f, s_layout_alpha[i]));
     }
@@ -425,7 +426,10 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
                 if (s_finger[f].moved) {
                     s_layout_x[c] += s_ctrl[c].edge == 1 ? -dx : dx;
                     s_layout_y[c] += dy; s_layout_custom[c] = true;
-                    s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
+                    if (s_ctrl[c].edge == 2)
+                        s_layout_x[c] = fminf(s_aspect / 2 - 0.04f, fmaxf(-s_aspect / 2 + 0.04f, s_layout_x[c]));
+                    else
+                        s_layout_x[c] = fminf(s_aspect - 0.04f, fmaxf(0.04f, s_layout_x[c]));
                     s_layout_y[c] = fminf(0.97f, fmaxf(0.03f, s_layout_y[c]));
                     s_finger[f].x0 = x; s_finger[f].y0 = y;
                     s_layout_revision++; s_serial++;
