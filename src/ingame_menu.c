@@ -1757,7 +1757,7 @@ static int row_hit(float lx, float ly, int *zone)
 
 static void draw(const uint32_t *backdrop)
 {
-    const uint32_t white = 0xEBEBEB, grey = 0x96969B, red = 0xC82028, bar = 0x781016;
+    const uint32_t white = 0xE6F0FC, grey = 0x91A6BE, red = 0x4B9BEE, bar = 0x17395F;
 
     /* The game, dimmed. */
     for (int i = 0; i < s_w * s_h; i++) {
@@ -1765,11 +1765,11 @@ static void draw(const uint32_t *backdrop)
         s_px[i] = 0xFF000000u | ((c >> 16 & 255) * 3 / 10) << 16 |
                   ((c >> 8 & 255) * 3 / 10) << 8 | ((c & 255) * 3 / 10);
     }
-    fill(0, 0, LW, LH, 0x0E0E12, 200);
-    fill(0, 0, LW, 92, 0x1A080A, 235);
+    fill(0, 0, LW, LH, 0x09121E, 218);
+    fill(0, 0, LW, 92, 0x101D2C, 242);
     fill(0, 90, LW, 2, red, 255);
     text("NINJA GAIDEN BLACK", LW / 2, 14, 42, white, 255, 1);
-    text("Options", LW / 2, 58, 22, grey, 255, 1);
+    text("SYSTEM  /  SETTINGS", LW / 2, 58, 20, grey, 255, 1);
 
     for (int row = 0; row < NROWS; row++) {
         int y = row_y(row);
@@ -1790,7 +1790,7 @@ static void draw(const uint32_t *backdrop)
         if (sel)
             fill(60, y + 2, LW - 120, ROW_H - 6, bar, 220);
         else if (row % 2)
-            fill(60, y + 2, LW - 120, ROW_H - 6, 0xFFFFFF, 18);
+            fill(60, y + 2, LW - 120, ROW_H - 6, 0x54708D, 18);
         text(label, 84, y + 8, 23, sel ? white : grey, 255, 0);
         text("<", 560, y + 8, 23, sel ? white : grey, 255, 0);
         text(val, 736, y + 8, 23, white, 255, 1);
