@@ -36,6 +36,8 @@
 #include <string.h>
 
 #include <SDL.h>
+#include <SDL_system.h>
+#include <jni.h>
 
 #include "platform/xbox_winnt.h"
 #include "input/xinput_xbox.h"
@@ -140,6 +142,7 @@ static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_e
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 static Uint32 s_combo_started[NCTRL];
 static bool s_combo_active[NCTRL];
+static bool s_haptics = true;
 static int s_selected = -1, d_selected = -1;
 static unsigned s_layout_revision, d_layout_revision;
 static char s_layout_path[512];
@@ -318,6 +321,28 @@ static int dpad_dirs(float x, float y)
     return d;
 }
 
+static void touch_vibrate(void) {
+#if defined(__ANDROID__)
+    if (!s_haptics) return;
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity = SDL_AndroidGetActivity();
+    if (!env || !activity) return;
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID get_service = cls ? (*env)->GetMethodID(env, cls, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;") : NULL;
+    if (!get_service) return;
+    jstring service_name = (*env)->NewStringUTF(env, "vibrator");
+    jobject vibrator = (*env)->CallObjectMethod(env, activity, get_service, service_name);
+    if (service_name) (*env)->DeleteLocalRef(env, service_name);
+    if (!vibrator) return;
+    jclass vcls = (*env)->GetObjectClass(env, vibrator);
+    jmethodID vibrate = vcls ? (*env)->GetMethodID(env, vcls, "vibrate", "(J)V") : NULL;
+    if (vibrate) (*env)->CallVoidMethod(env, vibrator, vibrate, (jlong)18);
+    if (vcls) (*env)->DeleteLocalRef(env, vcls);
+    (*env)->DeleteLocalRef(env, vibrator);
+    if (cls) (*env)->DeleteLocalRef(env, cls);
+#endif
+}
+
 static void finger_on(int ctrl, float x, float y)
 {
     if (ctrl == LSTICK || ctrl == RSTICK)
@@ -327,6 +352,7 @@ static void finger_on(int ctrl, float x, float y)
     else {
         s_down[ctrl] = true;
         if (ctrl >= NINPO && s_layout_combo[ctrl] == 6) { s_combo_active[ctrl] = true; s_combo_started[ctrl] = SDL_GetTicks(); }
+        if (s_ctrl[ctrl].kind == BUTTON || s_ctrl[ctrl].kind == COMBO) touch_vibrate();
     }
     if (ctrl == LSTICK || ctrl == RSTICK || ctrl == DPAD_ID)
         s_down[ctrl] = true;
