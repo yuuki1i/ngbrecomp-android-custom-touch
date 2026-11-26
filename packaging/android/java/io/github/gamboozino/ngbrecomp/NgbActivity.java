@@ -44,6 +44,15 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchChange(int item, int direction);
     private native void nativeTouchActivate(int item);
     private native void nativeTouchEditorRequest();
+    private native int nativeTouchGameGet(int row);
+    private native String nativeTouchGameValue(int row);
+    private native void nativeTouchGameChange(int row, int direction);
+    private native int nativeTouchBindCount();
+    private native int nativeTouchBindSlot();
+    private native void nativeTouchBindSlotChange(int direction);
+    private native String nativeTouchBindName(int action);
+    private native String nativeTouchBindValue(int action);
+    private native void nativeTouchBindCapture(int action);
 
     private String touchValue(int item) {
         int v = nativeTouchGet(item);
@@ -111,6 +120,44 @@ public class NgbActivity extends SDLActivity {
                 row.addView(plus, new LinearLayout.LayoutParams(52, 48));
                 content.addView(row);
             }
+
+            TextView gameHeading = new TextView(this);
+            gameHeading.setText("游戏控制选项");
+            gameHeading.setTextColor(Color.WHITE);
+            gameHeading.setTextSize(17);
+            gameHeading.setPadding(8, 18, 8, 8);
+            content.addView(gameHeading);
+            String[] gameLabels = {"镜头水平反转","镜头垂直反转","第一人称水平反转","启动时使用第三人称","Start + Back 快速重置","镜头灵敏度","按键提示样式"};
+            for (int n = 0; n < gameLabels.length; n++) {
+                final int rowId = 50 + n;
+                LinearLayout row = new LinearLayout(this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(4, 4, 4, 4);
+                TextView label = new TextView(this);
+                label.setText(gameLabels[n]);
+                label.setTextColor(Color.WHITE);
+                label.setTextSize(14);
+                label.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.4f));
+                Button minus = new Button(this);
+                minus.setText("−");
+                Button value = new Button(this);
+                value.setText(nativeTouchGameValue(rowId));
+                Button plus = new Button(this);
+                plus.setText("+");
+                Runnable refresh = () -> value.setText(nativeTouchGameValue(rowId));
+                minus.setOnClickListener(v -> { nativeTouchGameChange(rowId, -1); refresh.run(); });
+                plus.setOnClickListener(v -> { nativeTouchGameChange(rowId, 1); refresh.run(); });
+                value.setOnClickListener(v -> { nativeTouchGameChange(rowId, 1); refresh.run(); });
+                row.addView(label);
+                row.addView(minus, new LinearLayout.LayoutParams(48, 48));
+                row.addView(value, new LinearLayout.LayoutParams(116, 48));
+                row.addView(plus, new LinearLayout.LayoutParams(48, 48));
+                content.addView(row);
+            }
+            Button bindingEditor = new Button(this);
+            bindingEditor.setText("打开按键映射编辑器");
+            bindingEditor.setOnClickListener(v -> showTouchBindingEditor());
+            content.addView(bindingEditor);
 
             Button editor = new Button(this);
             editor.setText("打开触屏布局编辑器");
@@ -201,6 +248,69 @@ public class NgbActivity extends SDLActivity {
                 mPickDone = true;
             }
         });
+    }
+
+    private void showTouchBindingEditor() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(12, 8, 12, 8);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(content);
+        TextView intro = new TextView(this);
+        intro.setText("点按“捕获”后，按下要绑定的键盘按键或手柄按键；完成后点“刷新”查看结果。");
+        intro.setTextColor(Color.WHITE);
+        intro.setTextSize(14);
+        intro.setPadding(6, 6, 6, 12);
+        content.addView(intro);
+        TextView slotLabel = new TextView(this);
+        Button slotButton = new Button(this);
+        Runnable refreshSlot = () -> {
+            int slot = nativeTouchBindSlot();
+            String[] slots = {"键盘 / 鼠标 1", "键盘 / 鼠标 2", "手柄"};
+            slotLabel.setText("当前映射设备：" + slots[Math.max(0, Math.min(2, slot))]);
+            slotButton.setText("切换映射设备");
+        };
+        refreshSlot.run();
+        slotButton.setOnClickListener(v -> { nativeTouchBindSlotChange(1); refreshSlot.run(); });
+        content.addView(slotLabel);
+        content.addView(slotButton);
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle("按键映射编辑器")
+            .setView(scroll)
+            .setNegativeButton("返回", (d, w) -> d.dismiss())
+            .create();
+        int count = nativeTouchBindCount();
+        for (int i = 0; i < count; i++) {
+            final int action = i;
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(2, 3, 2, 3);
+            TextView name = new TextView(this);
+            name.setText(nativeTouchBindName(action));
+            name.setTextColor(Color.WHITE);
+            name.setTextSize(13);
+            name.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+            TextView current = new TextView(this);
+            current.setText(nativeTouchBindValue(action));
+            current.setTextColor(Color.WHITE);
+            current.setTextSize(13);
+            current.setGravity(Gravity.CENTER);
+            Button capture = new Button(this);
+            capture.setText("捕获");
+            Button refresh = new Button(this);
+            refresh.setText("刷新");
+            capture.setOnClickListener(v -> {
+                nativeTouchBindCapture(action);
+                current.setText("等待输入…");
+            });
+            refresh.setOnClickListener(v -> current.setText(nativeTouchBindValue(action)));
+            row.addView(name);
+            row.addView(current, new LinearLayout.LayoutParams(92, 48));
+            row.addView(capture, new LinearLayout.LayoutParams(72, 48));
+            row.addView(refresh, new LinearLayout.LayoutParams(72, 48));
+            content.addView(row);
+        }
+        dialog.show();
     }
 
     public void showTouchControlCenterFromNative() { showTouchControlCenter(); }
