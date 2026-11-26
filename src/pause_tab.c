@@ -334,7 +334,7 @@ static void change(int row, int step)
 /* Host settings overlay API: the same rows and values as the in-game pause Settings pages. */
 #define NGB_MENU_ROW_TOUCH 1000
 #define NGB_MENU_TOUCH_BASE 1100
-#define NGB_MENU_TOUCH_ROWS 6
+#define NGB_MENU_TOUCH_ROWS 20
 int ngb_menu_tab_count(void) { return CATS + 1; }
 const char *ngb_menu_tab_name(int tab) {
     return tab == CATS ? "Touch" : tab >= 0 && tab < CATS ? s_cat_name[tab] : "";
@@ -372,8 +372,13 @@ int ngb_menu_tab_row(int tab, int index) {
     return s_cat_rows[tab][index];
 }
 const char *ngb_menu_row_label(int row) {
-    static const char *const touch[] = { "Visual Layout Editor", "Layout Preset", "Touch Vibration",
-        "Ninpo Combo", "Wind Run Combo", "Add Custom Combo" };
+    static const char *const touch[] = {
+        "Open Visual Layout Editor", "Layout Preset", "Touch Vibration", "Camera Swipe",
+        "Selected Control", "Control Enabled", "Control Size", "Control Opacity",
+        "Control Color", "Control Shape", "Custom Image", "Ninpo Combo",
+        "Wind Run Combo", "Custom Combo 1", "Custom Combo 2", "Custom Combo 3",
+        "Custom Combo 4", "Import Custom Image", "Add Custom Combo", "Delete Selected"
+    };
     if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS)
         return touch[row - NGB_MENU_TOUCH_BASE];
     static const char *const ctl[] = { "Invert Camera X", "Invert Camera Y", "Invert First-Person X",
@@ -387,12 +392,26 @@ const char *ngb_menu_row_label(int row) {
 }
 const char *ngb_menu_row_help(int row) {
     static const char *const help[] = {
-        "Open the touch editor directly over the game. Drag, resize and style on-screen controls with your fingers.",
-        "Choose and save one of three independent touch layouts.",
-        "Enable or disable vibration feedback when touching controls.",
-        "Choose the Ninpo touch combo, including the 360-degree stick sweep followed by Y.",
-        "Choose the Wind Run touch combo.",
-        "Add a configurable custom touch button to the on-screen layout."
+        "Open the full-screen touch editor. Drag controls to move them and pinch with two fingers to resize.",
+        "Switch between Default, Classic and Custom layouts. Each preset is saved separately.",
+        "Turn touch vibration feedback on or off.",
+        "Allow swipes on empty screen space to move the camera.",
+        "Choose which on-screen control the following appearance and enable settings edit.",
+        "Show or hide the selected on-screen control.",
+        "Adjust the selected control's size from 50% to 200%.",
+        "Adjust the selected control's transparency.",
+        "Cycle the selected control's accent color.",
+        "Choose a round, square or diamond control outline.",
+        "Toggle the imported image skin for the selected button or combo.",
+        "Choose the Ninpo combo, including 360-degree stick sweep followed by Y.",
+        "Choose the Wind Run combo.",
+        "Choose the button combination assigned to custom combo 1.",
+        "Choose the button combination assigned to custom combo 2.",
+        "Choose the button combination assigned to custom combo 3.",
+        "Choose the button combination assigned to custom combo 4.",
+        "Open Android's image picker and apply the selected image to the selected control.",
+        "Add the next available custom combo button to the touch layout.",
+        "Hide the currently selected touch control."
     };
     if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS)
         return help[row - NGB_MENU_TOUCH_BASE];
@@ -419,9 +438,13 @@ void ngb_menu_row_value(int row, char *out, size_t n) {
     if (!n) return;
     if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS) {
         int item = row - NGB_MENU_TOUCH_BASE, v = ngb_touch_menu_get(item);
-        if (item == 0 || item == 5) snprintf(out, n, "OPEN");
+        if (item == 0 || item == 17 || item == 18 || item == 19) snprintf(out, n, "OPEN");
         else if (item == 1) snprintf(out, n, "%s", presets[v >= 0 && v < 3 ? v : 0]);
-        else if (item == 2) snprintf(out, n, "%s", v ? "On" : "Off");
+        else if (item == 2 || item == 3 || item == 5 || item == 10) snprintf(out, n, "%s", v ? "On" : "Off");
+        else if (item == 4) { static const char *const controls[] = { "Left Stick", "Right Stick", "D-Pad", "A", "B", "X", "Y", "LB", "RB", "LT", "RT", "Back", "Start", "LS", "RS", "Layout", "Ninpo", "Wind Run", "Custom 1", "Custom 2", "Custom 3", "Custom 4" }; snprintf(out,n,"%s",v>=0&&v<22?controls[v]:"Left Stick"); }
+        else if (item == 6 || item == 7) snprintf(out,n,"%d%%",v);
+        else if (item == 8) { static const char *const colors[]={"White","Blue","Red","Green","Gold","Violet"}; snprintf(out,n,"%s",v>=0&&v<6?colors[v]:"White"); }
+        else if (item == 9) { static const char *const shapes[]={"Round","Square","Diamond"}; snprintf(out,n,"%s",v>=0&&v<3?shapes[v]:"Round"); }
         else snprintf(out, n, "%s", combos[v >= 0 && v < 7 ? v : 0]);
         return;
     }
