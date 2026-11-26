@@ -400,14 +400,16 @@ static int tab_pop(void)
 static uint32_t pad_bits(void);
 static uint32_t s_tab_prev, s_tab_rbit;
 
-/* F1 (and Back+Start) no longer open the settings menu: it is reached from the
- * game's own menus (RECOMP SETTINGS, the pause menu's Settings tab).
- * NGB_F1_MENU=1 brings the keys back. */
+/* Android users need an immediate way into the Recomp overlay.
+ * Back+Start (the virtual Back and Start controls) and F1 are enabled by
+ * default; NGB_F1_MENU=0 disables the shortcut for users who prefer the
+ * game's own menus. */
 static int f1_menu(void)
 {
     static int on = -1;
     if (on < 0) {
-        on = getenv("NGB_F1_MENU") != NULL;   /* (and Start under Back the host's: src/bindings.c) */
+        const char *v = getenv("NGB_F1_MENU");
+        on = !(v && v[0] == '0');
     }
     return on;
 }
