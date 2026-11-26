@@ -2735,7 +2735,7 @@ static void ctl_mouse(int r, int *row)
 static void pt_draw(void)
 {
     if (!cat_shown(s_cat == CAT_UNL ? CAT_CHEAT : s_cat)) {   /* (on Cheats, now locked: the next one) */
-        s_cat = CAT_CHEAT + 1;
+        s_cat = CAT_CTL + 1; /* Controls is hidden; continue at Menu Options. */
         s_row = -1;
     }
     int was = s_focus, vals[S_COUNT], n = cat_count(s_cat);
