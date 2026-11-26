@@ -131,6 +131,7 @@ static float s_aspect = 16.0f / 9;
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
+static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL];
 static int s_selected = -1, d_selected = -1;
 static unsigned s_layout_revision, d_layout_revision;
 static char s_layout_path[512];
@@ -143,26 +144,27 @@ static int s_art_shown;                       /* the controls drawn (the last pi
 #define MAX_FINGERS 10
 static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 static void layout_defaults(void) {
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; }
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=0; }
 }
 static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults();
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir); SDL_free(dir);
     FILE *fp=fopen(s_layout_path,"r"); if(!fp)return; char line[192];
-    while(fgets(line,sizeof line,fp)){int id,custom;float x,y,r,a;if(sscanf(line,"%d %f %f %f %f %d",&id,&x,&y,&r,&a,&custom)!=6||id<0||id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;}
+    while(fgets(line,sizeof line,fp)){int id,custom,color=0,shape=0,skin=0;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin);if(n<6||id<0||id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir);SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0);
+    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i]);
     fclose(fp);
 }
 static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);s_dpad=0;}
 static void toggle_editor(void){s_edit_mode=!s_edit_mode;s_selected=-1;clear_touch_state();if(!s_edit_mode)layout_save();s_layout_revision++;s_serial++;}
 static void edit_selected(Uint32 held){if(s_selected<0||s_selected>=NCTRL)return;if(held>=650){float q=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(q<.88f?1.f:q<1.12f?1.25f:.75f);}else{static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}s_layout_revision++;layout_save();s_serial++;}
+static void editor_toolbar_action(float x){float q=x/s_aspect;if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f)s_layout_skin[s_selected]^=1;else return;s_layout_revision++;layout_save();s_serial++;}
 
 /* Where a control is on a screen this wide: its place (in screen heights) and radius. On a squarer screen than
  * about 16:10 (4:3, 3:2, 5:4: below NARROW) there is no room beside the player for the right stick and LT, which
@@ -326,6 +328,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
+    if(ev->type==SDL_FINGERDOWN&&y<.105f&&s_edit_mode){editor_toolbar_action(x);pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
@@ -758,6 +761,87 @@ static void draw_idle(void)
     }
 }
 
+static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    if (x < 0 || y < 0 || x >= s_w || y >= s_h || !a) return;
+    uint32_t *p = &s_px[(size_t)y * s_w + x];
+    unsigned inv = 255 - a;
+    uint32_t old = *p;
+    uint8_t ob = (uint8_t)(old & 255), og = (uint8_t)(old >> 8), orr = (uint8_t)(old >> 16), oa = (uint8_t)(old >> 24);
+    uint8_t nb = (uint8_t)((b * a + ob * inv + 127) / 255);
+    uint8_t ng = (uint8_t)((g * a + og * inv + 127) / 255);
+    uint8_t nr = (uint8_t)((r * a + orr * inv + 127) / 255);
+    uint8_t na = (uint8_t)(a + (oa * inv + 127) / 255);
+    *p = (uint32_t)nb | (uint32_t)ng << 8 | (uint32_t)nr << 16 | (uint32_t)na << 24;
+}
+
+
+static void draw_style_outline(float cx, float cy, float r, int color, int shape, bool selected)
+{
+    if (!selected && color == 0 && shape == 0) return;
+    static const uint8_t colors[6][3] = {
+        {55, 166, 255}, {40, 112, 220}, {92, 132, 255},
+        {24, 72, 160}, {130, 160, 255}, {18, 42, 92}
+    };
+    int ci = color < 0 || color > 5 ? 0 : color;
+    uint8_t cr = selected ? 255 : colors[ci][0], cg = selected ? 210 : colors[ci][1], cb = selected ? 90 : colors[ci][2];
+    float outer = r * 1.20f, inner = outer - fmaxf(1.5f, r * 0.055f);
+    int x0 = (int)floorf(cx - outer - 1), x1 = (int)ceilf(cx + outer + 1);
+    int y0 = (int)floorf(cy - outer - 1), y1 = (int)ceilf(cy + outer + 1);
+    over_box(x0, y0, x1 + 1, y1 + 1);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            float dx = fabsf(x + 0.5f - cx), dy = fabsf(y + 0.5f - cy), d;
+            if (shape == 1) d = fmaxf(dx, dy);
+            else if (shape == 2) d = (dx + dy) * 0.70710678f;
+            else d = hypotf(dx, dy);
+            if (d >= inner && d <= outer)
+                badge_pixel(x, y, cr, cg, cb, 230);
+        }
+}
+
+
+static void draw_badge_text(const char *label, int centre, int y0, int bw)
+{
+    const int bh = 18, x0 = centre - bw / 2;
+    over_box(x0, y0, x0 + bw, y0 + bh);
+    for (int y = y0; y < y0 + bh; y++)
+        for (int x = x0; x < x0 + bw; x++) {
+            bool edge = x == x0 || x == x0 + bw - 1 || y == y0 || y == y0 + bh - 1;
+            badge_pixel(x, y, edge ? 55 : 12, edge ? 166 : 24, edge ? 255 : 42, edge ? 238 : 218);
+        }
+    int total = 0, n = (int)strlen(label);
+    for (int i = 0; i < n; i++) total += launcher_font_w[label[i] - 32];
+    float scale = fminf(0.62f, fminf((bw - 12.0f) / (total ? total : 1), 10.0f / LAUNCHER_FONT_H_PX));
+    float pen = centre - total * scale / 2.0f;
+    int top = y0 + (bh - (int)ceilf(LAUNCHER_FONT_H_PX * scale)) / 2;
+    for (int i = 0; i < n; i++) {
+        int g = label[i] - 32, gw = launcher_font_w[g];
+        const uint8_t *src = launcher_font_px + launcher_font_off[g];
+        for (int sy = 0; sy < LAUNCHER_FONT_H_PX; sy++)
+            for (int sx = 0; sx < gw; sx++) {
+                uint8_t a = src[sy * gw + sx];
+                if (a) badge_pixel((int)floorf(pen + sx * scale), top + (int)floorf(sy * scale), 248, 248, 250, a);
+            }
+        pen += gw * scale;
+    }
+}
+static void draw_editor_badge(void)
+{
+    draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
+    if (d_edit_mode) {
+        draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
+        draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
+        draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
+        draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
+        draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
+        draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
+        draw_badge_text(d_selected >= 0 && d_selected < NCTRL && s_ctrl[d_selected].kind == COMBO
+                            ? "MAP" : "ART", (int)(s_w * 0.82f), 2, 42);
+    }
+}
+
+
 /* The picture is drawn in memory of our own and its changed boxes copied into the presenter's buffer: blended
  * in that buffer itself (the GPU's, mapped: slow to read on a phone) a dragged stick took a Pixel 4a from 60 fps
  * to 22 at the window's own size. */
@@ -847,6 +931,8 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
+    if (d_edit_mode) draw_editor_badge();
+    for (int i=0;i<NCTRL;i++) if (d_edit_mode && i==d_selected) { Place p=place_at(&s_ctrl[i],d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=s_ctrl[i].edge==2?d_aspect/2+d_layout_x[i]:s_ctrl[i].edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} draw_style_outline(p.x*u,p.y*u,p.r*u,d_layout_color[i],d_layout_shape[i],true); }
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
@@ -950,7 +1036,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_down, s_down, sizeof d_down);
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
-        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom);
+        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin);
         d_edit_mode=s_edit_mode; d_selected=s_selected; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
