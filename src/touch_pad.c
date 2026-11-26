@@ -200,6 +200,7 @@ int ngb_video_tint;
  * and blue down it), and mixed with the brightness. Like the colour filters of a PSP's plugins. */
 unsigned char ngb_video_curve[3][256];
 int ngb_video_curve_on;
+int ngb_texture_dump_on;   /* 0: the pack is read, not written (the writes stalled the opening CG) */
 float ngb_video_contrast = 1.f, ngb_video_saturation = 1.f;   /* the picture's own grading, 1 = as the title */
 unsigned char *ngb_video_lut_rgba;                           /* a .cube the player brought: N*N by N tiles */
 int ngb_video_lut_size;
@@ -340,7 +341,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
@@ -354,6 +355,7 @@ static void layout_save(void) {
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
+    fprintf(fp,"# TEXDUMP %d\n", ngb_texture_dump_on);
     fprintf(fp,"# VIDEO %d %d %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),
             (int)lroundf(ngb_video_gamma*100.f),ngb_video_tint,(int)lroundf(ngb_video_contrast*100.f),
             (int)lroundf(ngb_video_saturation*100.f));
@@ -759,6 +761,35 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
     }
 
     pthread_mutex_unlock(&s_lock);
+}
+
+/* The 360 key (combo 6), read beside the pad's state so the sweep and the Y go in after the bindings are
+ * rebuilt -- a stick fed into that rebuild came out at zero, and the move with it. 1 while it has something. */
+int ngb_touch_360(float *lx, float *ly, int *y_down)
+{
+    int out = 0;
+    if (!lx || !ly || !y_down) return 0;
+    *lx = *ly = 0.f;
+    *y_down = 0;
+    pthread_mutex_lock(&s_lock);
+
+    Uint32 now = SDL_GetTicks();
+    for (int i = NINPO; i < NCTRL; i++) {
+        if (s_layout_combo[i] != 6 || !s_down[i] || !s_combo_active[i]) continue;
+        Uint32 elapsed = now - s_combo_started[i];
+        const Uint32 sweep = 250;
+        if (elapsed < sweep) {
+            float t = (float)elapsed / (float)sweep;
+            t = t * t * (3.0f - 2.0f * t);
+            float angle = t * 2.0f * (float)M_PI;
+            *lx = cosf(angle);
+            *ly = -sinf(angle);
+        } else
+            *y_down = 1;
+        out = 1;
+    }
+    pthread_mutex_unlock(&s_lock);
+    return out;
 }
 
 /* ---- the picture ---- */
@@ -1816,6 +1847,7 @@ JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
     if (which == 1) return (jint)lroundf(ngb_video_gamma * 100.f);
     if (which == 3) return (jint)lroundf(ngb_video_contrast * 100.f);
     if (which == 4) return (jint)lroundf(ngb_video_saturation * 100.f);
+    if (which == 5) return (jint)ngb_texture_dump_on;
     return ngb_video_tint;
 }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoSet(
@@ -1831,6 +1863,13 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
         ngb_video_contrast = fminf(1.5f, fmaxf(.5f, value / 100.f));
     else if (which == 4)
         ngb_video_saturation = fminf(2.f, fmaxf(0.f, value / 100.f));
+    else if (which == 5) {
+        int was = ngb_texture_dump_on;
+        ngb_texture_dump_on = value != 0;
+        if (!was && ngb_texture_dump_on) {
+            ngb_textures_rescan();   /* (a fresh count: the ones already looked at are packed in, if on) */
+        }
+    }
     else
         ngb_video_tint = value < 0 ? 0 : value > 2 ? 2 : (int)value;
     layout_save();

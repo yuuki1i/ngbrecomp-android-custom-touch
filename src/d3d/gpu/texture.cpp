@@ -366,6 +366,13 @@ bool ReadFile(const char* path, std::vector<uint8_t>& out) {
     return ok;
 }
 
+#if defined(__ANDROID__)
+extern int ngb_texture_dump_on;   /* src/touch_pad.c: the player's switch. Off, a texture never seen here is only
+                                   * looked for in the pack -- the PNG writes are what made the opening CG crawl */
+#else
+static int ngb_texture_dump_on;
+#endif
+
 void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<uint8_t>& out, uint32_t row_pitch) {
     if (!ngb_texture_dir) return;
     const char* dir = ngb_texture_dir();
@@ -410,7 +417,7 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
     }
     /* not there yet: dump it once, so the player can see -- and repaint -- the console's own texels */
     int8_t mark = -1;
-    if (s_dumped < 800) {
+    if (ngb_texture_dump_on && s_dumped < 800) {
         std::vector<uint8_t> rgba(out.size());
         for (size_t i = 0, n = size_t(w) * h; i < n; i++) {
             rgba[i * 4 + 0] = out[i * 4 + 2];

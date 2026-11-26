@@ -77,6 +77,7 @@ public class NgbSettingsMenu extends FrameLayout {
 
     /* the picture values */
     private int mBright, mGamma, mTint, mContrast = 100, mSat = 100;
+    private boolean mTexDump;
 
     private static class Row {
         View view;
@@ -260,6 +261,11 @@ public class NgbSettingsMenu extends FrameLayout {
                 mActivity.askAllFiles();
                 Toast.makeText(mActivity, "允许后回到游戏，贴图位置就是 /sdcard/NGB", Toast.LENGTH_LONG).show();
             });
+        addToggle("导出贴图", "开着会一边玩一边把游戏贴图写进那个文件夹（会卡，尤其开场 CG）。平时关掉。",
+                  mTexDump, v -> {
+                      mTexDump = v == 0;      /* (the toggle's 0 is 开) */
+                      mActivity.setVideoValue(5, mTexDump ? 1 : 0);
+                  });
         addAction("重新读取贴图", "放好或换掉贴图之后重扫一遍，不必重启游戏。", () -> {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
@@ -578,6 +584,7 @@ public class NgbSettingsMenu extends FrameLayout {
             mTint = mActivity.getVideoValue(2);
             mContrast = mActivity.getVideoValue(3);
             mSat = mActivity.getVideoValue(4);
+            mTexDump = mActivity.getVideoValue(5) != 0;
         } catch (Throwable e) {
             mBright = 100;
             mGamma = 100;
