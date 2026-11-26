@@ -136,7 +136,6 @@ static void layout_defaults(void)
     }
     s_layout_combo[NINPO] = 4;
     s_layout_combo[WINDRUN] = 1;
-    }
 }
 static void layout_load(void)
 {
@@ -853,7 +852,7 @@ static const char *combo_second(int id)
 
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME && !s_layout_skin[id]) {
+    if (s_art == ART_GAME && !d_layout_skin[id]) {
         draw_piece(combo_first(id), cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
         draw_piece(combo_second(id), cx + 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
     } else {
@@ -863,7 +862,7 @@ static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME && !s_layout_skin[(int)(c - s_ctrl)]) {
+    if (s_art == ART_GAME && !d_layout_skin[(int)(c - s_ctrl)]) {
         char n[40];
         snprintf(n, sizeof n, lit ? "%s_lit" : "%s", c->piece);
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
