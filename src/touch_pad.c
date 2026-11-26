@@ -190,6 +190,8 @@ static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_
 static void layout_switch_preset(void) {
     layout_save();
     s_preset=(s_preset+1)%3;
+    char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");
+    if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\\n",s_preset);fclose(af);}SDL_free(dir);}
     s_layout_path[0]=0; s_layout_loaded=false;
     layout_load();
     s_layout = s_preset==1 ? 1 : 0; s_layout_save=1;
