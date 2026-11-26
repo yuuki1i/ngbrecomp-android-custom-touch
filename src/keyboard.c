@@ -160,18 +160,23 @@ int xbox_keyboard_map(const Uint8 *k, Uint32 mouse, XBOX_INPUT_STATE *st)
         XBOX_INPUT_STATE t;
         memset(&t, 0, sizeof t);
         ngb_touch_map(&t);
+        /* The pad's sticks, kept as they are: the remap rebuilds the buttons from the bindings and has no
+         * place for an axis, so a stick fed into it came out at zero -- the camera (the right one) never
+         * turned on a phone. They go in after it, the way the sticks go in for a controller. */
+        SHORT tlx = t.Gamepad.sThumbLX, tly = t.Gamepad.sThumbLY;
+        SHORT trx = t.Gamepad.sThumbRX, try_ = t.Gamepad.sThumbRY;
         xbox_pad_remap(&t, 4);   /* (a port of its own: the pairs' state, src/bindings.c) */
         st->Gamepad.wButtons |= t.Gamepad.wButtons;
         for (int i = 0; i < 8; i++)
             if (t.Gamepad.bAnalogButtons[i] > st->Gamepad.bAnalogButtons[i])
                 st->Gamepad.bAnalogButtons[i] = t.Gamepad.bAnalogButtons[i];
-        if (t.Gamepad.sThumbLX || t.Gamepad.sThumbLY) {
-            st->Gamepad.sThumbLX = t.Gamepad.sThumbLX;
-            st->Gamepad.sThumbLY = t.Gamepad.sThumbLY;
+        if (tlx || tly) {
+            st->Gamepad.sThumbLX = tlx;
+            st->Gamepad.sThumbLY = tly;
         }
-        if (t.Gamepad.sThumbRX || t.Gamepad.sThumbRY) {
-            st->Gamepad.sThumbRX = t.Gamepad.sThumbRX;
-            st->Gamepad.sThumbRY = t.Gamepad.sThumbRY;
+        if (trx || try_) {
+            st->Gamepad.sThumbRX = trx;
+            st->Gamepad.sThumbRY = try_;
         }
     }
 #endif

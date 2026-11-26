@@ -334,6 +334,10 @@ extern "C" unsigned char *stbi_load_from_memory(const unsigned char *buffer, int
 extern "C" void stbi_image_free(void *retval_from_stbi_load);
 
 namespace {
+std::mutex s_pack_lock;
+std::unordered_map<uint64_t, int8_t> s_pack_seen;   /* hash: 1 packed, 0 dumped, -1 not to be packed */
+int s_dumped;                                       /* (a pack of a whole game is a great many files) */
+
 uint64_t TexHash(const TextureDesc& d, uint32_t level, uint32_t face, const std::vector<uint8_t>& px) {
     uint64_t h = 0xcbf29ce484222325ull;
     auto mix = [&h](uint64_t v) {
@@ -371,9 +375,6 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
     if (w < 16 || h < 16 || w > 2048 || h > 2048) return;
     if (level != 0) return;                                             /* (the base level only: one file per texture) */
     if (row_pitch != w * 4 || out.size() != size_t(w) * h * 4) return;   /* BGRA8 rows only, one slice */
-    static std::mutex s_pack_lock;
-    static std::unordered_map<uint64_t, int8_t> s_pack_seen;   /* hash: 1 packed, 0 dumped, -1 not to be packed */
-    static int s_dumped;                                      /* (a pack of a whole game is a great many files) */
     uint64_t hash = TexHash(d, level, face, out);
     int8_t seen = 2;   /* 2: not looked at yet */
     {
@@ -426,6 +427,11 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
     s_pack_seen[hash] = mark;
 }
 }  // namespace
+
+extern "C" void ngb_textures_rescan(void) {
+    std::lock_guard<std::mutex> guard(s_pack_lock);
+    s_pack_seen.clear();   /* (the pack folder looked at again: a picture dropped in since is taken) */
+}
 
 static void DecodeLevelBody(const TextureDesc& d, uint32_t level, uint32_t face, const uint8_t* guest,
                             const uint32_t* palette, std::vector<uint8_t>& out, uint32_t& row_pitch) {

@@ -195,7 +195,42 @@ static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_a
  * (src/d3d/hle.cpp). 1, 1, 0 is the picture as the title has it. */
 float ngb_video_brightness = 1.f, ngb_video_gamma = 1.f;
 int ngb_video_tint;
+/* A filter the player brings: one PNG, a gradient across, read as the picture's colour curve (red, green
+ * and blue down it), and mixed with the brightness. Like the colour filters of a PSP's plugins. */
+unsigned char ngb_video_curve[3][256];
+int ngb_video_curve_on;
+static char s_filter_path[512];
+
+static void filter_curve_build(void)
+{
+    ngb_video_curve_on = 0;
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < 256; i++) ngb_video_curve[c][i] = (unsigned char)i;
+    if (!s_filter_path[0]) return;
+    FILE *file = fopen(s_filter_path, "rb");
+    if (!file) return;
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    unsigned char *bytes = size >= 8 && size <= 32 * 1024 * 1024 ? malloc((size_t)size) : NULL;
+    int w = 0, h = 0, channels = 0;
+    unsigned char *px = NULL;
+    if (bytes && fread(bytes, 1, (size_t)size, file) == (size_t)size)
+        px = stbi_load_from_memory(bytes, (int)size, &w, &h, &channels, 4);
+    free(bytes);
+    fclose(file);
+    if (!px || w < 2 || h < 1) { if (px) stbi_image_free(px); return; }
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < 256; i++) {
+            int x = (int)((long)i * (w - 1) / 255);
+            int y = h / 2;
+            ngb_video_curve[c][i] = px[(y * w + x) * 4 + c];
+        }
+    stbi_image_free(px);
+    ngb_video_curve_on = 1;
+}
 void ngb_video_filter_refresh(void);   /* src/d3d/hle.cpp (nothing on the other platforms) */
+void ngb_textures_rescan(void);        /* src/d3d/gpu/texture.cpp: forget which textures were dumped */
 
 static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
@@ -251,8 +286,9 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
     fclose(fp);
+    filter_curve_build();
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
@@ -262,6 +298,7 @@ static void layout_save(void) {
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
+    if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
     fprintf(fp,"# VIDEO %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),(int)lroundf(ngb_video_gamma*100.f),ngb_video_tint);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d %.3f\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i],s_layout_asp[i]);
     fclose(fp);
@@ -632,9 +669,8 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         s_stick[1][1] += (gy - s_stick[1][1]) * 0.55f;
         if (fabsf(s_stick[1][0]) < 0.02f) s_stick[1][0] = 0;
         if (fabsf(s_stick[1][1]) < 0.02f) s_stick[1][1] = 0;
-        s_down[RSTICK] = true;
     }
-    if (s_down[RSTICK]) {
+    if (s_down[RSTICK] || s_cam_hold) {   /* (a drag turns the stick, not the RS button under it) */
         st->Gamepad.sThumbRX = (SHORT)(s_stick[1][0] * 32767);
         st->Gamepad.sThumbRY = (SHORT)(-s_stick[1][1] * 32767);
     }
@@ -1737,6 +1773,42 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
     layout_save();
     pthread_mutex_unlock(&s_lock);
     ngb_video_filter_refresh();
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureDir(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    const char *dir = ngb_texture_dir();
+    return (*env)->NewStringUTF(env, dir ? dir : "");
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureRescan(
+    JNIEnv *env, jobject activity) {
+    (void)env; (void)activity;
+    ngb_textures_rescan();
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoFilterSet(
+    JNIEnv *env, jobject activity, jstring path) {
+    (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (path) {
+        const char *utf = (*env)->GetStringUTFChars(env, path, NULL);
+        if (utf) {
+            snprintf(s_filter_path, sizeof s_filter_path, "%s", utf);
+            (*env)->ReleaseStringUTFChars(env, path, utf);
+        }
+    } else
+        s_filter_path[0] = 0;
+    filter_curve_build();
+    layout_save();
+    pthread_mutex_unlock(&s_lock);
+    ngb_video_filter_refresh();
+    return (*env)->NewStringUTF(env, s_filter_path[0] ? s_filter_path : "");
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoFilterName(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    const char *slash = strrchr(s_filter_path, '/');
+    return (*env)->NewStringUTF(env, s_filter_path[0] ? (slash ? slash + 1 : s_filter_path) : "");
 }
 #else
 void ngb_touch_editor_open(void) { }

@@ -31,12 +31,15 @@ import org.libsdl.app.SDLActivity;
 public class NgbActivity extends SDLActivity {
     private static final int PICK_DISC = 0x4E47;
     private static final int PICK_TOUCH_SKIN = 0x4E48;
+    private static final int PICK_VIDEO_FILTER = 0x4E49;
     static final String EXTRA_LIB = "io.github.gamboozino.ngbrecomp.LIB";
     static final String EXTRA_ENV = "io.github.gamboozino.ngbrecomp.ENV";
     private volatile String mPicked;
     private volatile boolean mPickDone;
     private volatile String mTouchSkinPath;
     private volatile boolean mTouchSkinReady;
+    private volatile String mFilterPath;
+    private volatile boolean mFilterReady;
 
     private String mLib = "main";
 
@@ -48,6 +51,10 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchSkinSetPath(int id, String path);
     private native int nativeVideoGet(int which);
     private native void nativeVideoSet(int which, int value);
+    private native String nativeTextureDir();
+    private native void nativeTextureRescan();
+    private native String nativeVideoFilterSet(String path);
+    private native String nativeVideoFilterName();
     private native void nativeTouchChange(int item, int direction);
     private native void nativeTouchActivate(int item);
     private native void nativeTouchEditorRequest();
@@ -375,6 +382,28 @@ public class NgbActivity extends SDLActivity {
     /* A picture already on the phone (one of the built-in sheets), straight to the control. */
     public void setTouchSkinPath(int id, String path) { nativeTouchSkinSetPath(id, path); }
 
+    /* The folder the game's own textures are packed in, and a second look at it (src/d3d/gpu/texture.cpp). */
+    public String texturePackPath() { return nativeTextureDir(); }
+    public void rescanTextures() { nativeTextureRescan(); }
+
+    /* A filter the player brings: one PNG read as colour curves (src/touch_pad.c, ngb_video_curve). */
+    public String videoFilterName() { return nativeVideoFilterName(); }
+    public void clearVideoFilter() { nativeVideoFilterSet(null); }
+    public void pickVideoFilter() {
+        mFilterPath = null;
+        mFilterReady = false;
+        runOnUiThread(() -> {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            try {
+                startActivityForResult(i, PICK_VIDEO_FILTER);
+            } catch (Exception e) {
+                mFilterReady = true;
+            }
+        });
+    }
+
     /* Import a player-supplied PNG/JPEG button texture without broad storage permissions. */
     public void pickTouchSkin() {
         mTouchSkinPath = null;
@@ -430,6 +459,30 @@ public class NgbActivity extends SDLActivity {
                     mTouchSkinPath = null;
                 } finally {
                     mTouchSkinReady = true;
+                }
+            }).start();
+            return;
+        }
+        if (request == PICK_VIDEO_FILTER) {
+            final Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
+            new Thread(() -> {
+                try {
+                    if (uri != null) {
+                        File target = new File(getFilesDir(), "ngb-video-filter.png");
+                        try (InputStream in = getContentResolver().openInputStream(uri);
+                             FileOutputStream out = new FileOutputStream(target)) {
+                            if (in == null) throw new IllegalStateException("Unable to open selected image");
+                            byte[] buffer = new byte[32768];
+                            int n;
+                            while ((n = in.read(buffer)) >= 0) out.write(buffer, 0, n);
+                        }
+                        mFilterPath = target.getAbsolutePath();
+                        nativeVideoFilterSet(mFilterPath);
+                    }
+                } catch (Exception e) {
+                    mFilterPath = null;
+                } finally {
+                    mFilterReady = true;
                 }
             }).start();
             return;

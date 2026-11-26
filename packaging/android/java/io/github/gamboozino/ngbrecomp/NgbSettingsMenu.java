@@ -9,6 +9,7 @@
 // src/d3d/hle.cpp's gamma ramp.
 package io.github.gamboozino.ngbrecomp;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -24,6 +25,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -240,6 +242,37 @@ public class NgbSettingsMenu extends FrameLayout {
             mTint = v;
             mActivity.setVideoValue(2, mTint);
         });
+
+        final String filter = mActivity.videoFilterName();
+        addAction("贴图包文件夹", "这个文件夹里的同名 PNG 顶替游戏里的贴图，改完点下面「重新读取」。",
+                  () -> showPath("贴图包文件夹", mActivity.texturePackPath()));
+        addAction("重新读取贴图", "放好或换掉贴图之后重扫一遍，不必重启游戏。", () -> {
+            mActivity.rescanTextures();
+            Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
+        });
+        addAction(filter.length() == 0 ? "导入滤镜图" : "换一张滤镜图（现在：" + filter + "）",
+                  "选一张横向渐变的 PNG，左到右是暗到亮，红绿蓝各一行（或一行原色）；画面按它调色。",
+                  () -> mActivity.pickVideoFilter());
+        if (filter.length() != 0)
+            addAction("关闭滤镜图", "回到游戏本来的颜色。", () -> {
+                mActivity.clearVideoFilter();
+                fillRows();
+            });
+    }
+
+    /* A path to read and copy: the folder a player has to put a file in, shown rather than typed. */
+    private void showPath(String title, String path) {
+        final String p = path == null ? "" : path;
+        new AlertDialog.Builder(mActivity)
+                .setTitle(title)
+                .setMessage(p.length() == 0 ? "还没有打开过这个文件夹（游戏里放一次贴图后才会建）。" : p)
+                .setPositiveButton("复制", (d, w) -> {
+                    ((android.content.ClipboardManager) mActivity.getSystemService(Context.CLIPBOARD_SERVICE))
+                            .setPrimaryClip(android.content.ClipData.newPlainText(title, p));
+                    Toast.makeText(mActivity, "已复制", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("关闭", null)
+                .show();
     }
 
     private void buildPadRows() {

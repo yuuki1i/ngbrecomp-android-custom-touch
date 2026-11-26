@@ -11,6 +11,7 @@ import android.app.AlertDialog;
 import android.widget.EditText;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -77,7 +78,8 @@ public class TouchLayoutEditor extends FrameLayout {
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
     private ScrollView mPanelScroll;
-    private ScrollView mDrawer;      /* the settings drawer, off screen until the master menu opens it */
+    private DrawerScroll mDrawer;    /* the settings drawer: dragged left and right, parked on either side */
+    private float mDrawerBase;       /* where it rests when parked (0 at the right, negative at the left) */
     private View mScrim;             /* dims the canvas while the drawer is out */
     private Button mMenu;
 
@@ -348,7 +350,7 @@ public class TouchLayoutEditor extends FrameLayout {
         tools.addView(tool("🖼", this::pickBuiltinSkin));
         panel.addView(tools);
 
-        mHint = label("点一个按键，这里就是它的设置", 11, 0xFF8B97A8, false);
+        mHint = label("点一个按键设置它 · 抽屉左右滑能停靠到任意一边", 11, 0xFF8B97A8, false);
         LinearLayout.LayoutParams hintParams =
             new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         hintParams.setMargins(0, dp(4), 0, dp(6));
@@ -503,6 +505,27 @@ public class TouchLayoutEditor extends FrameLayout {
         scrub_stairs(panel);
         scroll.addView(panel);
         mDrawer = scroll;
+        scroll.setSlide((dx, release) -> {
+            if (!release) {
+                mDrawer.setTranslationX(clampDrawer(mDrawerBase + dx));
+                return;
+            }
+            /* Let go: parked on whichever side it was dragged past the middle, or put away if it was
+             * pushed out past its own edge. */
+            float w = mDrawer.getWidth() > 0 ? mDrawer.getWidth() : dp(300);
+            float room = drawerRoom();
+            if ((mDockLeft ? -dx : dx) > w * 0.6f) {        /* (shoved outwards: it goes away) */
+                mDrawerBase = mDockLeft ? -room : 0;
+                closeDrawer();
+                return;
+            }
+            float now = clampDrawer(mDrawerBase + dx);
+            boolean left = now < -room / 2f;
+            mDockLeft = left;
+            mDrawerBase = left ? -room : 0;
+            mDrawer.animate().translationX(mDrawerBase).setDuration(160).start();
+            mHint.setText(left ? "抽屉停靠左侧，滑到右边就回去" : "抽屉停靠右侧，向左滑能挪到左边");
+        });
         FrameLayout.LayoutParams panelParams =
             new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT);
         panelParams.gravity = Gravity.RIGHT;
@@ -610,17 +633,29 @@ public class TouchLayoutEditor extends FrameLayout {
         if (open) closeDrawer(); else openDrawer();
     }
 
+    private boolean mDockLeft;   /* (which side it was parked on last: it opens there again) */
+
+    private float drawerRoom() {
+        if (mDrawer == null) return 0f;
+        float w = mDrawer.getWidth() > 0 ? mDrawer.getWidth() : dp(300);
+        View parent = (View) mDrawer.getParent();
+        return Math.max(0, (parent == null ? 0 : parent.getWidth()) - w);
+    }
+
     private void openDrawer() {
         if (mDrawer == null) return;
         if (mScrim != null) mScrim.setVisibility(View.VISIBLE);
+        mDrawerBase = mDockLeft ? -drawerRoom() : 0f;
         mDrawer.setVisibility(View.VISIBLE);
-        mDrawer.animate().translationX(0f).setDuration(180).start();
+        mDrawer.setTranslationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)));
+        mDrawer.animate().translationX(mDrawerBase).setDuration(180).start();
     }
 
     private void closeDrawer() {
         if (mDrawer == null) return;
         if (mScrim != null) mScrim.setVisibility(View.GONE);
-        mDrawer.animate().translationX(dp(340)).setDuration(180)
+        mDrawer.animate().translationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)))
+            .setDuration(180)
             .withEndAction(() -> mDrawer.setVisibility(View.GONE)).start();
     }
 
@@ -1034,6 +1069,59 @@ public class TouchLayoutEditor extends FrameLayout {
                 }
             }
             return best;
+        }
+    }
+
+    /* A drawer that can be dragged sideways: a sideways swipe takes it (it parks on either edge), a
+     * downward one still scrolls the rows inside. */
+    static class DrawerScroll extends ScrollView {
+        interface Slide { void onSlide(float dx, boolean release); }
+
+        private Slide mSlide;
+        private float mDownX, mDownY;
+        private boolean mDragging;
+        private final int mSlop;
+
+        DrawerScroll(Context c) {
+            super(c);
+            mSlop = ViewConfiguration.get(c).getScaledTouchSlop();
+        }
+
+        void setSlide(Slide slide) { mSlide = slide; }
+
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent e) {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    mDownX = e.getX();
+                    mDownY = e.getY();
+                    mDragging = false;
+                    break;
+                case MotionEvent.ACTION_MOVE: {
+                    float dx = e.getX() - mDownX, dy = e.getY() - mDownY;
+                    if (!mDragging && Math.abs(dx) > mSlop * 1.5f && Math.abs(dx) > Math.abs(dy) * 1.4f) {
+                        mDragging = true;
+                        return true;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            return super.onInterceptTouchEvent(e);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            if (!mDragging)
+                return super.onTouchEvent(e);
+            int action = e.getActionMasked();
+            boolean release = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL;
+            if (mSlide != null)
+                mSlide.onSlide(e.getX() - mDownX, release);
+            if (release)
+                mDragging = false;
+            return true;
         }
     }
 }

@@ -42,6 +42,8 @@ extern "C" {
 extern float ngb_video_brightness;   // 1 = as the title has it
 extern float ngb_video_gamma;        // 1 = as the title has it; under 1 lifts the shadows
 extern int ngb_video_tint;           // 0 as the title has it, 1 warm, 2 cool
+extern unsigned char ngb_video_curve[3][256];   // the player's own filter: a picture read as colour curves
+extern int ngb_video_curve_on;
 #endif
 }
 
@@ -62,7 +64,9 @@ static void MakeFilteredRamp(uint8_t* out)
             v *= b;
             if (g > 0.01f && (g < 0.999f || g > 1.001f))
                 v = std::pow(v < 0.f ? 0.f : v, 1.0f / g);
-            if (tint == 1)
+            if (ngb_video_curve_on)
+                v = ngb_video_curve[c][i] / 255.0f * b;           // the player's curve, then the brightness
+            else if (tint == 1)
                 v *= c == 0 ? 1.07f : c == 2 ? 0.94f : 1.0f;      // warm
             else if (tint == 2)
                 v *= c == 0 ? 0.93f : c == 2 ? 1.09f : 1.0f;      // cool
