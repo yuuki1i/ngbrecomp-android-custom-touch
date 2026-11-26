@@ -58,6 +58,10 @@ release** (NTSC-U, title ID `5443000D`) and checks for it.
 - Smooth frame pacing and low input latency; shaders prepared in the background
 - Frame Interpolation (experimental): higher frame rates while the game logic stays at 60 Hz
 
+## Android touch controls
+
+The in-game touch overlay has a configurable editor for moving, resizing and styling controls, saving layouts, and adding combo buttons. See [the touch editor guide](docs/ANDROID_TOUCH_EDITOR.md) for gestures and combo setup.
+
 ## Getting started
 
 On every system, the first start after installing takes longer to load (the shaders are prepared then and
