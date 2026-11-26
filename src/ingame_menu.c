@@ -50,9 +50,10 @@ static bool s_wait_release;              /* pad blocked until let go */
 static volatile int s_keys[32];
 static volatile unsigned s_khead, s_ktail;
 
-#define ROW_RESUME NGB_SETTINGS_ITEMS
-#define ROW_QUIT   (NGB_SETTINGS_ITEMS + 1)
-#define NROWS      (NGB_SETTINGS_ITEMS + 2)
+#define ROW_TOUCH  NGB_SETTINGS_ITEMS
+#define ROW_RESUME (NGB_SETTINGS_ITEMS + 1)
+#define ROW_QUIT   (NGB_SETTINGS_ITEMS + 2)
+#define NROWS      (NGB_SETTINGS_ITEMS + 3)
 
 /* The picture's shape, now: the game's own mode (src/pc_menu.c), the
  * presenter's and the window's -- the window takes the nearest size of the
@@ -1508,6 +1509,21 @@ static float s_list_scroll, s_list_velocity;
 static float s_drag_last_y;
 static bool s_list_dragging, s_click_pending;
 static float s_down_x, s_down_y;
+static int s_cat, s_cat_focus;
+static const char *const s_categories[] = { "Display", "Graphics", "Startup", "Touch Layout" };
+static const int s_cat_rows[][5] = { {0,1,2,7,-1}, {3,4,5,6,-1}, {8,-1}, {ROW_TOUCH,-1} };
+static const char *const s_row_help[] = {
+ "Choose the picture shape used by the game and display.",
+ "Choose the output resolution for windowed mode.",
+ "Select windowed, fullscreen or borderless presentation.",
+ "Render resolution multiplier. Higher values cost more GPU time.",
+ "Texture anisotropy keeps surfaces sharper at oblique angles.",
+ "MSAA smooths polygon edges and increases GPU load.",
+ "Shadow-map resolution controls shadow detail and GPU cost.",
+ "Choose the presentation synchronization mode.",
+ "Show the live frame-rate counter on screen.",
+ "Skip the opening intros and warning screens on startup."
+};
 static uint64_t s_scroll_tick;
 
 static void menu_test_poll(void)
@@ -1712,10 +1728,15 @@ static int row_y(int row)
     return ROW_Y0 + row * ROW_H + (row >= ROW_RESUME ? 16 : 0);
 }
 
+static int selected_index(void) { for(int i=0;i<category_count();i++) if(category_row(i)==s_sel) return i; return 0; }
+static void choose_category(int c) { if(c<0)c=3; if(c>3)c=0; s_cat=c; s_cat_focus=0; s_sel=category_row(0); s_list_scroll=s_list_velocity=0; }
+
 #define LIST_TOP (ROW_Y0 - 8)
 #define LIST_BOTTOM (LH - 88)
 #define LIST_VIEW_H (LIST_BOTTOM - LIST_TOP)
-#define LIST_CONTENT_H (NGB_SETTINGS_ITEMS * ROW_H + 12)
+static int category_count(void) { int n=0; while(n<5 && s_cat_rows[s_cat][n]>=0) n++; return n; }
+static int category_row(int i) { return s_cat_rows[s_cat][i]; }
+#define LIST_CONTENT_H (category_count() * ROW_H + 12)
 #define LIST_MAX_SCROLL (LIST_CONTENT_H > LIST_VIEW_H ? LIST_CONTENT_H - LIST_VIEW_H : 0)
 
 static void list_scroll_step(void)
@@ -1738,78 +1759,93 @@ static void list_scroll_step(void)
  * +1 the ">", 0 elsewhere on the row. */
 static int row_hit(float lx, float ly, int *zone)
 {
-    *zone = 0;
-    for (int row = 0; row < NROWS; row++) {
-        int y = row_y(row);
-        if (row < ROW_RESUME) y -= (int)lroundf(s_list_scroll);
-        if (ly < y + 2 || ly >= y + ROW_H - 4)
-            continue;
-        if (row >= ROW_RESUME)
-            return lx >= LW / 2 - 150 && lx < LW / 2 + 150 ? row : -1;
-        if (lx < 60 || lx >= LW - 60)
-            return -1;
-        if (lx >= 530 && lx < 610) *zone = -1;
-        if (lx >= LW - 130) *zone = 1;
-        return row;
+    *zone=0;
+    if(ly>=112 && ly<LIST_BOTTOM && lx>=24 && lx<226) {
+        int tab=(int)((ly-112)/66.0f); return tab<4 ? -100-tab : -1;
     }
+    if(lx<242 || lx>=LW-340 || ly<LIST_TOP || ly>=LIST_BOTTOM) return -1;
+    for(int i=0;i<category_count();i++) {
+        int y=ROW_Y0+i*ROW_H-(int)lroundf(s_list_scroll);
+        if(ly>=y+2 && ly<y+ROW_H-4) {
+            int row=category_row(i);
+            if(lx>=LW-150) *zone=1;
+            else if(lx>=LW-230) *zone=-1;
+            return row;
+        }
+    }
+    if(ly>=LH-78 && ly<LH-24 && lx>LW/2-140 && lx<LW/2+140) return ROW_RESUME;
     return -1;
 }
 
 static void draw(const uint32_t *backdrop)
 {
-    const uint32_t white = 0xE6F0FC, grey = 0x91A6BE, red = 0x4B9BEE, bar = 0x17395F;
-
-    /* The game, dimmed. */
-    for (int i = 0; i < s_w * s_h; i++) {
-        uint32_t c = backdrop[i];
-        s_px[i] = 0xFF000000u | ((c >> 16 & 255) * 3 / 10) << 16 |
-                  ((c >> 8 & 255) * 3 / 10) << 8 | ((c & 255) * 3 / 10);
+    const uint32_t white=0xE6F0FC, grey=0x91A6BE, accent=0x4B9BEE, panel=0x172638;
+    for(int i=0;i<s_w*s_h;i++) {
+        uint32_t q=backdrop[i];
+        s_px[i]=0xFF000000u|((q>>16&255)*3/10)<<16|((q>>8&255)*3/10)<<8|(q&255)*3/10;
     }
-    fill(0, 0, LW, LH, 0x09121E, 218);
-    fill(0, 0, LW, 92, 0x101D2C, 242);
-    fill(0, 90, LW, 2, red, 255);
-    text("NINJA GAIDEN BLACK", LW / 2, 14, 42, white, 255, 1);
-    text("SYSTEM  /  SETTINGS", LW / 2, 58, 20, grey, 255, 1);
-
-    for (int row = 0; row < NROWS; row++) {
-        int y = row_y(row);
-        if (row < ROW_RESUME) y -= (int)lroundf(s_list_scroll);
-        if (row < ROW_RESUME && (y + ROW_H <= LIST_TOP || y >= LIST_BOTTOM)) continue;
-        bool sel = row == s_sel;
-        if (row >= ROW_RESUME) {
-            const char *label = row == ROW_RESUME ? "Resume"
-                              : s_quit_armed ? "Press again to quit" : "Quit game";
-            float w = 300, x = LW / 2 - w / 2;
-            fill(x, y + 2, w, ROW_H - 6, sel ? bar : 0xFFFFFF, sel ? 220 : 18);
-            text(label, LW / 2, y + 7, 25, sel ? white : grey, 255, 1);
-            continue;
+    fill(0,0,LW,LH,0x09121E,224);
+    fill(0,0,LW,94,0x101D2C,248);
+    fill(0,92,LW,3,accent,255);
+    text("NINJA GAIDEN BLACK",38,18,36,white,255,0);
+    text("SETTINGS  /  SYSTEM",40,58,17,grey,255,0);
+    fill(24,108,202,LH-196,panel,242);
+    fill(238,108,LW-590,LH-196,panel,242);
+    fill(LW-340,108,316,LH-196,panel,242);
+    for(int i=0;i<4;i++) {
+        int y=116+i*66;
+        bool active=i==s_cat;
+        fill(32,y,186,58,active?0x24518A:0x263547,active?245:180);
+        if(active) fill(32,y,4,58,accent,255);
+        text(s_categories[i],48,y+18,19,active?white:grey,255,0);
+    }
+    text(s_cat_focus?"CATEGORY  •  LEFT / RIGHT":"OPTIONS  •  SWIPE TO SCROLL",260,118,15,accent,255,0);
+    for(int i=0;i<category_count();i++) {
+        int row=category_row(i);
+        int y=ROW_Y0+i*ROW_H-(int)lroundf(s_list_scroll);
+        if(y+ROW_H<=LIST_TOP||y>=LIST_BOTTOM) continue;
+        bool sel=row==s_sel && !s_cat_focus;
+        if(sel) fill(252,y+2,LW-604,ROW_H-6,0x24518A,240);
+        else if(i&1) fill(252,y+2,LW-604,ROW_H-6,0x54708D,22);
+        if(row==ROW_TOUCH) {
+            text("Open touch layout editor",272,y+9,20,sel?white:grey,255,0);
+            text("OPEN",LW-284,y+9,17,accent,255,1);
+        } else {
+            const char *label; char val[96];
+            ngb_settings_row_text(&s_cfg,row,&label,val,sizeof val);
+            text(label,272,y+9,19,sel?white:grey,255,0);
+            text(val,LW-280,y+9,19,white,255,1);
+            text("<",LW-196,y+9,18,sel?white:grey,255,1);
+            text(">",LW-270,y+9,18,sel?white:grey,255,1);
         }
-        const char *label;
-        char val[96];
-        ngb_settings_row_text(&s_cfg, row, &label, val, sizeof val);
-        if (sel)
-            fill(60, y + 2, LW - 120, ROW_H - 6, bar, 220);
-        else if (row % 2)
-            fill(60, y + 2, LW - 120, ROW_H - 6, 0x54708D, 18);
-        text(label, 84, y + 8, 23, sel ? white : grey, 255, 0);
-        text("<", 560, y + 8, 23, sel ? white : grey, 255, 0);
-        text(val, 736, y + 8, 23, white, 255, 1);
-        text(">", LW - 92, y + 8, 23, sel ? white : grey, 255, 0);
     }
-    fill(60, LIST_TOP, LW - 120, 2, 0x4C6D91, 180);
-    fill(60, LIST_BOTTOM, LW - 120, 2, 0x4C6D91, 180);
-    if (LIST_MAX_SCROLL > 0) {
-        float thumb_h = fmaxf(34.0f, LIST_VIEW_H * (float)LIST_VIEW_H / LIST_CONTENT_H);
-        float thumb_y = LIST_TOP + (LIST_VIEW_H - thumb_h) * s_list_scroll / LIST_MAX_SCROLL;
-        fill(LW - 72, LIST_TOP, 5, LIST_VIEW_H, 0x34465B, 170);
-        fill(LW - 74, thumb_y, 9, thumb_h, 0x69A9F4, 235);
+    fill(LW-72,LIST_TOP,5,LIST_VIEW_H,0x34465B,170);
+    if(LIST_MAX_SCROLL>0) {
+        float th=fmaxf(34.0f,LIST_VIEW_H*(float)LIST_VIEW_H/LIST_CONTENT_H);
+        float ty=LIST_TOP+(LIST_VIEW_H-th)*s_list_scroll/LIST_MAX_SCROLL;
+        fill(LW-74,ty,9,th,accent,235);
     }
-    text("Swipe list to scroll    Up/Down: choose    Left/Right: change    A: select    B / Esc: resume",
-         LW / 2, LH - 56, 17, grey, 255, 1);
-    text("Changes apply when you resume. Skip intros and the startup screen take effect next start.",
-         LW / 2, LH - 32, 15, grey, 255, 1);
+    text("INFORMATION",LW-322,126,16,accent,255,0);
+    fill(LW-322,154,276,2,0x4C6D91,190);
+    if(s_cat_focus) {
+        text("Choose a settings category.",LW-322,176,16,white,255,0);
+        text("Use LEFT / RIGHT to switch",LW-322,204,14,grey,255,0);
+        text("and DOWN to enter its options.",LW-322,226,14,grey,255,0);
+    } else if(s_sel==ROW_TOUCH) {
+        text("Touch controls",LW-322,176,18,white,255,0);
+        text("Open the in-game editor to",LW-322,210,14,grey,255,0);
+        text("move, resize and customize",LW-322,232,14,grey,255,0);
+        text("buttons, sticks and layouts.",LW-322,254,14,grey,255,0);
+    } else if(s_sel>=0 && s_sel<NGB_SETTINGS_ITEMS) {
+        text(s_row_help[s_sel],LW-322,176,15,white,255,0);
+        text("Changes are previewed here",LW-322,248,13,grey,255,0);
+        text("and saved when you resume.",LW-322,268,13,grey,255,0);
+    }
+    fill(24,LH-76,LW-48,2,0x34465B,200);
+    text("SAVE & RESUME",LW/2,LH-59,18,white,255,1);
+    text("B / ESC  BACK",42,LH-35,13,grey,255,0);
+    text("A / ENTER  SELECT",LW-42,LH-35,13,grey,255,1);
 }
-
 /* ---------- open, run, close ---------- */
 
 static void apply_and_close(void)
@@ -1838,11 +1874,11 @@ static void apply_and_close(void)
 
 static void keep_selection_visible(void)
 {
-    if (s_sel >= ROW_RESUME) return;
-    int y = row_y(s_sel);
-    if (y < LIST_TOP) s_list_scroll = fmaxf(0.0f, s_list_scroll - (LIST_TOP - y));
-    else if (y + ROW_H > LIST_BOTTOM) s_list_scroll = fminf((float)LIST_MAX_SCROLL, s_list_scroll + y + ROW_H - LIST_BOTTOM);
-    s_list_velocity = 0;
+    int idx=selected_index();
+    int y=ROW_Y0+idx*ROW_H-(int)lroundf(s_list_scroll);
+    if(y<LIST_TOP) s_list_scroll=fmaxf(0.0f,s_list_scroll-(LIST_TOP-y));
+    else if(y+ROW_H>LIST_BOTTOM) s_list_scroll=fminf((float)LIST_MAX_SCROLL,s_list_scroll+y+ROW_H-LIST_BOTTOM);
+    s_list_velocity=0;
 }
 
 static void activate(int key)
@@ -1850,16 +1886,26 @@ static void activate(int key)
     if (key != KEY_OK || s_sel != ROW_QUIT)
         s_quit_armed = false;
     switch (key) {
-    case KEY_UP:   s_sel = (s_sel + NROWS - 1) % NROWS; keep_selection_visible(); break;
-    case KEY_DOWN: s_sel = (s_sel + 1) % NROWS; keep_selection_visible(); break;
+    case KEY_UP:
+        if(!s_cat_focus && selected_index()==0) s_cat_focus=1;
+        else if(!s_cat_focus) { int i=selected_index(); s_sel=category_row(i>0?i-1:category_count()-1); keep_selection_visible(); }
+        break;
+    case KEY_DOWN:
+        if(s_cat_focus) { s_cat_focus=0; s_sel=category_row(0); }
+        else { int i=selected_index(); s_sel=category_row((i+1)%category_count()); keep_selection_visible(); }
+        break;
     case KEY_LEFT:
     case KEY_RIGHT:
-        if (s_sel < NGB_SETTINGS_ITEMS)
-            ngb_settings_change(&s_cfg, s_sel, key == KEY_LEFT ? -1 : 1);
+        if(s_cat_focus) choose_category(s_cat+(key==KEY_LEFT?-1:1));
+        else if(s_sel>=0 && s_sel<NGB_SETTINGS_ITEMS) ngb_settings_change(&s_cfg,s_sel,key==KEY_LEFT?-1:1);
         break;
     case KEY_OK:
         if (s_sel < NGB_SETTINGS_ITEMS) {
             ngb_settings_change(&s_cfg, s_sel, 1);
+        } else if (s_sel == ROW_TOUCH) {
+            apply_and_close();
+            extern void ngb_touch_editor_open(void);
+            ngb_touch_editor_open();
         } else if (s_sel == ROW_RESUME) {
             apply_and_close();
         } else if (s_quit_armed) {
@@ -1892,8 +1938,9 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
         s_list_scroll = s_list_velocity = 0;
         s_list_dragging = false;
         s_click_pending = false;
+        s_cat=0; s_cat_focus=0;
         s_scroll_tick = mono_ms();
-        s_sel = ROW_RESUME;
+        s_cat=0; s_cat_focus=0; s_sel=category_row(0);
         s_quit_armed = false;
         s_repeat_bit = 0;
         s_prev_pad = pad_bits();         /* what is held already does nothing */
@@ -1922,7 +1969,7 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
             if (key & MOUSE_CLICK) {
                 s_click_pending = true;
                 s_down_x = lx; s_down_y = ly;
-                s_list_dragging = ly >= LIST_TOP && ly < LIST_BOTTOM;
+                s_list_dragging = lx>=242 && lx<LW-340 && ly>=LIST_TOP && ly<LIST_BOTTOM;
                 s_drag_last_y = ly;
                 s_list_velocity = 0;
                 continue;
@@ -1940,19 +1987,18 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
                 s_click_pending = false;
                 if (tap) {
                     int zone, row = row_hit(lx, ly, &zone);
-                    if (row >= 0) {
-                        s_sel = row;
-                        activate(row >= ROW_RESUME ? KEY_OK : zone < 0 ? KEY_LEFT : zone > 0 ? KEY_RIGHT : KEY_OK);
-                    }
+                    if(row<=-100 && row>-104) choose_category(-100-row);
+                    else if(row>=0) { s_sel=row; s_cat_focus=0; activate(row==ROW_TOUCH||row==ROW_RESUME||row==ROW_QUIT?KEY_OK:zone<0?KEY_LEFT:zone>0?KEY_RIGHT:KEY_OK); }
                 }
                 continue;
             } else if (key & MOUSE_MOVE) {
                 if (s_list_dragging) continue;
             }
             int zone, row = row_hit(lx, ly, &zone);
-            if (row < 0) continue;
-            if (row != s_sel) s_quit_armed = false;
-            s_sel = row;
+            if(row<=-100 && row>-104) { choose_category(-100-row); continue; }
+            if(row<0) continue;
+            if(row!=s_sel) s_quit_armed=false;
+            s_sel=row; s_cat_focus=0;
             if (key & MOUSE_CLICK) {
                 if (row >= ROW_RESUME) activate(KEY_OK);
                 else activate(zone < 0 ? KEY_LEFT : zone > 0 ? KEY_RIGHT : KEY_OK);
