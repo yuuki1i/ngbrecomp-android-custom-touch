@@ -2020,7 +2020,7 @@ static void activate(int key)
             i = (i + d + 3) % 3;
             s_sel = i == 0 ? ROW_RESET : i == 1 ? ROW_RESUME : ROW_QUIT;
         } else if (s_cat_focus) choose_category(s_cat + (key == KEY_LEFT ? -1 : 1));
-        else if (s_sel != ROW_TOUCH && s_sel >= 0 && s_sel < 1000) {
+        else if (s_sel != ROW_TOUCH && s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1106))) {
             ngb_menu_row_change(s_sel, key == KEY_LEFT ? -1 : 1);
             s_cfg = s_running;
         }
@@ -2038,8 +2038,8 @@ static void activate(int key)
                     ngb_settings_save(&s_cfg);
                 SDL_Event q = { .type = SDL_QUIT }; SDL_PushEvent(&q);
             } else s_quit_armed = true;
-        } else if (s_sel >= 0 && s_sel < 1000) {
-            if (s_sel >= 100 && s_sel < 100 + 40) ngb_menu_row_activate(s_sel);
+        } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1106))) {
+            if ((s_sel >= 100 && s_sel < 100 + 40) || (s_sel >= 1100 && s_sel < 1106)) ngb_menu_row_activate(s_sel);
             else { ngb_menu_row_change(s_sel, 1); s_cfg = s_running; }
         }
         break;
