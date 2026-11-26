@@ -1916,8 +1916,8 @@ JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_native
     fprintf(fp, "<!doctype html><meta charset=utf-8><title>NGB 贴图</title>"
                 "<body style='background:#12141a;color:#dfe4ec;font:13px sans-serif;padding:10px'>"
                 "<h3 style='margin:6px 0'>NGB 贴图包</h3>"
-                "<p style='color:#9aa7b8'>点图看原图。同名 PNG 放回这个文件夹就顶替游戏贴图；"
-                "名字带 DXT1/DXT3/DXT5 的只能看，游戏里是压缩格式，换不了。</p>"
+                "<p style='color:#9aa7b8'>点图看原图。同名 PNG 放回这个文件夹就顶替游戏贴图，"
+                "DXT1/DXT3/DXT5 也一样（会按原尺寸重新压回 DXT）；改完回到游戏按「重新读取贴图」。</p>"
                 "<div style='display:flex;flex-wrap:wrap;gap:12px'>"
                 "<div id=wrap style='display:flex;flex-wrap:wrap;gap:12px'>");
     int n = 0;

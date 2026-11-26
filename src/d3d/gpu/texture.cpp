@@ -402,6 +402,138 @@ uint64_t BlockHash(const std::vector<uint8_t>& px) {
     return h;
 }
 
+
+/* ---- compressed texels, the other way: a pack's PNG becomes DXT again ----
+ * The console's character art is DXT; a repaint is a PNG, so it is cut into 4x4 blocks, each given two
+ * endpoint colours (the block's own darkest and lightest) and a 2- or 3-bit index per texel. Lossy, but it
+ * is the same lossy the console took. */
+uint16_t Pack565(const uint8_t c[3]) {
+    return uint16_t(((c[0] >> 3) << 11) | ((c[1] >> 2) << 5) | (c[2] >> 3));
+}
+
+void Unpack565(uint16_t v, uint8_t c[3]) {
+    c[0] = uint8_t((((v >> 11) & 0x1f) * 255 + 15) / 31);
+    c[1] = uint8_t((((v >> 5) & 0x3f) * 255 + 31) / 63);
+    c[2] = uint8_t(((v & 0x1f) * 255 + 15) / 31);
+}
+
+void EncodeBcColor(uint8_t px[16][4], uint8_t* out) {
+    uint8_t mn[3] = {255, 255, 255}, mx[3] = {0, 0, 0};
+    for (int i = 0; i < 16; i++)
+        for (int c = 0; c < 3; c++) {
+            if (px[i][c] < mn[c]) mn[c] = px[i][c];
+            if (px[i][c] > mx[c]) mx[c] = px[i][c];
+        }
+    uint16_t p0 = Pack565(mn), p1 = Pack565(mx);
+    if (p0 > p1) { uint16_t t = p0; p0 = p1; p1 = t; }
+    uint8_t c0[3], c1[3];
+    Unpack565(p0, c0);
+    Unpack565(p1, c1);
+    uint8_t lv[4][3];
+    for (int c = 0; c < 3; c++) {
+        lv[0][c] = c0[c];
+        lv[1][c] = c1[c];
+        lv[2][c] = uint8_t((2 * c0[c] + c1[c]) / 3);
+        lv[3][c] = uint8_t((c0[c] + 2 * c1[c]) / 3);
+    }
+    uint32_t idx = 0;
+    for (int i = 0; i < 16; i++) {
+        int best = 0, bd = 1 << 30;
+        for (int k = 0; k < 4; k++) {
+            int d = 0;
+            for (int c = 0; c < 3; c++) {
+                int e = int(px[i][c]) - int(lv[k][c]);
+                d += e * e;
+            }
+            if (d < bd) { bd = d; best = k; }
+        }
+        idx |= uint32_t(best) << (2 * i);
+    }
+    out[0] = uint8_t(p0 & 0xff); out[1] = uint8_t(p0 >> 8);
+    out[2] = uint8_t(p1 & 0xff); out[3] = uint8_t(p1 >> 8);
+    for (int i = 0; i < 4; i++) out[4 + i] = uint8_t((idx >> (8 * i)) & 0xff);
+}
+
+/* The PNG, put into the texture's size. A pack drawn at 4x comes down; nothing is stretched to hide it. */
+bool LoadBlockImage(const char* path, uint32_t w, uint32_t h, std::vector<uint8_t>& rgba) {
+    std::vector<uint8_t> bytes;
+    if (!ReadFile(path, bytes)) return false;
+    int iw = 0, ih = 0, ic = 0;
+    unsigned char* px = stbi_load_from_memory(bytes.data(), (int)bytes.size(), &iw, &ih, &ic, 4);
+    if (!px) return false;
+    rgba.assign(size_t(w) * h * 4, 255);
+    for (uint32_t y = 0; y < h; y++) {
+        uint32_t sy0 = uint32_t((uint64_t)y * ih / h), sy1 = std::max(sy0 + 1, uint32_t((uint64_t)(y + 1) * ih / h));
+        sy1 = std::min(sy1, uint32_t(ih));
+        for (uint32_t x = 0; x < w; x++) {
+            uint32_t sx0 = uint32_t((uint64_t)x * iw / w), sx1 = std::max(sx0 + 1, uint32_t((uint64_t)(x + 1) * iw / w));
+            sx1 = std::min(sx1, uint32_t(iw));
+            uint32_t sum[4] = {0, 0, 0, 0}, n = 0;
+            for (uint32_t sy = sy0; sy < sy1; sy++)
+                for (uint32_t sx = sx0; sx < sx1; sx++) {
+                    const unsigned char* q = px + ((size_t)sy * iw + sx) * 4;
+                    for (int c = 0; c < 4; c++) sum[c] += q[c];
+                    n++;
+                }
+            uint8_t* o = &rgba[(size_t(y) * w + x) * 4];
+            for (int c = 0; c < 4; c++) o[c] = uint8_t(sum[c] / std::max(1u, n));
+        }
+    }
+    stbi_image_free(px);
+    return true;
+}
+
+bool EncodeCompressed(const char* path, uint32_t fmt, const FormatInfo& f, uint32_t w, uint32_t h,
+                      std::vector<uint8_t>& out, uint32_t& row_pitch) {
+    std::vector<uint8_t> rgba;
+    if (!LoadBlockImage(path, w, h, rgba)) return false;
+    int bw = int(std::max(1u, (w + 3) / 4)), bh = int(std::max(1u, (h + 3) / 4));
+    row_pitch = uint32_t(bw) * f.bits;
+    out.assign(size_t(row_pitch) * bh, 0);
+    uint8_t px[16][4], block[16] = {};
+    for (int by = 0; by < bh; by++)
+        for (int bx = 0; bx < bw; bx++) {
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++) {
+                    uint32_t gx = std::min(uint32_t(bx * 4 + x), w - 1), gy = std::min(uint32_t(by * 4 + y), h - 1);
+                    std::memcpy(px[y * 4 + x], &rgba[(size_t(gy) * w + gx) * 4], 4);
+                }
+            uint8_t* b = block;
+            if (fmt == 0x0E) {                     /* (DXT3: four bits of alpha, then the colour block) */
+                for (int i = 0; i < 16; i++) {
+                    uint8_t a = uint8_t(px[i][3] >> 4);
+                    if (i % 2 == 0) b[i / 2] |= a;
+                    else b[i / 2] |= uint8_t(a << 4);
+                }
+                EncodeBcColor(px, b + 8);
+            } else if (fmt == 0x0F) {              /* (DXT5: two alpha ends and three bits a texel) */
+                uint8_t a0 = 255, a1 = 0;
+                for (int i = 0; i < 16; i++) {
+                    if (px[i][3] < a0) a0 = px[i][3];
+                    if (px[i][3] > a1) a1 = px[i][3];
+                }
+                b[0] = a0; b[1] = a1;
+                uint64_t bits = 0;
+                for (int i = 0; i < 16; i++) {
+                    int best = 0, bd = 1 << 30;
+                    for (int k = 0; k < 8; k++) {
+                        int lv = k == 0 ? a0 : k == 1 ? a1 : k == 6 ? 255 : k == 7 ? 0
+                              : ((8 - k) * int(a0) + (k - 1) * int(a1)) / 7;
+                        int d = int(px[i][3]) - lv;
+                        if (d * d < bd) { bd = d * d; best = k; }
+                    }
+                    bits |= uint64_t(best) << (3 * i);
+                }
+                for (int i = 0; i < 6; i++) b[2 + i] = uint8_t((bits >> (8 * i)) & 0xff);
+                EncodeBcColor(px, b + 8);
+            } else {                               /* (DXT1: the colour block alone) */
+                EncodeBcColor(px, b);
+            }
+            std::memcpy(&out[(size_t(by) * bw + bx) * f.bits], block, f.bits);
+        }
+    return true;
+}
+
 bool DumpCompressed(const char* dir, uint32_t fmt, const FormatInfo& f, uint32_t w, uint32_t h,
                     const std::vector<uint8_t>& blocks, uint64_t hash) {
     int bw = int(std::max(1u, (w + 3) / 4)), bh = int(std::max(1u, (h + 3) / 4));
@@ -473,6 +605,17 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
             fresh = it == s_pack_seen.end();
         }
         if (!fresh) return;
+        char cname[128], cpath[700];
+        snprintf(cname, sizeof cname, "%ux%u_%s_l0_%016llx.png", w, h, fmt.name, (unsigned long long)hb);
+        snprintf(cpath, sizeof cpath, "%s/%s", dir, cname);
+        FILE* cprobe = fopen(cpath, "rb");
+        if (cprobe) {                      /* (a PNG of this name: paint the texture with it) */
+            fclose(cprobe);
+            bool done = EncodeCompressed(cpath, d.format, fmt, w, h, out, row_pitch);
+            std::lock_guard<std::mutex> guard(s_pack_lock);
+            s_pack_seen[hb] = done ? 1 : -1;
+            return;
+        }
         int8_t mark = -1;
         if (ngb_texture_dump_on && s_dumped < 800)
             mark = DumpCompressed(dir, d.format, fmt, w, h, out, hb) ? 0 : -1;

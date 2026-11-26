@@ -274,7 +274,7 @@ public class NgbSettingsMenu extends FrameLayout {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
         });
-        addAction("生成本目录索引", "把这个文件夹里的图排成一张网页（index.html），在浏览器里一次看全，找贴图快。",
+        addAction("生成本目录索引", "把这个文件夹里的图排成一张网页（index.html）一次看全，找贴图快；电脑上用浏览器打开最方便。",
                   () -> Toast.makeText(mActivity, mActivity.makeTextureIndex(), Toast.LENGTH_LONG).show());
         addAction("写一张测试图", "往文件夹里写一张纯色小图，确认真的能写进去、也能在文件管理器里看到。",
                   () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());
@@ -296,7 +296,7 @@ public class NgbSettingsMenu extends FrameLayout {
         String p = mActivity.texturePackPath();
         int count = mActivity.texturePackCount();
         String msg = (p == null || p.length() == 0 ? "还没有这个文件夹（进一次游戏、让贴图出现才会建）" : p)
-                     + "\n\n已导出：" + count + " 张（含 DXT1/3/5：能看，换不了）";
+                     + "\n\n已导出：" + count + " 张（DXT1/3/5 也能换：会按原尺寸重新压回 DXT）";
         if (!mActivity.hasAllFiles())
             msg += "\n（没有「所有文件访问」时，会落在 Android/data/io.github.gamboozino.ngbrecomp/files/NGB/textures）";
         final String shown = p == null ? "" : p;
