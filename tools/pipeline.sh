@@ -12,9 +12,17 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 toolkit=${XBOXRECOMP_DIR:-$here/xboxrecomp}
 toolkit=$(cd "$toolkit" && pwd)
-iso=${1:-$here/disc/ngb.xiso}
+input=${1:-$here/disc/ngb.xiso}
 files=$here/game_files
 xbe=$files/default.xbe
+
+# A standalone default.xbe can generate the recompiled C sources without unpacking
+# the disc. Use it in place, so no copyrighted game binary is copied into the repo.
+if [[ "$input" == *.xbe || "$input" == *.XBE ]]; then
+    xbe=$(cd "$(dirname "$input")" && pwd)/$(basename "$input")
+else
+    iso=$input
+fi
 
 if [ ! -x "$toolkit/.venv/bin/python" ]; then
     python3 -m venv "$toolkit/.venv"
@@ -23,7 +31,7 @@ fi
 py=$toolkit/.venv/bin/python
 cd "$toolkit"
 
-if [ ! -f "$xbe" ]; then
+if [ -n "${iso:-}" ] && [ ! -f "$xbe" ]; then
     echo "== unpacking $iso"
     "$py" -m tools.xiso unpack "$iso" -o "$files"
 fi
