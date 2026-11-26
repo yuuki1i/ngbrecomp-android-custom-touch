@@ -6732,4 +6732,4 @@ int ngb_game_text_picture(const char *s, float cap, uint32_t *out, int maxw, int
     return 1;
 }
 
-void ngb_menu_row_activate(int row) { if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot); }\n
+void ngb_menu_row_activate(int row) { if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot); }
