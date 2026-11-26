@@ -76,6 +76,8 @@ public class TouchLayoutEditor extends FrameLayout {
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
     private ScrollView mPanelScroll;
+    private ScrollView mDrawer;      /* the settings drawer, off screen until the master menu opens it */
+    private Button mMenu;
 
     /* The controls the + adds, in the pad's own names. */
     private static final String[] LONG_NAMES = {
@@ -279,46 +281,38 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout column = new LinearLayout(mActivity);
         column.setOrientation(LinearLayout.VERTICAL);
 
-        /* top: title, cancel, save */
+        /* top: cancel on the left, one master menu in the middle, save on the right */
         LinearLayout top = new LinearLayout(mActivity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setBackground(glass(18, 0x1AFFFFFF, 0x2EFFFFFF, 1));
-        top.setPadding(dp(18), dp(10), dp(10), dp(10));
+        top.setPadding(dp(10), dp(8), dp(10), dp(8));
         LinearLayout.LayoutParams topParams =
             new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         topParams.setMargins(dp(10), dp(8), dp(10), dp(4));
         top.setLayoutParams(topParams);
-        TextView title = label("触控布局\n模板 · 本机", 17, 0xFFFFFFFF, true);
-        top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        mHint = label("拖动 · 双指缩放", 12, 0xFF8492A6, false);
-        top.addView(mHint);
-        /* as Winlator's top card: add a key, take one away, the sheet of properties, centre it, its picture */
-        top.addView(tool("＋", this::addControl));
-        top.addView(tool("－", this::deleteControl));
-        top.addView(tool("☰", this::togglePanel));
-        top.addView(tool("◎", this::centreControl));
-        top.addView(tool("🖼", this::pickBuiltinSkin));
         Button cancel = button("取消", 14, 0x1FFFFFFF);
-        LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(dp(76), dp(40));
-        cancelParams.setMargins(dp(6), 0, dp(6), 0);
-        top.addView(cancel, cancelParams);
+        top.addView(cancel, new LinearLayout.LayoutParams(dp(72), dp(40)));
+        mMenu = button("按键菜单", 15, 0x332E7FFF);
+        LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(0, dp(40), 1f);
+        menuParams.setMargins(dp(10), 0, dp(10), 0);
+        top.addView(mMenu, menuParams);
         Button save = button("保存", 14, 0x332E7FFF);
-        top.addView(save, new LinearLayout.LayoutParams(dp(76), dp(40)));
+        top.addView(save, new LinearLayout.LayoutParams(dp(72), dp(40)));
         column.addView(top);
 
         View hairline = new View(mActivity);       /* a single line under the title, as the open-source sheets have */
         hairline.setBackgroundColor(0x1FFFFFFF);
         column.addView(hairline, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
 
-        LinearLayout body = new LinearLayout(mActivity);
-        body.setOrientation(LinearLayout.HORIZONTAL);
+        FrameLayout body = new FrameLayout(mActivity);
         LinearLayout.LayoutParams bodyParams =
             new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         body.setLayoutParams(bodyParams);
 
         mPreview = new Preview(this);
-        body.addView(mPreview, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        body.addView(mPreview, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                           ViewGroup.LayoutParams.MATCH_PARENT));
 
         /* the side panel: which control, and how it looks and what it presses */
         mPanelScroll = new ScrollView(mActivity);
@@ -329,6 +323,23 @@ public class TouchLayoutEditor extends FrameLayout {
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
         panel.setBackground(glass(18, 0x14FFFFFF, 0x2EFFFFFF, 1));
         mPanel = panel;
+
+        LinearLayout tools = new LinearLayout(mActivity);       /* the functions the master menu offers */
+        tools.setOrientation(LinearLayout.HORIZONTAL);
+        tools.setGravity(Gravity.CENTER_VERTICAL);
+        TextView toolsTitle = label("功能", 12, 0xFF9AA7B8, false);
+        tools.addView(toolsTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tools.addView(tool("＋", this::addControl));
+        tools.addView(tool("－", this::deleteControl));
+        tools.addView(tool("◎", this::centreControl));
+        tools.addView(tool("🖼", this::pickBuiltinSkin));
+        panel.addView(tools);
+
+        mHint = label("点一个按键，这里就是它的设置", 11, 0xFF8B97A8, false);
+        LinearLayout.LayoutParams hintParams =
+            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hintParams.setMargins(0, dp(4), 0, dp(6));
+        panel.addView(mHint, hintParams);
 
         LinearLayout pick = new LinearLayout(mActivity);
         pick.setOrientation(LinearLayout.HORIZONTAL);
@@ -463,16 +474,22 @@ public class TouchLayoutEditor extends FrameLayout {
         });
         panel.addView(defaults);
 
+        scrub_stairs(panel);
         scroll.addView(panel);
-        LinearLayout.LayoutParams panelParams =
-            new LinearLayout.LayoutParams(dp(296), ViewGroup.LayoutParams.MATCH_PARENT);
-        panelParams.setMargins(dp(6), dp(8), dp(12), dp(12));
+        mDrawer = scroll;
+        FrameLayout.LayoutParams panelParams =
+            new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT);
+        panelParams.gravity = Gravity.RIGHT;
+        panelParams.setMargins(0, dp(6), dp(6), dp(6));
         body.addView(scroll, panelParams);
+        scroll.setTranslationX(dp(340));
+        scroll.setVisibility(View.GONE);
 
         column.addView(body);
         addView(column, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                          ViewGroup.LayoutParams.MATCH_PARENT));
 
+        mMenu.setOnClickListener(v -> togglePanel());
         cancel.setOnClickListener(v -> close());
         save.setOnClickListener(v -> save());
         refresh();
@@ -560,11 +577,41 @@ public class TouchLayoutEditor extends FrameLayout {
         refresh();
     }
 
-    /* ☰ : the properties sheet of the right side, on and off, so the canvas gets the whole screen. */
+    /* The master menu: the settings drawer slides in from the right, and out again. */
     private void togglePanel() {
-        boolean hide = mPanelScroll.getVisibility() == View.VISIBLE;
-        mPanelScroll.setVisibility(hide ? View.GONE : View.VISIBLE);
-        mHint.setText(hide ? "属性面板已收起，再点 ☰ 打开" : "属性面板已打开");
+        if (mDrawer == null) return;
+        boolean open = mDrawer.getVisibility() == View.VISIBLE;
+        if (open) closeDrawer(); else openDrawer();
+    }
+
+    private void openDrawer() {
+        if (mDrawer == null) return;
+        mDrawer.setVisibility(View.VISIBLE);
+        mDrawer.animate().translationX(0f).setDuration(180).start();
+    }
+
+    private void closeDrawer() {
+        if (mDrawer == null) return;
+        mDrawer.animate().translationX(dp(340)).setDuration(180)
+            .withEndAction(() -> mDrawer.setVisibility(View.GONE)).start();
+    }
+
+    private boolean drawerOpen() {
+        return mDrawer != null && mDrawer.getVisibility() == View.VISIBLE;
+    }
+
+    /* The rows sit one step in from the one above: a staircase down the drawer. */
+    private void scrub_stairs(LinearLayout panel) {
+        int n = panel.getChildCount();
+        for (int i = 0; i < n; i++) {
+            View child = panel.getChildAt(i);
+            if (!(child.getLayoutParams() instanceof LinearLayout.LayoutParams)) continue;
+            LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) child.getLayoutParams();
+            int step = Math.min(i, 5);
+            p.setMarginEnd(dp(step * 13));
+            p.setMarginStart(dp(step * 2));
+            child.setLayoutParams(p);
+        }
     }
 
     /* ◎ : the selected key goes to the middle of the screen. */
@@ -650,6 +697,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private void select(int id) {
         mSelected = id;
         refresh();
+        openDrawer();     /* tap a key: it lights up and its settings come out of the drawer */
     }
 
     private void scale(float d) {

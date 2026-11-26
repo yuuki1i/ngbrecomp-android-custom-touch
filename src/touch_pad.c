@@ -1489,7 +1489,7 @@ void ngb_touch_layout_apply(const char *text)
                 s_layout_r[id] = fminf(.25f, fmaxf(.035f, r));
                 s_layout_alpha[id] = fminf(1.f, fmaxf(.15f, alpha));
                 s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
-                s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 5 ? 5 : shape);
+                s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 8 ? 8 : shape);
                 s_layout_action[id] = action >= 0 && action < PA_COUNT ? action : PA_NONE;
                 s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 6 ? 6 : combo);
                 s_layout_enabled[id] = shown != 0;
