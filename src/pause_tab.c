@@ -151,21 +151,21 @@ static const char *const s_help[S_COUNT] = {
 };
 
 /* The categories: the strip's words, their rows. */
-#define CATS 6
+#define CATS 7
 #define CAT_ROWS 9
 #define CAT_CTL 5                 /* Controls: the bindings' list (src/bindings.c), not settings */
 #define CAT_CHEAT 4
 #define CAT_UNL CATS              /* Unlocks: a page of Cheats' (its row S_UNLOCKS), not on the strip */
 /* Gameplay: optional changes to how the game plays (off unless chosen; docs/quick-menu.md) */
-static const char *const s_cat_name[CATS] = { "Graphics", "Display", "Sound", "Gameplay", "Cheats", "Controls" };
+static const char *const s_cat_name[CATS] = { "Graphics", "Display", "Sound", "Gameplay", "Cheats", "Controls", "Menu Options" };
 static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
-    { S_RENDER, S_TEXTURE, S_MSAA, S_SHADOW, S_GLOW, S_LOADDETAIL, S_RTHREAD, S_INTERP, -1 },   /* -1 ends a page shorter than CAT_ROWS */
-    { S_ASPECT, S_WINDOW, S_DISPLAY, S_VSYNC, S_FPS, S_HUD, S_HUDSTYLE, S_HUDASPECT, S_SKIP },   /* (a full page) */
+    { S_RENDER, S_TEXTURE, S_MSAA, S_SHADOW, S_GLOW, S_LOADDETAIL, S_RTHREAD, S_INTERP, -1 },
+    { S_ASPECT, S_WINDOW, S_DISPLAY, S_VSYNC, S_FPS, S_HUD, S_HUDSTYLE, S_HUDASPECT, S_SKIP },
     { S_POSAUDIO, S_AUDIOOUT, -1 },
-    /* (no Talisman of Rebirth: equipped from the item page, src/talisman.c) */
     { S_QUICKSCALE, S_QUICKFREEZE, S_INTERCEPT, S_ESSCHARGE, S_CUTSKIP, S_RESPONSIVE, S_CROSSHAIR, S_SHURIKEN, -1 },
     { S_HEALTH, S_NINPO, S_ESSENCE, S_SCARABS, S_INFITEMS, S_INFAMMO, S_ONEHIT, S_UNLOCKS, -1 },
     { -1 },
+    { S_LAUNCHER, -1 },
     { S_ALLDIFF, S_ALLCOST, S_MISSIONS, S_ARCADE, S_MOVIES, S_ALLWEAP, S_ALLARM, S_ALLSCROLL, -1 },
 };
 
@@ -330,6 +330,39 @@ static void change(int row, int step)
         break;
     }
 }
+
+/* Host settings overlay API: the same rows and values as the in-game pause Settings pages. */
+#define NGB_MENU_ROW_TOUCH 1000
+int ngb_menu_tab_count(void) { return CATS; }
+const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_name[tab] : ""; }
+int ngb_menu_tab_row_count(int tab) {
+    if (tab == CAT_CTL) return 1;
+    if (tab < 0 || tab >= CATS) return 0;
+    int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0) n++;
+    return n;
+}
+int ngb_menu_tab_row(int tab, int index) {
+    if (tab == CAT_CTL) return index == 0 ? NGB_MENU_ROW_TOUCH : -1;
+    if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
+    return s_cat_rows[tab][index];
+}
+const char *ngb_menu_row_label(int row) {
+    return row == NGB_MENU_ROW_TOUCH ? "Touch Layout Editor" :
+           row >= 0 && row < S_COUNT ? s_label[row] : "";
+}
+const char *ngb_menu_row_help(int row) {
+    return row == NGB_MENU_ROW_TOUCH ? "Open the touch editor over the game. Drag controls, resize them and adjust their appearance." :
+           row >= 0 && row < S_COUNT ? s_help[row] : "";
+}
+int ngb_menu_row_get(int row) { return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row); }
+void ngb_menu_row_value(int row, char *out, size_t n) {
+    if (!n) return;
+    if (row == NGB_MENU_ROW_TOUCH) snprintf(out, n, "OPEN");
+    else if (row >= 0 && row < S_COUNT) value_text(row, out, n);
+    else out[0] = 0;
+}
+void ngb_menu_row_change(int row, int dir) { if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir); }
+void ngb_menu_row_set(int row, int value) { if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) ngb_pc_set_setting(row, value); }
 
 /* ---------- pictures: RGBA (0xAARRGGBB) to and from the guest ---------- */
 
