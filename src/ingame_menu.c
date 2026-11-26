@@ -1415,8 +1415,7 @@ void nv2a_window_event_hook(const void *sdl_event)
         return;
     }
     if (s_open && ev->type == SDL_MOUSEWHEEL) {
-        if (wheel_dir(ev))
-            push_key(wheel_dir(ev) > 0 ? KEY_UP : KEY_DOWN);
+        if (wheel_dir(ev)) push_key(MOUSE_WHEEL | (wheel_dir(ev) > 0 ? 1 : 0));
         return;
     }
     if (game_mouse(ev))
@@ -1837,13 +1836,22 @@ static void apply_and_close(void)
     apu_host_pause(0);
 }
 
+static void keep_selection_visible(void)
+{
+    if (s_sel >= ROW_RESUME) return;
+    int y = row_y(s_sel);
+    if (y < LIST_TOP) s_list_scroll = fmaxf(0.0f, s_list_scroll - (LIST_TOP - y));
+    else if (y + ROW_H > LIST_BOTTOM) s_list_scroll = fminf((float)LIST_MAX_SCROLL, s_list_scroll + y + ROW_H - LIST_BOTTOM);
+    s_list_velocity = 0;
+}
+
 static void activate(int key)
 {
     if (key != KEY_OK || s_sel != ROW_QUIT)
         s_quit_armed = false;
     switch (key) {
-    case KEY_UP:   s_sel = (s_sel + NROWS - 1) % NROWS; break;
-    case KEY_DOWN: s_sel = (s_sel + 1) % NROWS; break;
+    case KEY_UP:   s_sel = (s_sel + NROWS - 1) % NROWS; keep_selection_visible(); break;
+    case KEY_DOWN: s_sel = (s_sel + 1) % NROWS; keep_selection_visible(); break;
     case KEY_LEFT:
     case KEY_RIGHT:
         if (s_sel < NGB_SETTINGS_ITEMS)
@@ -1904,6 +1912,10 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
 
     int key;
     while (s_open && (key = pop_key())) {
+        if (key & MOUSE_WHEEL) {
+            s_list_velocity += (key & 1) ? -34.0f : 34.0f;
+            continue;
+        }
         if (key & (MOUSE_MOVE | MOUSE_CLICK | MOUSE_UP | MOUSE_DRAG)) {
             float lx = ((key >> 14 & 0x3FFF) - s_ox) / s_k;
             float ly = ((key & 0x3FFF) - s_oy) / s_k;
