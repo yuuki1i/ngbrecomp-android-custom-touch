@@ -74,15 +74,15 @@ static const Ctrl s_ctrl[NCTRL] = {
     [RSTICK]  = { STICK,  1, 0.720f, 0.780f, 0.100f,  "right stick", NULL, 0, NULL },   /* (below and inside the
                                                        face buttons, clear of the game's prompts) */
     [DPAD_ID] = { DPAD,   0, 0.37f,  0.84f,  0.12f,  "d-pad", NULL, 0, NULL },   /* (0.09 was small: #284) */
-    [BA]      = { BUTTON, 1, 0.315f, 0.715f, 0.072f, "A", "A", 0xD8DDE4, "button_a" },   /* (the face buttons one
+    [BA]      = { BUTTON, 1, 0.315f, 0.720f, 0.066f, "A", "A", 0xD8DDE4, "button_a" },   /* (the face buttons one
                                                        diamond, one size: Y high, B out, A low, X in -- the
                                                        plates of Winlator's pad) */
-    [BB]      = { BUTTON, 1, 0.175f, 0.585f, 0.072f, "B", "B", 0xD8DDE4, "button_b" },
-    [BX]      = { BUTTON, 1, 0.455f, 0.585f, 0.072f, "X", "X", 0xD8DDE4, "button_x" },
-    [BY]      = { BUTTON, 1, 0.315f, 0.455f, 0.072f, "Y", "Y", 0xD8DDE4, "button_y" },
-    [LB]      = { BUTTON, 1, 0.440f, 0.300f, 0.045f, "LB", "LB", 0xE6E6E6, "button_black" },
-    [RB]      = { BUTTON, 1, 0.190f, 0.300f, 0.045f, "RB", "RB", 0xE6E6E6, "button_white" },
-    [LT]      = { BUTTON, 1, 0.560f, 0.190f, 0.055f, "LT", "LT", 0xE6E6E6, "trigger_l" },   /* (guard: by the face
+    [BB]      = { BUTTON, 1, 0.175f, 0.580f, 0.066f, "B", "B", 0xD8DDE4, "button_b" },
+    [BX]      = { BUTTON, 1, 0.455f, 0.580f, 0.066f, "X", "X", 0xD8DDE4, "button_x" },
+    [BY]      = { BUTTON, 1, 0.315f, 0.440f, 0.066f, "Y", "Y", 0xD8DDE4, "button_y" },
+    [LB]      = { BUTTON, 1, 0.440f, 0.290f, 0.042f, "LB", "LB", 0xE6E6E6, "button_black" },
+    [RB]      = { BUTTON, 1, 0.185f, 0.290f, 0.042f, "RB", "RB", 0xE6E6E6, "button_white" },
+    [LT]      = { BUTTON, 1, 0.560f, 0.180f, 0.050f, "LT", "LT", 0xE6E6E6, "trigger_l" },   /* (guard: by the face
                                                        buttons) */
     [RT]      = { BUTTON, 0, 0.060f, 0.088f, 0.047f, "RT", "RT", 0xE6E6E6, "trigger_r" },   /* (the camera: small,
                                                        in the corner clear of the health emblem:
