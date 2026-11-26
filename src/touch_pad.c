@@ -830,14 +830,11 @@ static void draw_editor_badge(void)
 {
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
     if (d_edit_mode) {
-        draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
-        draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
         draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
         draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
         draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
-        draw_badge_text(d_selected >= 0 && d_selected < NCTRL && s_ctrl[d_selected].kind == COMBO
-                            ? "MAP" : "ART", (int)(s_w * 0.82f), 2, 42);
+        draw_badge_text("SKIN", (int)(s_w * 0.82f), 2, 42);
     }
 }
 
