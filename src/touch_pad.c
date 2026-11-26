@@ -157,14 +157,14 @@ static void layout_load(void) {
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir); SDL_free(dir);
     FILE *fp=fopen(s_layout_path,"r"); if(!fp)return; char line[192];
-    while(fgets(line,sizeof line,fp)){int id,custom,color=0,shape=0,skin=0,combo=0;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&combo);if(n<6||id<0||id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);}
+    while(fgets(line,sizeof line,fp)){int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&combo,&enabled);if(n<6||id<0||id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=11)s_layout_enabled[id]=enabled!=0;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir);SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_combo[i]);
+    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_combo[i],s_layout_enabled[i]?1:0);
     fclose(fp);
 }
 static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);s_dpad=0;}
@@ -253,6 +253,7 @@ static int hit(float x, float y, bool buttons_only)
     int best = -1;
     float best_d = 1e9f;
     for (int i = 0; i < NCTRL; i++) {
+        if (!s_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         if (buttons_only && c->kind != BUTTON)
             continue;
@@ -774,6 +775,7 @@ static void draw_idle(void)
     float u = (float)s_h;
     memset(s_px, 0, sizeof(uint32_t) * (size_t)s_w * s_h);
     for (int i = 0; i < NCTRL; i++) {
+        if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
@@ -960,7 +962,7 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw(\"touch_button_lit\",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
     draw_editor_badge();
     s_rec = NULL;
     s_px = out;
@@ -1065,7 +1067,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_down, s_down, sizeof d_down);
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
-        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo);
+        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
         d_edit_mode=s_edit_mode; d_selected=s_selected; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
