@@ -1670,13 +1670,12 @@ bool nv2a_overlay_wanted(void)
         }
     }
     to_menu_tick();
-    /* Back+Start on the phone opens the Chinese touch editor (src/touch_pad.c) instead of the old English
-     * settings menu: that menu is left to F1, and the editor keeps a row of its own that opens it. */
+    /* Back+Start is dead on the phone: no settings menu, no reset to the title (that is the game's own combo)
+     * and no editor either -- the pad's layout button at the left edge is the one way in. */
     if (!s_wait_release && (b & XBOX_GAMEPAD_BACK) && (b & XBOX_GAMEPAD_START) &&
         !((s_prev_pad & XBOX_GAMEPAD_BACK) && (s_prev_pad & XBOX_GAMEPAD_START))) {
-        usb_gamepad_block = 1;    /* (the game must not see Start+Back: that is its own reset to the title) */
+        usb_gamepad_block = 1;
         s_wait_release = true;
-        ngb_touch_editor_open();
     }
     s_prev_pad = b;
     return s_want && !s_open;

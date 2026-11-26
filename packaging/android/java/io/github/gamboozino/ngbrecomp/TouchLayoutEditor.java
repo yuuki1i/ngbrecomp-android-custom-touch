@@ -54,6 +54,8 @@ public class TouchLayoutEditor extends FrameLayout {
      * draw_plain): a wide rectangle, a circle, a rounded square -- the plain pad the default layout uses. */
     private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形", "长方形", "圆盘", "圆角方框"};
     private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆转圈+Y"};
+    /* What a combo control shows on its plate: the short name. */
+    private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360"};
 
     private final NgbActivity mActivity;
     private final float mDp;
@@ -130,7 +132,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 mR[id] = Float.parseFloat(parts[3]);
                 mAlpha[id] = Float.parseFloat(parts[4]);
                 mColour[id] = clamp(Integer.parseInt(parts[5]), 0, 5);
-                mShape[id] = clamp(Integer.parseInt(parts[6]), 0, 5);
+                mShape[id] = clamp(Integer.parseInt(parts[6]), 0, SHAPES.length - 1);   /* (6-8 are the plain plates: clamped to 5 they came back as octagons) */
                 mAction[id] = clamp(Integer.parseInt(parts[7]), -1, ACTIONS.length - 1);
                 mCombo[id] = clamp(Integer.parseInt(parts[8]), 0, COMBOS.length - 1);
                 mShown[id] = Integer.parseInt(parts[9]) != 0;
@@ -606,7 +608,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 else if (mEditor.mButton[id])
                     text = "NONE";                    /* Winlator's word for a button with no key on it */
                 else if (mEditor.mComboKind[id])
-                    text = COMBOS[mEditor.mCombo[id]];
+                    text = COMBO_SHORT[mEditor.mCombo[id]];
                 canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
             }
 

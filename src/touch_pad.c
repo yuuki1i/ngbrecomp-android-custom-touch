@@ -126,6 +126,7 @@ static const struct { int edge; float x, y, r; } s_classic[NCTRL] = {
 };
 int ngb_pc_setting(int which);                    /* src/ingame_menu.c (48: the touch layout) */
 void ngb_touch_editor_open(void);   /* the Android touch editor (NgbActivity), src/touch_pad.c below */
+void ngb_settings_open(void);       /* the Android settings page: 画面 and 按键 */
 void ngb_pc_set_setting(int which, int value);
 #pragma weak ngb_pc_setting
 #pragma weak ngb_pc_set_setting
@@ -146,6 +147,12 @@ static float s_aspect = 16.0f / 9;
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
 /* Renderer-side eased positions: touch edits update targets immediately, while the picture follows smoothly. */
+/* Picture: brightness, gamma and tint, kept with the pad's layout file and laid on the title's own gamma ramp
+ * (src/d3d/hle.cpp). 1, 1, 0 is the picture as the title has it. */
+float ngb_video_brightness = 1.f, ngb_video_gamma = 1.f;
+int ngb_video_tint;
+void ngb_video_filter_refresh(void);   /* src/d3d/hle.cpp (nothing on the other platforms) */
+
 static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
@@ -186,7 +193,7 @@ static void layout_defaults(void) {
     s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
-    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0;
+    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0; ngb_video_brightness=1.f; ngb_video_gamma=1.f; ngb_video_tint=0;
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     char active[512]; snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);
     FILE *af=fopen(active,"r"); if(af){int p;if(fscanf(af,"%d",&p)==1&&p>=0&&p<=2)s_preset=p;fclose(af);}
@@ -197,7 +204,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -208,6 +215,7 @@ static void layout_save(void) {
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
+    fprintf(fp,"# VIDEO %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),(int)lroundf(ngb_video_gamma*100.f),ngb_video_tint);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i]);
     fclose(fp);
 }
@@ -473,7 +481,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
-    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();pthread_mutex_unlock(&s_lock);ngb_touch_editor_open();return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();pthread_mutex_unlock(&s_lock);ngb_settings_open();return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
@@ -1588,8 +1596,42 @@ void ngb_touch_editor_open(void)
     if(method)(*env)->CallVoidMethod(env,activity,method);
     if(cls)(*env)->DeleteLocalRef(env,cls);
 }
+/* The settings page: 画面 and 按键, as the phone's own. */
+void ngb_settings_open(void)
+{
+    JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity=SDL_AndroidGetActivity();
+    if(!env||!activity)return;
+    jclass cls=(*env)->GetObjectClass(env,activity);
+    jmethodID method=cls?(*env)->GetMethodID(env,cls,"showSettingsMenu","()V"):NULL;
+    if(method)(*env)->CallVoidMethod(env,activity,method);
+    if(cls)(*env)->DeleteLocalRef(env,cls);
+}
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoGet(
+    JNIEnv *env, jobject activity, jint which) {
+    (void)env; (void)activity;
+    if (which == 0) return (jint)lroundf(ngb_video_brightness * 100.f);
+    if (which == 1) return (jint)lroundf(ngb_video_gamma * 100.f);
+    return ngb_video_tint;
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoSet(
+    JNIEnv *env, jobject activity, jint which, jint value) {
+    (void)env; (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (which == 0)
+        ngb_video_brightness = fminf(1.6f, fmaxf(.5f, value / 100.f));
+    else if (which == 1)
+        ngb_video_gamma = fminf(2.f, fmaxf(.4f, value / 100.f));
+    else
+        ngb_video_tint = value < 0 ? 0 : value > 2 ? 2 : (int)value;
+    layout_save();
+    pthread_mutex_unlock(&s_lock);
+    ngb_video_filter_refresh();
+}
 #else
 void ngb_touch_editor_open(void) { }
+void ngb_settings_open(void) { }
 #endif
 
 /* The presenter asks first whether there is a picture at all */

@@ -45,6 +45,8 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchLayoutApply(String text);
     private native void nativeTouchLayoutDefaults();
     private native void nativeTouchSkinPick(int id);
+    private native int nativeVideoGet(int which);
+    private native void nativeVideoSet(int which, int value);
     private native void nativeTouchChange(int item, int direction);
     private native void nativeTouchActivate(int item);
     private native void nativeTouchEditorRequest();
@@ -323,6 +325,29 @@ public class NgbActivity extends SDLActivity {
      * and the finger events go to the editor rather than the pad. Opened by the pad's layout button, by the
      * game's own Touch row and by the editor's request on the renderer's thread. */
     private TouchLayoutEditor mTouchEditor;
+
+    /* The settings page (画面, 按键), opened by the pad's layout button: src/touch_pad.c, ngb_settings_open. */
+    private NgbSettingsMenu mSettingsMenu;
+
+    public void showSettingsMenu() {
+        runOnUiThread(() -> {
+            if (mSettingsMenu != null)
+                return;
+            mSettingsMenu = new NgbSettingsMenu(this);
+            addContentView(mSettingsMenu, new android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        });
+    }
+
+    void settingsMenuClosed(NgbSettingsMenu menu) {
+        if (mSettingsMenu == menu)
+            mSettingsMenu = null;
+    }
+
+    /* The picture: brightness and gamma in per cent, tint as an index (src/d3d/hle.cpp). */
+    public int getVideoValue(int which) { return nativeVideoGet(which); }
+    public void setVideoValue(int which, int value) { nativeVideoSet(which, value); }
 
     public void showTouchEditor() {
         runOnUiThread(() -> {

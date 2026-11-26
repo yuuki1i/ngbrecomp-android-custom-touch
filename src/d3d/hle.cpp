@@ -8,6 +8,7 @@
 // game); this keeps a copy of the state and draws it with the renderer as well, for comparing.
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -33,8 +34,48 @@ using kernel::HostPtr;
 using kernel::R32;
 using kernel::W32;
 
+// ---- Picture: brightness, gamma and a tint over the title's own gamma ramp (its Screen Adjustment) ----
+// Kept in src/touch_pad.c, where the phone's settings page writes them; the ramp is the cheapest place for
+// them -- the backend already looks every channel up through a 256-entry table.
+extern "C" {
+#if defined(__ANDROID__)
+extern float ngb_video_brightness;   // 1 = as the title has it
+extern float ngb_video_gamma;        // 1 = as the title has it; under 1 lifts the shadows
+extern int ngb_video_tint;           // 0 as the title has it, 1 warm, 2 cool
+#endif
+}
+
 namespace {
 void InterpFollow();
+
+static uint8_t g_game_ramp[768];
+static bool g_ramp_known;
+
+static void MakeFilteredRamp(uint8_t* out)
+{
+#if defined(__ANDROID__)
+    const float b = ngb_video_brightness, g = ngb_video_gamma;
+    const int tint = ngb_video_tint;
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < 256; i++) {
+            float v = g_game_ramp[c * 256 + i] / 255.0f;
+            v *= b;
+            if (g > 0.01f && (g < 0.999f || g > 1.001f))
+                v = std::pow(v < 0.f ? 0.f : v, 1.0f / g);
+            if (tint == 1)
+                v *= c == 0 ? 1.07f : c == 2 ? 0.94f : 1.0f;      // warm
+            else if (tint == 2)
+                v *= c == 0 ? 0.93f : c == 2 ? 1.09f : 1.0f;      // cool
+            if (v < 0.f) v = 0.f;
+            if (v > 1.f) v = 1.f;
+            out[c * 256 + i] = static_cast<uint8_t>(std::lround(v * 255.0f));
+        }
+#else
+    std::memcpy(out, g_game_ramp, 768);
+#endif
+}
+
+
 
 enum Reg { EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI };
 
@@ -517,9 +558,22 @@ bool Before(int fn, Call c) {
         if (g_backend) g_backend->Present(g_state.rt);
         InterpFollow();
         break;
-    case D3DF_D3DDevice_SetGammaRamp:
-        if (g_backend) g_backend->SetGamma(static_cast<const uint8_t*>(HostPtr(c.a(1))));
+    case D3DF_D3DDevice_SetGammaRamp: {
+        if (!g_backend) break;
+        const uint8_t* ramp = static_cast<const uint8_t*>(HostPtr(c.a(1)));
+        if (ramp) {
+            std::memcpy(g_game_ramp, ramp, sizeof g_game_ramp);   // (the title's own Screen Adjustment)
+            g_ramp_known = true;
+        }
+        if (g_ramp_known) {
+            uint8_t out[768];
+            MakeFilteredRamp(out);
+            g_backend->SetGamma(out);
+        } else {
+            g_backend->SetGamma(ramp);
+        }
         break;
+    }
     case D3DF_D3DDevice_EndVisibilityTest:
         g_vis_index = c.r[EAX];
         break;
@@ -679,6 +733,19 @@ void TakeInit() {
 }
 
 }  // namespace
+
+// The settings page changed a picture value: re-send the ramp, and the backend looks every channel up again
+// (src/touch_pad.c, NgbActivity.nativeVideoSet).
+extern "C" void ngb_video_filter_refresh(void)
+{
+#if defined(__ANDROID__)
+    if (g_backend && g_ramp_known) {
+        uint8_t out[768];
+        MakeFilteredRamp(out);
+        g_backend->SetGamma(out);
+    }
+#endif
+}
 
 extern "C" int d3d_hle_call(int fn, uint32_t regs[8]) {
     if (!g_started) {
