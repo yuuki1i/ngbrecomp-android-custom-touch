@@ -1124,14 +1124,6 @@ loc_0017F535: ;
     goto loc_0017F681;
 
 loc_0017F540: ;
-    if (s_cheat_back) {           /* PC: Use cheats? No: out as the page's Exit row (loc_0017F647's), to its parent */
-        s_cheat_back = 0;
-        if (s_recomp && page_now() == PAGE_CHEAT) {
-            MEM32(edi + 0x1C) = ZX8(MEM8(MEM32(edi + 0x28) + 6));
-            MEM32(0xDA4808) = 0x81;
-            goto loc_0017F681;
-        }
-    }
     _fa = (uint32_t)(MEM8(edi + 0xD)) & 0xFFu; _fb = (uint32_t)(LO8(ebx)) & 0xFFu;
     _fas = (int32_t)(int8_t)(_fa); _fbs = (int32_t)(int8_t)(_fb); /* cmp MEM8(edi + 0xD), LO8(ebx) (8-bit) */
     if (CMP_EQ(_fa, _fb)) goto loc_0017F567; /* je: equal / zero */
