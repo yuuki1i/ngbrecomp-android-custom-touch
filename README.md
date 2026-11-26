@@ -228,7 +228,7 @@ were.
 ## Controls
 
 On Android, an Xbox 360 pad is drawn over the screen: the two sticks, the d-pad, A B X Y, the bumpers
-and triggers, Back, Start and the stick clicks. It hides while a controller is connected. The touch layout can be edited: tap the empty top-centre area to enter/leave edit mode, drag controls to move them, and tap a selected control repeatedly to cycle its size and opacity. In edit mode, tap the empty bottom-centre area to restore the default layout. Two extra combo buttons are available for Ninpo (Y+B) and Wind Run (X+A).
+and triggers, Back, Start and the stick clicks. It hides while a controller is connected. The touch layout can be edited: tap the empty top-centre area to enter/leave edit mode, drag controls to move them, tap a selected control to cycle its size, and press and hold a selected control for half a second to cycle its opacity. The first tap selects a control; make the next tap or long press on that same control to adjust it. In edit mode, tap the empty bottom-centre area to restore the default layout. Two extra combo buttons are available for Ninpo (Y+B) and Wind Run (X+A).
 
 A controller works as on the Xbox. The keyboard and mouse can be used at any time — the game follows
 whichever was touched last, and its button prompts change to match (or stay on one set: "Button
