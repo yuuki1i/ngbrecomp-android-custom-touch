@@ -174,7 +174,7 @@ static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir);SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V2 %d\n",s_haptics?1:0);
-    if(s_skin_path[0])fprintf(fp,"# SKIN %s\\n",s_skin_path);
+    if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i]);
     fclose(fp);
 }
@@ -411,7 +411,7 @@ static void touch_poll_skin(void) {
     if (cls) (*env)->DeleteLocalRef(env, cls);
     if (path[0]) {
         pthread_mutex_lock(&s_lock);
-        if (strcmp(path, s_skin_path)) { snprintf(s_skin_path, sizeof s_skin_path, "%s", path); s_layout_revision++; s_serial++; }
+        if (strcmp(path, s_skin_path)) { snprintf(s_skin_path, sizeof s_skin_path, "%s", path); s_layout_revision++; layout_save(); s_serial++; }
         pthread_mutex_unlock(&s_lock);
     }
 #endif
