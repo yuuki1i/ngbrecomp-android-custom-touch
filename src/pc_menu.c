@@ -55,8 +55,8 @@ void ngb_settings_size_at(int aspect, int i, int *w, int *h);
 #define PAGE_SOUND 12
 #define PAGE_GAME  13             /* Gameplay: the optional changes to play (the Quick Menu) */
 #define PAGE_CHEAT 14
-#define PAGE_CTRL  15             /* Controls: the bindings' panel (src/pause_tab.c) over it */
-#define N_OURS     6
+#define PAGE_CTRL  15             /* Retained internally for legacy save/menu compatibility; no longer exposed */
+#define N_OURS     5              /* Touch controls replace the legacy Controls category */
 #define UNL_ACTION 16             /* Cheats' row Unlocks: its rows in the page's place (unl_show), not a page */
 #define PC_CLOSER  8              /* a page of more than seven rows: closer, clear of the information line */
 
@@ -95,7 +95,6 @@ static const struct { const uint8_t *kinds; int n; } s_ours[N_OURS] = {
     { s_rows_sound, (int)sizeof s_rows_sound },
     { s_rows_game, (int)sizeof s_rows_game },
     { s_rows_cheat, (int)sizeof s_rows_cheat },
-    { s_rows_ctrl, (int)sizeof s_rows_ctrl },
 };
 #define N_UNL (int)sizeof s_rows_unl
 #define N_WS  (int)sizeof s_rows_ws
