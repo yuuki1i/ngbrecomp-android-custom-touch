@@ -339,7 +339,7 @@ const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_n
 #define NGB_MENU_CTL_MOUSE 1105
 #define NGB_MENU_CTL_PROMPTS 1106
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CAT_CTL) return 9;
+    if (tab == CAT_CTL) return 8;
     if (tab < 0 || tab >= CATS) return 0;
     if (tab == CAT_CHEAT) return 7;
     int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0) n++;
@@ -350,7 +350,7 @@ int ngb_menu_tab_row(int tab, int index) {
         if (index >= 0 && index < 5) return NGB_MENU_CTL_BASE + index;
         if (index == 5) return NGB_MENU_CTL_MOUSE;
         if (index == 6) return NGB_MENU_CTL_PROMPTS;
-        return index == 8 ? NGB_MENU_ROW_TOUCH : -1;
+        return index == 7 ? NGB_MENU_ROW_TOUCH : -1;
     }
     if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
     return s_cat_rows[tab][index];
