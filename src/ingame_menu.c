@@ -33,7 +33,7 @@
 #include "usb/usb_gamepad.h"
 #include "apu/apu.h"
 
-enum { KEY_UP = 1, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_OK, KEY_BACK, KEY_CLEAR };
+enum { KEY_UP = 1, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_OK, KEY_BACK, KEY_CLEAR, KEY_TAB_LEFT, KEY_TAB_RIGHT };
 
 /* The settings the game runs with; what the menu starts from. */
 static NgbSettings s_running;
@@ -430,7 +430,8 @@ int ngb_pause_tab_key(int *focus)
     static const struct { uint32_t bit; int key; } map[] = {
         { XBOX_GAMEPAD_DPAD_UP, KEY_UP }, { XBOX_GAMEPAD_DPAD_DOWN, KEY_DOWN },
         { XBOX_GAMEPAD_DPAD_LEFT, KEY_LEFT }, { XBOX_GAMEPAD_DPAD_RIGHT, KEY_RIGHT },
-        { 1u << 16, KEY_OK }, { 1u << 17, KEY_BACK }, { XBOX_GAMEPAD_START, KEY_BACK }, { 1u << 20, KEY_CLEAR },
+        { 1u << 16, KEY_OK }, { 1u << 17, KEY_BACK },
+        { 1u << 18, KEY_TAB_LEFT }, { 1u << 19, KEY_TAB_RIGHT }, { XBOX_GAMEPAD_START, KEY_BACK }, { 1u << 20, KEY_CLEAR },
     };
     uint64_t now = mono_ms();
     {
@@ -1859,8 +1860,15 @@ static void draw(const uint32_t *backdrop)
 
     text("OPTION DETAILS", 698, 174, 14, accent, 255, 0);
     fill(698, 198, 218, 2, 0x4C6D91, 200);
-    text(ngb_menu_row_label(s_sel), 698, 216, 17, white, 255, 0);
-    text_wrapped(ngb_menu_row_help(s_sel), 698, 250, 218, 14, grey, 255, 22);
+    const char *selected_label = s_sel == ROW_RESET ? "Reset Section" :
+                                 s_sel == ROW_RESUME ? "Save & Resume" :
+                                 s_sel == ROW_QUIT ? "Exit Game" : ngb_menu_row_label(s_sel);
+    const char *selected_help = s_sel == ROW_RESET ? "Restore every option in this tab to the values saved when the menu was opened." :
+                               s_sel == ROW_RESUME ? "Save all changed settings and return to the game." :
+                               s_sel == ROW_QUIT ? "Close Ninja Gaiden Black. Confirm this action a second time." :
+                               ngb_menu_row_help(s_sel);
+    text(selected_label, 698, 216, 17, white, 255, 0);
+    text_wrapped(selected_help, 698, 250, 218, 14, grey, 255, 22);
     text("CURRENT VALUE", 698, 474, 12, accent, 255, 0);
     char current[96] = ""; ngb_menu_row_value(s_sel, current, sizeof current);
     text(current, 698, 496, 16, white, 255, 0);
@@ -1933,7 +1941,8 @@ static void activate(int key)
     if (key != KEY_OK || s_sel != ROW_QUIT) s_quit_armed = false;
     switch (key) {
     case KEY_UP:
-        if (!s_cat_focus && selected_index() == 0) s_cat_focus = 1;
+        if (s_sel >= ROW_RESUME) { s_sel = category_row(category_count() - 1); keep_selection_visible(); }
+        else if (!s_cat_focus && selected_index() == 0) s_cat_focus = 1;
         else if (!s_cat_focus) {
             int i = selected_index();
             s_sel = category_row(i > 0 ? i - 1 : category_count() - 1);
@@ -1942,15 +1951,24 @@ static void activate(int key)
         break;
     case KEY_DOWN:
         if (s_cat_focus) { s_cat_focus = 0; s_sel = category_row(0); }
+        else if (selected_index() == category_count() - 1 && s_sel < ROW_RESUME) s_sel = ROW_RESET;
+        else if (s_sel >= ROW_RESUME) s_sel = ROW_RESET;
         else {
             int i = selected_index();
             s_sel = category_row((i + 1) % category_count());
             keep_selection_visible();
         }
         break;
+    case KEY_TAB_LEFT: choose_category(s_cat - 1); break;
+    case KEY_TAB_RIGHT: choose_category(s_cat + 1); break;
     case KEY_LEFT:
     case KEY_RIGHT:
-        if (s_cat_focus) choose_category(s_cat + (key == KEY_LEFT ? -1 : 1));
+        if (s_sel >= ROW_RESUME) {
+            int d = key == KEY_LEFT ? -1 : 1;
+            int i = s_sel == ROW_RESET ? 0 : s_sel == ROW_RESUME ? 1 : 2;
+            i = (i + d + 3) % 3;
+            s_sel = i == 0 ? ROW_RESET : i == 1 ? ROW_RESUME : ROW_QUIT;
+        } else if (s_cat_focus) choose_category(s_cat + (key == KEY_LEFT ? -1 : 1));
         else if (s_sel != ROW_TOUCH && s_sel >= 0 && s_sel < 1000) {
             ngb_menu_row_change(s_sel, key == KEY_LEFT ? -1 : 1);
             s_cfg = s_running;
