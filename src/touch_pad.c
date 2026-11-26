@@ -87,7 +87,7 @@ static int s_dpad;                            /* XBOX_GAMEPAD_DPAD_* bits */
 static unsigned s_serial = 1;                 /* +1 each change of what the picture shows */
 
 #define MAX_FINGERS 10
-static struct { SDL_FingerID id; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
+static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 
 static int ctrl_index(const Ctrl *c) { return (int)(c - s_ctrl); }
 
@@ -258,18 +258,21 @@ static void finger_off(int ctrl)
         s_dpad = 0;
 }
 
-static void edit_tap(int c)
+static void edit_control(int c, bool opacity)
 {
     if (c < 0 || c >= NCTRL) return;
-    float base = s_ctrl[c].r;
-    float ratio = s_layout_r[c] / base;
-    s_layout_r[c] = base * (ratio < 0.88f ? 1.0f : ratio < 1.12f ? 1.25f : 0.75f);
+    if (opacity) {
+        static const float alpha[] = {0.25f, 0.40f, 0.55f, 0.70f, 0.85f, 1.0f};
+        int next = 0;
+        while (next < 6 && s_layout_alpha[c] >= alpha[next] - 0.01f) next++;
+        if (next == 6) next = 0; /* wrap back to the most transparent setting */
+        s_layout_alpha[c] = alpha[next];
+    } else {
+        float base = s_ctrl[c].r;
+        float ratio = s_layout_r[c] / base;
+        s_layout_r[c] = base * (ratio < 0.88f ? 1.0f : ratio < 1.12f ? 1.25f : 0.75f);
+    }
     s_layout_revision++;
-    static const float alpha[] = {0.35f, 0.50f, 0.65f, 0.80f, 1.0f};
-    int next = 0;
-    while (next < 5 && s_layout_alpha[c] >= alpha[next] - 0.01f) next++;
-    if (next == 5) next = 0; /* wrap back to the most transparent setting */
-    s_layout_alpha[c] = alpha[next];
     layout_save();
 }
 static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
@@ -307,6 +310,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         if (f < MAX_FINGERS && s_edit_mode) {
             s_finger[f].used = true;
             s_finger[f].id = ev->tfinger.fingerId;
+            s_finger[f].down_timestamp = ev->tfinger.timestamp;
             s_finger[f].ctrl = c;
             s_finger[f].x0 = x;
             s_finger[f].y0 = y;
@@ -318,6 +322,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
             xbox_InputTouchUsed();
             s_finger[f].used = true;
             s_finger[f].id = ev->tfinger.fingerId;
+            s_finger[f].down_timestamp = ev->tfinger.timestamp;
             s_finger[f].ctrl = c;
             s_finger[f].moved = false;
             finger_on(c, x, y);
@@ -368,7 +373,10 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         float start_x = s_finger[f].x0, start_y = s_finger[f].y0;
         s_finger[f].used = false;
         if (s_edit_mode) {
-            if (!moved && was_selected && c >= 0) edit_tap(c);
+            if (!moved && was_selected && c >= 0) {
+                Uint32 held_ms = ev->tfinger.timestamp - s_finger[f].down_timestamp;
+                edit_control(c, held_ms >= 500);
+            }
             if (moved) layout_save();
             if (!moved && c < 0 && start_y > 0.86f &&
                 start_x > s_aspect * 0.42f && start_x < s_aspect * 0.58f) {
