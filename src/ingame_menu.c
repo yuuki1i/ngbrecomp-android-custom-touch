@@ -1788,7 +1788,10 @@ static void text_wrapped(const char *src, float x, float y, float maxw, float si
         const char *q = p; while (*q && *q != ' ') q++;
         size_t word = (size_t)(q - p);
         if (!word) break;
-        if (used && text_width(line, size) + size * 0.42f + text_width(p, size) > maxw) {
+        char wordbuf[160];
+        size_t wn = word < sizeof wordbuf - 1 ? word : sizeof wordbuf - 1;
+        memcpy(wordbuf, p, wn); wordbuf[wn] = 0;
+        if (used && text_width(line, size) + size * 0.42f + text_width(wordbuf, size) > maxw) {
             line[used] = 0; text(line, x, y, size, rgb, alpha, 0); y += line_h; used = 0;
         }
         if (used && used + 1 < sizeof line) line[used++] = ' ';

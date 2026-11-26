@@ -338,6 +338,7 @@ const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_n
 int ngb_menu_tab_row_count(int tab) {
     if (tab == CAT_CTL) return 1;
     if (tab < 0 || tab >= CATS) return 0;
+    if (tab == CAT_CHEAT) return 7; /* S_UNLOCKS opens a separate page in the game's pause UI. */
     int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0) n++;
     return n;
 }
