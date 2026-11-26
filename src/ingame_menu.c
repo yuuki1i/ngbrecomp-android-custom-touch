@@ -1406,10 +1406,64 @@ void nv2a_window_event_hook(const void *sdl_event)
         if (ngb_bind_event(ev))
             return;
     }
-    /* With the controller in use (touched last) the mouse leaves the menus
-     * alone; moving it makes it the device in use again. */
+    /*
+     * Android delivers touchscreen input as SDL finger events. Convert the
+     * primary finger to ordinary mouse events so the existing menu hit-test,
+     * scrolling and click handling are shared with desktop. SDL's optional
+     * touch-to-mouse synthesis is ignored below to prevent double activation.
+     */
+    static SDL_FingerID menu_finger = (SDL_FingerID)-1;
+    if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERMOTION ||
+        ev->type == SDL_FINGERUP) {
+        if (ev->type == SDL_FINGERDOWN) {
+            if (menu_finger != (SDL_FingerID)-1) return;
+            menu_finger = ev->tfinger.fingerId;
+        } else if (ev->tfinger.fingerId != menu_finger) {
+            return;
+        }
+        SDL_Window *tw = SDL_GetWindowFromID(ev->tfinger.windowID);
+        int tw_w = 1, tw_h = 1;
+        if (tw) SDL_GetWindowSize(tw, &tw_w, &tw_h);
+        SDL_Event mouse;
+        SDL_zero(mouse);
+        if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERUP) {
+            mouse.type = ev->type == SDL_FINGERDOWN ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+            mouse.button.windowID = ev->tfinger.windowID;
+            mouse.button.which = SDL_TOUCH_MOUSEID;
+            mouse.button.button = SDL_BUTTON_LEFT;
+            mouse.button.state = ev->type == SDL_FINGERDOWN ? SDL_PRESSED : SDL_RELEASED;
+            mouse.button.x = (int)(ev->tfinger.x * tw_w);
+            mouse.button.y = (int)(ev->tfinger.y * tw_h);
+        } else {
+            mouse.type = SDL_MOUSEMOTION;
+            mouse.motion.windowID = ev->tfinger.windowID;
+            mouse.motion.which = SDL_TOUCH_MOUSEID;
+            mouse.motion.state = SDL_BUTTON_LMASK;
+            mouse.motion.x = (int)(ev->tfinger.x * tw_w);
+            mouse.motion.y = (int)(ev->tfinger.y * tw_h);
+        }
+        if (ev->type == SDL_FINGERUP) menu_finger = (SDL_FingerID)-1;
+        nv2a_window_event_hook(&mouse);
+        return;
+    }
+    /* SDL may also synthesize mouse events for fingers. We already route the
+     * original finger above, so discard these duplicates. */
+    if ((ev->type == SDL_MOUSEMOTION && ev->motion.which == SDL_TOUCH_MOUSEID) ||
+        ((ev->type == SDL_MOUSEBUTTONDOWN || ev->type == SDL_MOUSEBUTTONUP) &&
+         ev->button.which == SDL_TOUCH_MOUSEID))
+        return;
+
+    /* Physical mouse input must not steal focus from an active controller;
+     * touchscreen input is explicitly tagged SDL_TOUCH_MOUSEID and bypasses
+     * this desktop-only device arbitration. */
     if ((ev->type == SDL_MOUSEMOTION || ev->type == SDL_MOUSEBUTTONDOWN ||
-         ev->type == SDL_MOUSEWHEEL) && !xbox_InputKeyboardActive())
+         ev->type == SDL_MOUSEWHEEL) &&
+        ev->type != SDL_MOUSEWHEEL &&
+        ev->type == SDL_MOUSEMOTION && ev->motion.which != SDL_TOUCH_MOUSEID &&
+        !xbox_InputKeyboardActive())
+        return;
+    if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.which != SDL_TOUCH_MOUSEID &&
+        !xbox_InputKeyboardActive())
         return;
     {
         extern int ngb_mouse_settling(void);   /* src/keyboard.c: the capture just changed */
