@@ -1728,14 +1728,13 @@ static int row_y(int row)
     return ROW_Y0 + row * ROW_H + (row >= ROW_RESUME ? 16 : 0);
 }
 
-static int selected_index(void) { for(int i=0;i<category_count();i++) if(category_row(i)==s_sel) return i; return 0; }
-static void choose_category(int c) { if(c<0)c=3; if(c>3)c=0; s_cat=c; s_cat_focus=0; s_sel=category_row(0); s_list_scroll=s_list_velocity=0; }
-
 #define LIST_TOP (ROW_Y0 - 8)
 #define LIST_BOTTOM (LH - 88)
 #define LIST_VIEW_H (LIST_BOTTOM - LIST_TOP)
 static int category_count(void) { int n=0; while(n<5 && s_cat_rows[s_cat][n]>=0) n++; return n; }
 static int category_row(int i) { return s_cat_rows[s_cat][i]; }
+static int selected_index(void) { for(int i=0;i<category_count();i++) if(category_row(i)==s_sel) return i; return 0; }
+static void choose_category(int c) { if(c<0)c=3; if(c>3)c=0; s_cat=c; s_cat_focus=0; s_sel=category_row(0); s_list_scroll=s_list_velocity=0; }
 #define LIST_CONTENT_H (category_count() * ROW_H + 12)
 #define LIST_MAX_SCROLL (LIST_CONTENT_H > LIST_VIEW_H ? LIST_CONTENT_H - LIST_VIEW_H : 0)
 
@@ -1940,7 +1939,7 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
         s_click_pending = false;
         s_cat=0; s_cat_focus=0;
         s_scroll_tick = mono_ms();
-        s_cat=0; s_cat_focus=0; s_sel=category_row(0);
+        s_sel=category_row(0);
         s_quit_armed = false;
         s_repeat_bit = 0;
         s_prev_pad = pad_bits();         /* what is held already does nothing */
