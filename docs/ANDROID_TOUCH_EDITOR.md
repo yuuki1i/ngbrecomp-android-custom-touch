@@ -30,3 +30,19 @@ Use a versioned, validated JSON layout in the app-private files directory. Unkno
 - Every later APK must have a strictly greater versionCode.
 - An in-place Android update also requires the same signing certificate as the installed APK. Verify certificate identity before claiming that an APK can overwrite the installed app.
 - Do not commit generated game code, disc images, game data, saves, or extracted game artwork. The Android build needs the user's locally generated `src/recomp/gen/*.c` sources, which must be supplied to the build environment without publishing them.
+
+
+## NGB Touch 1.0.3 — blue editor foundation
+
+The dedicated development line is `feature/ngb-touch-ui-v1.0.3`. Its visual direction is
+a restrained dark overlay with a technical-blue accent. The first implementation adds a
+compact in-game editor toolbar with one-tap size, opacity, accent, shape and artwork-style
+controls, plus add/delete and a clear Done action. These controls are rendered by the
+existing native overlay rather than an always-running Android view, so the editor does
+not introduce a second UI rendering loop during gameplay.
+
+This is a foundation, not the finished Winlator-style editor. The next implementation
+steps are a side-edge floating settings handle, a dedicated properties panel, explicit
+combo input selection, arbitrary user-created controls, drag handles for precise resizing,
+and private PNG artwork import/preview. Until those pieces land, the current four custom
+combo slots and six built-in button-pair mappings remain the limits of combo editing.
