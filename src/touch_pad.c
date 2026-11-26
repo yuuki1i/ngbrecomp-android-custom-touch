@@ -170,7 +170,21 @@ static void layout_save(void) {
 static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);s_dpad=0;}
 static void toggle_editor(void){s_edit_mode=!s_edit_mode;s_selected=-1;clear_touch_state();if(!s_edit_mode)layout_save();s_layout_revision++;s_serial++;}
 static void edit_selected(Uint32 held){if(s_selected<0||s_selected>=NCTRL)return;if(held>=650){float q=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(q<.88f?1.f:q<1.12f?1.25f:.75f);}else{static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}s_layout_revision++;layout_save();s_serial++;}
-static void editor_toolbar_action(float x){float q=x/s_aspect;if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f){if(s_ctrl[s_selected].kind==COMBO)s_layout_combo[s_selected]=(s_layout_combo[s_selected]+1)%6;else s_layout_skin[s_selected]^=1;}else return;s_layout_revision++;layout_save();s_serial++;}
+static void add_custom_combo(void) {
+    for (int i=CUSTOM1;i<=CUSTOM4;i++) if(!s_layout_enabled[i]) {
+        s_layout_enabled[i]=true; s_layout_x[i]=0.52f; s_layout_y[i]=0.32f+0.12f*(i-CUSTOM1);
+        s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=0.72f; s_layout_custom[i]=true;
+        s_layout_combo[i]=(uint8_t)((i-CUSTOM1)%6); s_selected=i;
+        s_layout_revision++; layout_save(); s_serial++; return;
+    }
+}
+static void delete_selected_combo(void) {
+    if(s_selected<CUSTOM1||s_selected>CUSTOM4)return;
+    s_layout_enabled[s_selected]=false; s_down[s_selected]=false; s_selected=-1;
+    s_layout_revision++; layout_save(); s_serial++;
+}
+
+static void editor_toolbar_action(float x){float q=x/s_aspect;if(q<.105f){add_custom_combo();return;}if(q>.895f){delete_selected_combo();return;}if(q>.455f&&q<.545f){toggle_editor();return;}if(s_selected<0||s_selected>=NCTRL)return;if(q>.245f&&q<.335f){float v=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(v<.88f?1.f:v<1.12f?1.25f:.75f);}else if(q>.355f&&q<.445f){static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}else if(q>.555f&&q<.645f)s_layout_color[s_selected]=(s_layout_color[s_selected]+1)%6;else if(q>.665f&&q<.755f)s_layout_shape[s_selected]=(s_layout_shape[s_selected]+1)%3;else if(q>.775f&&q<.865f){if(s_ctrl[s_selected].kind==COMBO)s_layout_combo[s_selected]=(s_layout_combo[s_selected]+1)%6;else s_layout_skin[s_selected]^=1;}else return;s_layout_revision++;layout_save();s_serial++;}
 
 /* Where a control is on a screen this wide: its place (in screen heights) and radius. On a squarer screen than
  * about 16:10 (4:3, 3:2, 5:4: below NARROW) there is no room beside the player for the right stick and LT, which
@@ -861,6 +875,8 @@ static void draw_editor_badge(void)
 {
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
     if (d_edit_mode) {
+        draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
+        draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
         draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
         draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
