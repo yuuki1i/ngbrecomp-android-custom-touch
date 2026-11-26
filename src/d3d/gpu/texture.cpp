@@ -403,6 +403,8 @@ uint64_t BlockHash(const std::vector<uint8_t>& px) {
 }
 
 
+bool ReadFile(const char* path, std::vector<uint8_t>& out);   /* (defined below: used on the way back in) */
+
 /* ---- compressed texels, the other way: a pack's PNG becomes DXT again ----
  * The console's character art is DXT; a repaint is a PNG, so it is cut into 4x4 blocks, each given two
  * endpoint colours (the block's own darkest and lightest) and a 2- or 3-bit index per texel. Lossy, but it
