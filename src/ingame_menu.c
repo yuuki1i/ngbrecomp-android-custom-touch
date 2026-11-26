@@ -2061,17 +2061,12 @@ static void activate(int key)
             } else s_quit_armed = true;
         } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1100 + 20))) {
             if (s_sel == 1100) {
-#ifdef __ANDROID__
-                /* Keep the game's settings menu open underneath the Android
-                 * touch-control panel. Dismissing the panel returns to the
-                 * same in-game menu instead of dropping back into gameplay. */
-                extern void ngb_touch_menu_show_android(void);
-                ngb_touch_menu_show_android();
-#else
+                /* The Touch tab itself is the in-game control centre: its
+                 * rows are operated directly by touch. This first row opens
+                 * the visual layout editor, not an Android AlertDialog. */
                 apply_and_close();
                 extern void ngb_touch_editor_open(void);
                 ngb_touch_editor_open();
-#endif
             } else if ((s_sel >= 100 && s_sel < 100 + 40) || (s_sel >= 1100 && s_sel < 1100 + 20)) ngb_menu_row_activate(s_sel);
             else { ngb_menu_row_change(s_sel, 1); s_cfg = s_running; }
         }
