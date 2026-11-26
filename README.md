@@ -311,6 +311,7 @@ Widgets for the setup window, optional). The recompiler and Xbox runtime,
 ```sh
 xboxrecomp/third_party/fetch.sh                # once: Vulkan headers, volk, VMA and the like
 tools/pipeline.sh /path/to/your/ngb.iso        # extract, disassemble and lift to C (a few minutes)
+# Or, if you have the extracted default.xbe already: tools/pipeline.sh /path/to/default.xbe
 cmake -S . -B build/linux -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 ninja -C build/linux
 build/linux/NinjaGaidenBlack
