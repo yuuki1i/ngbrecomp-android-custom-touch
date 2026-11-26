@@ -25,5 +25,5 @@ Planned editor work, in order:
 
 The Android CI workflow is included on this branch. APK builds use versionCode 1003 and
 versionName `1.0.2-ngb-touch` to distinguish this fork build from the author's release.
-The XBE is not included in this documentation; the build workflow obtains the user's
-own project copy from the repository's existing private build input.
+The XBE is not included in this documentation. The build workflow expects the project's
+own XBE input to be available in the build repository; do not redistribute copyrighted game data.
