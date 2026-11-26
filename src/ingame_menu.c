@@ -101,9 +101,14 @@ void ngb_aspect_follow_window(void)
     nv2a_present_set_aspect(a);
 }
 
+static bool tab_shown(void);
+
 int ngb_menu_touch_blocked(void)
 {
-    return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) ? 1 : 0;
+    /* While either settings surface is visible, leave finger events in the
+     * SDL queue for ingame_menu.c to translate into menu mouse clicks.
+     * touch_watch() must not consume them as gameplay input. */
+    return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) || tab_shown();
 }
 
 void ngb_menu_request_touch_editor(void)
