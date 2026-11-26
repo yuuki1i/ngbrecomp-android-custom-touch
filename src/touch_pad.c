@@ -199,6 +199,7 @@ static void layout_switch_preset(void) {
     s_layout_revision++; layout_save(); s_serial++;
 }
 static void toggle_editor(void){s_edit_mode=!s_edit_mode;s_selected=-1;clear_touch_state();if(!s_edit_mode)layout_save();s_layout_revision++;s_serial++;}
+void ngb_touch_editor_open(void){if(!s_edit_mode)toggle_editor();}
 static void edit_selected(Uint32 held){if(s_selected<0||s_selected>=NCTRL)return;if(held>=650){float q=s_layout_r[s_selected]/s_ctrl[s_selected].r;s_layout_r[s_selected]=s_ctrl[s_selected].r*(q<.88f?1.f:q<1.12f?1.25f:.75f);}else{static const float a[]={.25f,.4f,.55f,.7f,.85f,1.f};int n=0;while(n<6&&s_layout_alpha[s_selected]>=a[n]-.01f)n++;s_layout_alpha[s_selected]=a[n==6?0:n];}s_layout_revision++;layout_save();s_serial++;}
 static void add_custom_combo(void) {
     for (int i=CUSTOM1;i<=CUSTOM4;i++) if(!s_layout_enabled[i]) {
