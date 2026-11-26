@@ -41,6 +41,7 @@ static bool s_have_running;
 
 static volatile int s_want;              /* open at the next frame */
 static bool s_open;
+static volatile int s_touch_editor_request;
 static NgbSettings s_cfg, s_original;
 static int s_sel;
 static int s_original_values[9][24];
@@ -103,6 +104,11 @@ void ngb_aspect_follow_window(void)
 int ngb_menu_touch_blocked(void)
 {
     return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) ? 1 : 0;
+}
+
+void ngb_menu_request_touch_editor(void)
+{
+    __atomic_store_n(&s_touch_editor_request, 1, __ATOMIC_RELEASE);
 }
 
 void ngb_menu_set_running(const NgbSettings *s)
@@ -2046,9 +2052,8 @@ static void activate(int key)
             } else s_quit_armed = true;
         } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1100 + 20))) {
             if (s_sel == 1100) {
-                apply_and_close();
-                extern void ngb_touch_editor_open(void);
-                ngb_touch_editor_open();
+                extern void ngb_touch_menu_show_android(void);
+                ngb_touch_menu_show_android();
             } else if ((s_sel >= 100 && s_sel < 100 + 40) || (s_sel >= 1100 && s_sel < 1100 + 20)) ngb_menu_row_activate(s_sel);
             else { ngb_menu_row_change(s_sel, 1); s_cfg = s_running; }
         }
@@ -2060,6 +2065,11 @@ static void activate(int key)
 /* Renderer's thread, every frame while the game is held. */
 bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
 {
+    if (__atomic_exchange_n(&s_touch_editor_request, 0, __ATOMIC_ACQ_REL) && s_open) {
+        apply_and_close();
+        extern void ngb_touch_editor_open(void);
+        ngb_touch_editor_open();
+    }
     extern int ngb_bind_capture_tick(void);
     if (s_open) ngb_bind_capture_tick(); /* poll controller captures from the unified menu */
     if (!s_open) {
