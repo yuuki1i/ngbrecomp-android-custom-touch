@@ -100,6 +100,11 @@ void ngb_aspect_follow_window(void)
     nv2a_present_set_aspect(a);
 }
 
+int ngb_menu_touch_blocked(void)
+{
+    return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) ? 1 : 0;
+}
+
 void ngb_menu_set_running(const NgbSettings *s)
 {
     s_running = *s;
@@ -1423,7 +1428,7 @@ void nv2a_window_event_hook(const void *sdl_event)
         }
         SDL_Window *tw = SDL_GetWindowFromID(ev->tfinger.windowID);
         int tw_w = 1, tw_h = 1;
-        if (tw) SDL_GetWindowSize(tw, &tw_w, &tw_h);
+        if (tw) SDL_Vulkan_GetDrawableSize(tw, &tw_w, &tw_h);
         SDL_Event mouse;
         SDL_zero(mouse);
         if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERUP) {
