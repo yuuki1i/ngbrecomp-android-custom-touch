@@ -725,6 +725,22 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
 }
 
 /* A button's picture, idle or held */
+static const char *combo_first(int id) {
+    static const char *v[6] = {"button_a","button_a","button_a","button_b","button_b","button_x"};
+    return v[d_layout_combo[id] % 6];
+}
+static const char *combo_second(int id) {
+    static const char *v[6] = {"button_b","button_x","button_y","button_x","button_y","button_y"};
+    return v[d_layout_combo[id] % 6];
+}
+static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a) {
+    (void)c;
+    if (s_art == ART_GAME && !d_layout_skin[id]) {
+        draw_piece(combo_first(id), cx - 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
+        draw_piece(combo_second(id), cx + 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
+    } else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
+}
+
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
 {
     if (s_art == ART_GAME && c != &s_ctrl[SWAP]) {
@@ -762,7 +778,9 @@ static void draw_idle(void)
             draw_piece("pad", cx, cy, 2 * r, 2 * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
         else if (c->kind == DPAD)
             draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
-        else   /* (the pieces fill about four fifths of their picture: drawn a little over the button's size) */
+        else if (c->kind == COMBO)
+            draw_combo(c, i, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
+        else
             draw_button(c, false, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);   /* (the face buttons
                                                        a little less see-through: X and A were faint) */
     }
@@ -931,6 +949,9 @@ static void draw_all(void)
                 if (d_dpad & arms[a].bit)
                     draw_piece(arms[a].lit, cx + arms[a].dx * size / 3, cy + arms[a].dy * size / 3, size / 2,
                                size / 2, 0.95f);
+        } else if (c->kind == COMBO && on) {
+            draw_combo(c, i, cx, cy, r, fmaxf(d_layout_alpha[i], 0.85f));
+            draw("touch_button_lit", cx, cy, 2.1f*r, 2.1f*r, 0.9f);
         } else if (c->kind == BUTTON && on) {
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
