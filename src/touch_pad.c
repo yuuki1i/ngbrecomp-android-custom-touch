@@ -200,6 +200,7 @@ void ngb_video_filter_refresh(void);   /* src/d3d/hle.cpp (nothing on the other 
 static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
+static float s_layout_asp[NCTRL], d_layout_asp[NCTRL];   /* how much wider than tall a key is drawn */
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 /* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
  * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
@@ -210,6 +211,8 @@ static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
 static bool d_haptics = true;
 static bool s_camera_swipe = true;
+static bool s_cam_hold;                 /* a finger on the empty screen turns the camera */
+static float s_cam_px, s_cam_py;        /* how far that finger went since the last frame, screen heights */
 static char s_skin_path[NCTRL][256], d_skin_path[NCTRL][256];   /* one picture per control */
 static int s_selected = -1, d_selected = -1;
 static int s_preset, d_preset;
@@ -230,7 +233,7 @@ static void layout_defaults(void) {
         [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
         [SWAP]=PA_NONE,
     };
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_asp[i]=1.f; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
     /* The 360 charge, one tap: the stick sweeps a full turn and Y follows (combo 6), beside the face buttons
      * where the right thumb already is. It starts out on the pad -- it is a move, not a setting. */
     s_layout_enabled[CUSTOM1]=true; s_layout_combo[CUSTOM1]=6; s_layout_alpha[CUSTOM1]=0.6f;
@@ -248,7 +251,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -260,10 +263,10 @@ static void layout_save(void) {
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     fprintf(fp,"# VIDEO %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),(int)lroundf(ngb_video_gamma*100.f),ngb_video_tint);
-    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i]);
+    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d %.3f\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i],s_layout_asp[i]);
     fclose(fp);
 }
-static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);s_dpad=0;}
+static void clear_touch_state(void){s_cam_hold=false;s_cam_px=s_cam_py=0;memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);s_dpad=0;}
 static void layout_switch_preset(void) {
     layout_save();
     s_preset=(s_preset+1)%3;
@@ -378,7 +381,8 @@ static int hit(float x, float y, bool buttons_only)
         if (buttons_only && c->kind != BUTTON)
             continue;
         Place at = place(c);
-        float dx = x - at.x, dy = y - at.y, d;
+        float asp = s_layout_asp[i] > 0.01f ? s_layout_asp[i] : 1.f;
+        float dx = (x - at.x) / asp, dy = y - at.y, d;
         float reach = c->kind == STICK ? at.r * 1.7f : c->kind == DPAD ? at.r * 1.4f : at.r * 1.35f;
         d = sqrtf(dx * dx + dy * dy);
         if (d > reach)
@@ -540,14 +544,14 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
         if(f<MAX_FINGERS&&s_edit_mode){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].down_timestamp=ev->tfinger.timestamp;s_finger[f].ctrl=hit_id;s_finger[f].x0=x;s_finger[f].y0=y;s_finger[f].moved=false;s_finger[f].was_selected=hit_id==s_selected;if(hit_id>=0)s_selected=hit_id;s_serial++;}
         else if(hit_id>=0&&f<MAX_FINGERS){xbox_InputTouchUsed();s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=hit_id;finger_on(hit_id,x,y);s_serial++;}
-        else if(hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;}
+        else if(hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;s_cam_hold=true;s_cam_px=s_cam_py=0;}
     }else if(ev->type==SDL_FINGERMOTION&&f<MAX_FINGERS){
         int id=s_finger[f].ctrl;
-        if(!s_edit_mode&&id==-2){float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.002f){s_stick[1][0]=fminf(1.f,fmaxf(-1.f,dx*20.0f));s_stick[1][1]=fminf(1.f,fmaxf(-1.f,dy*20.0f));s_down[RSTICK]=true;xbox_InputTouchUsed();s_finger[f].x0=x;s_finger[f].y0=y;s_serial++;}}
+        if(!s_edit_mode&&id==-2){float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.001f){s_cam_px+=dx;s_cam_py+=dy;xbox_InputTouchUsed();s_finger[f].x0=x;s_finger[f].y0=y;s_serial++;}}
         else if(s_edit_mode){if(id>=0){int peer=-1;for(int k=0;k<MAX_FINGERS;k++)if(k!=f&&s_finger[k].used&&s_finger[k].ctrl==id){peer=k;break;}if(peer>=0){float ox=s_finger[f].x0-s_finger[peer].x0,oy=s_finger[f].y0-s_finger[peer].y0;float nx=x-s_finger[peer].x0,ny=y-s_finger[peer].y0;float before=hypotf(ox,oy),after=hypotf(nx,ny);if(before>.01f&&after>.01f){float ratio=after/before;s_layout_r[id]=fminf(.25f,fmaxf(.035f,s_layout_r[id]*ratio));s_layout_custom[id]=true;s_finger[f].moved=true;s_layout_revision++;s_serial++;}s_finger[f].x0=x;s_finger[f].y0=y;}else{float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.012f)s_finger[f].moved=true;if(s_finger[f].moved){s_layout_x[id]+=s_ctrl[id].edge==1?-dx:dx;s_layout_y[id]+=dy;s_layout_custom[id]=true;if(s_ctrl[id].edge==2)s_layout_x[id]=fminf(s_aspect/2-.04f,fmaxf(-s_aspect/2+.04f,s_layout_x[id]));else s_layout_x[id]=fminf(s_aspect-.04f,fmaxf(.04f,s_layout_x[id]));s_layout_y[id]=fminf(.97f,fmaxf(.03f,s_layout_y[id]));s_finger[f].x0=x;s_finger[f].y0=y;s_layout_revision++;s_serial++;}}}}
         else if(id>=0&&s_ctrl[id].kind==BUTTON&&id>=BA&&id<=BY){int to=hit(x,y,true);if(to>=BA&&to<=BY&&to!=id){s_finger[f].ctrl=to;finger_off(id);finger_on(to,x,y);s_serial++;}}
         else if(id==LSTICK||id==RSTICK||id==DPAD_ID){int si=id==RSTICK,wd=s_dpad;float wx=id==DPAD_ID?0:s_stick[si][0],wy=id==DPAD_ID?0:s_stick[si][1];finger_on(id,x,y);if(id==DPAD_ID?s_dpad!=wd:fabsf(s_stick[si][0]-wx)+fabsf(s_stick[si][1]-wy)>1.f/32)s_serial++;}
-    }else if(ev->type==SDL_FINGERUP&&f<MAX_FINGERS){int id=s_finger[f].ctrl;bool moved=s_finger[f].moved,was=s_finger[f].was_selected;Uint32 held=ev->tfinger.timestamp-s_finger[f].down_timestamp;s_finger[f].used=false;if(s_edit_mode){if(!moved&&was&&id>=0)edit_selected(held);if(moved){s_layout_revision++;layout_save();s_serial++;}if(!moved&&id<0&&y>.86f){layout_defaults();layout_save();s_layout_revision++;s_selected=-1;}}else if(id==-2)finger_off(RSTICK);else if(id>=0)finger_off(id);s_serial++;}
+    }else if(ev->type==SDL_FINGERUP&&f<MAX_FINGERS){int id=s_finger[f].ctrl;bool moved=s_finger[f].moved,was=s_finger[f].was_selected;Uint32 held=ev->tfinger.timestamp-s_finger[f].down_timestamp;s_finger[f].used=false;if(s_edit_mode){if(!moved&&was&&id>=0)edit_selected(held);if(moved){s_layout_revision++;layout_save();s_serial++;}if(!moved&&id<0&&y>.86f){layout_defaults();layout_save();s_layout_revision++;s_selected=-1;}}else if(id==-2){s_cam_hold=false;s_cam_px=s_cam_py=0;finger_off(RSTICK);}else if(id>=0)finger_off(id);s_serial++;}
     pthread_mutex_unlock(&s_lock);return 0;
 }
 
@@ -618,6 +622,17 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
     if (s_down[LSTICK]) {
         st->Gamepad.sThumbLX = (SHORT)(s_stick[0][0] * 32767);
         st->Gamepad.sThumbLY = (SHORT)(-s_stick[0][1] * 32767);
+    }
+    if (s_cam_hold) {   /* (the drag of a finger on the empty screen: the camera follows it, eased) */
+        float gx = s_cam_px * 5.5f, gy = s_cam_py * 5.5f;
+        s_cam_px = s_cam_py = 0;
+        gx = gx > 1.f ? 1.f : gx < -1.f ? -1.f : gx;
+        gy = gy > 1.f ? 1.f : gy < -1.f ? -1.f : gy;
+        s_stick[1][0] += (gx - s_stick[1][0]) * 0.55f;
+        s_stick[1][1] += (gy - s_stick[1][1]) * 0.55f;
+        if (fabsf(s_stick[1][0]) < 0.02f) s_stick[1][0] = 0;
+        if (fabsf(s_stick[1][1]) < 0.02f) s_stick[1][1] = 0;
+        s_down[RSTICK] = true;
     }
     if (s_down[RSTICK]) {
         st->Gamepad.sThumbRX = (SHORT)(s_stick[1][0] * 32767);
@@ -1075,6 +1090,7 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
     int shape = plain_shape(d_layout_shape[id]) ? d_layout_shape[id] : 6;
     float hw, hh;
     plain_size(shape, r, &hw, &hh);
+    hw *= d_layout_asp[id];   /* (as long as the editor stretched it) */
     float rad = shape == 6 || shape == 8 ? fminf(hw, hh) * 0.22f : hw;
     float edge = fmaxf(2.f, r * 0.06f);
     uint8_t cr, cg, cb;
@@ -1111,14 +1127,14 @@ static const char *combo_second(int id) {
     return v[d_layout_combo[id] % 6];
 }
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a) {
-    (void)c;
-    if (d_layout_combo[id] == 6) { const Sprite *skin=d_layout_skin[id]?user_skin(id):NULL; if(skin) draw_sprite(skin,cx,cy,2.5f*r,2.5f*r,a); else if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
+    float ar = d_layout_asp[id];
+    if (d_layout_combo[id] == 6) { const Sprite *skin=d_layout_skin[id]?user_skin(id):NULL; if(skin) draw_sprite(skin,cx,cy,2.5f*r*ar,2.5f*r,a); else if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
     if (s_art == ART_GAME && !d_layout_skin[id]) {
-        draw_piece(combo_first(id), cx - 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
-        draw_piece(combo_second(id), cx + 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
-    } else if (d_layout_skin[id] && user_skin(id)) { draw_sprite(user_skin(id), cx, cy, 2.5f*r, 2.5f*r, a);
+        draw_piece(combo_first(id), cx - 0.38f*r*ar, cy, 1.65f*r*ar, 1.65f*r, a);
+        draw_piece(combo_second(id), cx + 0.38f*r*ar, cy, 1.65f*r*ar, 1.65f*r, a);
+    } else if (d_layout_skin[id] && user_skin(id)) { draw_sprite(user_skin(id), cx, cy, 2.5f*r*ar, 2.5f*r, a);
         if (c->label && c->label[0] && strlen(c->label) <= 4)
-            plain_letter(c->label, cx, cy, 2.75f*r, 1.9f*r, 255, 255, 255, fminf(1.f, a * 0.9f)); }
+            plain_letter(c->label, cx, cy, 2.75f*r*ar, 1.9f*r, 255, 255, 255, fminf(1.f, a * 0.9f)); }
     else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
 }
 
@@ -1132,12 +1148,12 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
         int id = (int)(c - s_ctrl);
         const Sprite *skin = d_layout_skin[id] ? user_skin(id) : NULL;
         if (skin) {
-            float w = (lit ? 2.6f : 2.5f) * r;
-            draw_sprite(skin, cx, cy, w, w, a);
+            float h = (lit ? 2.6f : 2.5f) * r, w = h * d_layout_asp[id];
+            draw_sprite(skin, cx, cy, w, h, a);
             /* (the name stays readable on the picture, faint) */
             if (c->label && c->label[0] && strlen(c->label) <= 4)
-                plain_letter(c->label, cx, cy, w * 1.1f, w * 0.75f, 255, 255, 255, fminf(1.f, a * 0.9f));
-        } else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
+                plain_letter(c->label, cx, cy, w * 1.1f, h * 0.75f, 255, 255, 255, fminf(1.f, a * 0.9f));
+        } else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r * d_layout_asp[id], (lit ? 2.6f : 2.5f) * r, a);
         if (lit)
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
     }
@@ -1193,7 +1209,7 @@ static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a
 }
 
 
-static void draw_style_outline(float cx, float cy, float r, int color, int shape, bool selected)
+static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected)
 {
     if (!selected && color == 0 && shape == 0) return;
     static const uint8_t colors[6][3] = {
@@ -1203,12 +1219,12 @@ static void draw_style_outline(float cx, float cy, float r, int color, int shape
     int ci = color < 0 || color > 5 ? 0 : color;
     uint8_t cr = selected ? 255 : colors[ci][0], cg = selected ? 210 : colors[ci][1], cb = selected ? 90 : colors[ci][2];
     float outer = r * 1.20f, inner = outer - fmaxf(1.5f, r * 0.055f);
-    int x0 = (int)floorf(cx - outer - 1), x1 = (int)ceilf(cx + outer + 1);
+    int x0 = (int)floorf(cx - outer * asp - 1), x1 = (int)ceilf(cx + outer * asp + 1);
     int y0 = (int)floorf(cy - outer - 1), y1 = (int)ceilf(cy + outer + 1);
     over_box(x0, y0, x1 + 1, y1 + 1);
     for (int y = y0; y <= y1; y++)
         for (int x = x0; x <= x1; x++) {
-            float dx = fabsf(x + 0.5f - cx), dy = fabsf(y + 0.5f - cy), d;
+            float dx = fabsf(x + 0.5f - cx) / (asp > 0.01f ? asp : 1.f), dy = fabsf(y + 0.5f - cy), d;
             if (shape == 1) d = fmaxf(dx, dy);                                   /* square */
             else if (shape == 2) d = (dx + dy) * 0.70710678f;                    /* diamond */
             else if (shape == 3) d = powf(dx * dx * dx * dx + dy * dy * dy * dy, 0.25f);   /* rounded square */
@@ -1345,7 +1361,7 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_asp[i],d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
@@ -1503,9 +1519,10 @@ void ngb_touch_layout_get(char *out, size_t n)
         if ((size_t)k >= n)
             break;
         Place at = place(&s_ctrl[i]);
-        k += snprintf(out + k, n - (size_t)k, "%d %.5f %.5f %.5f %.5f %u %u %d %u %u %u\n",
+        k += snprintf(out + k, n - (size_t)k, "%d %.5f %.5f %.5f %.5f %u %u %d %u %u %u %.3f\n",
                       i, at.x / aspect, at.y, at.r, s_layout_alpha[i], s_layout_color[i], s_layout_shape[i],
-                      s_layout_action[i], s_layout_combo[i], s_layout_enabled[i] ? 1 : 0, s_layout_skin[i] ? 1 : 0);
+                      s_layout_action[i], s_layout_combo[i], s_layout_enabled[i] ? 1 : 0, s_layout_skin[i] ? 1 : 0,
+                      s_layout_asp[i]);
     }
     pthread_mutex_unlock(&s_lock);
 }
@@ -1530,9 +1547,10 @@ void ngb_touch_layout_apply(const char *text)
             memcpy(row, line, len);
             row[len] = 0;
             int id, colour, shape, action, combo, shown, skin;
-            float x, y, r, alpha;
-            if (sscanf(row, "%d %f %f %f %f %d %d %d %d %d %d", &id, &x, &y, &r, &alpha, &colour, &shape,
-                       &action, &combo, &shown, &skin) >= 11 && id >= 0 && id < NCTRL) {
+            float x, y, r, alpha, asp = 1.f;
+            int read = sscanf(row, "%d %f %f %f %f %d %d %d %d %d %d %f", &id, &x, &y, &r, &alpha, &colour,
+                              &shape, &action, &combo, &shown, &skin, &asp);
+            if (read >= 11 && id >= 0 && id < NCTRL) {
                 const Ctrl *c = &s_ctrl[id];
                 float across = x * aspect;   /* (as the height: what place_at works in) */
                 s_layout_x[id] = c->edge == 2 ? across - aspect / 2 : c->edge == 1 ? aspect - across : across;
@@ -1549,6 +1567,7 @@ void ngb_touch_layout_apply(const char *text)
                 s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 6 ? 6 : combo);
                 s_layout_enabled[id] = shown != 0;
                 s_layout_skin[id] = skin != 0;
+                if (read >= 12) s_layout_asp[id] = asp < 0.4f ? 0.4f : asp > 4.f ? 4.f : asp;
                 s_layout_custom[id] = true;
             }
         }
@@ -1782,7 +1801,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_down, s_down, sizeof d_down);
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
-        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
+        memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_asp,s_layout_asp,sizeof d_layout_asp); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
         d_edit_mode=s_edit_mode; d_haptics=s_haptics; memcpy(d_skin_path,s_skin_path,sizeof d_skin_path); d_selected=s_selected; d_preset=s_preset; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */

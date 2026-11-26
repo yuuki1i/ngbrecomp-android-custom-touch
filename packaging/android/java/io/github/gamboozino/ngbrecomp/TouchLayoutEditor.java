@@ -67,16 +67,18 @@ public class TouchLayoutEditor extends FrameLayout {
     private final float[] mX = new float[N], mY = new float[N], mR = new float[N], mAlpha = new float[N];
     private final int[] mColour = new int[N], mShape = new int[N], mAction = new int[N], mCombo = new int[N];
     private final boolean[] mShown = new boolean[N], mSkin = new boolean[N];
+    private final float[] mAsp = new float[N];          /* how much wider than tall a key is drawn */
     private final boolean[] mButton = new boolean[N];   /* (has an action to bind) */
     private final boolean[] mComboKind = new boolean[N];
 
     private Preview mPreview;
     private TextView mCurrent, mSizeValue, mAlphaValue, mColourValue, mShapeValue, mActionValue, mComboValue,
-            mShowValue, mSkinValue, mHint, mXValue, mYValue;
+            mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
     private ScrollView mPanelScroll;
     private ScrollView mDrawer;      /* the settings drawer, off screen until the master menu opens it */
+    private View mScrim;             /* dims the canvas while the drawer is out */
     private Button mMenu;
 
     /* The controls the + adds, in the pad's own names. */
@@ -113,6 +115,7 @@ public class TouchLayoutEditor extends FrameLayout {
             mAction[i] = 12;
             mCombo[i] = 0;
             mShown[i] = i < 18;
+            mAsp[i] = 1f;
         }
         String text = null;
         try {
@@ -150,6 +153,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 mCombo[id] = clamp(Integer.parseInt(parts[8]), 0, COMBOS.length - 1);
                 mShown[id] = Integer.parseInt(parts[9]) != 0;
                 mSkin[id] = Integer.parseInt(parts[10]) != 0;
+                mAsp[id] = parts.length >= 12 ? clamp(Float.parseFloat(parts[11]), 0.4f, 4f) : 1f;
             } catch (Exception e) { }
         }
         if (mAspect < 1.0f || mAspect > 4.0f)
@@ -172,6 +176,10 @@ public class TouchLayoutEditor extends FrameLayout {
             android.util.Log.w("NgbTouch", "layout not applied", e);
         }
         close();
+    }
+
+    private static float clamp(float v, float lo, float hi) {
+        return v < lo ? lo : v > hi ? hi : v;
     }
 
     private static int clamp(int v, int lo, int hi) {
@@ -285,7 +293,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout top = new LinearLayout(mActivity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setBackground(glass(18, 0x14FFFFFF, 0x26FFFFFF, 1));
+        top.setBackground(glass(18, 0xE80E1014, 0x26FFFFFF, 1));
         top.setPadding(dp(10), dp(8), dp(10), dp(8));
         LinearLayout.LayoutParams topParams =
             new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -313,6 +321,11 @@ public class TouchLayoutEditor extends FrameLayout {
         mPreview = new Preview(this);
         body.addView(mPreview, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                                            ViewGroup.LayoutParams.MATCH_PARENT));
+        mScrim = new View(mActivity);
+        mScrim.setBackgroundColor(0x66000000);
+        mScrim.setVisibility(View.GONE);
+        body.addView(mScrim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                          ViewGroup.LayoutParams.MATCH_PARENT));
 
         /* the side panel: which control, and how it looks and what it presses */
         mPanelScroll = new ScrollView(mActivity);
@@ -321,7 +334,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout panel = new LinearLayout(mActivity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
-        panel.setBackground(glass(18, 0x14FFFFFF, 0x22FFFFFF, 1));
+        panel.setBackground(glass(18, 0xF00D1014, 0x2EFFFFFF, 1));
         mPanel = panel;
 
         LinearLayout tools = new LinearLayout(mActivity);       /* the functions the master menu offers */
@@ -365,6 +378,19 @@ public class TouchLayoutEditor extends FrameLayout {
         sizeRow.addView(mSizeValue);
         sizeRow.addView(step("+", () -> scale(0.02f)));
         panel.addView(sizeRow);
+
+        LinearLayout widthRow = new LinearLayout(mActivity);
+        widthRow.setOrientation(LinearLayout.HORIZONTAL);
+        widthRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView widthTitle = label("宽度", 13, 0xC7B9C2D2, false);
+        widthRow.addView(widthTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        widthRow.addView(step("−", () -> stretch(-0.10f)));
+        mWidthValue = valueView(64);
+        mWidthValue.setOnClickListener(v -> askNumber("按键宽度（%，100% 为默认，可拉长）", mAsp[mSelected] * 100f, 40, 400,
+                                                     pct -> { mAsp[mSelected] = pct / 100f; refresh(); }));
+        widthRow.addView(mWidthValue);
+        widthRow.addView(step("+", () -> stretch(0.10f)));
+        panel.addView(widthRow);
 
         LinearLayout alphaRow = new LinearLayout(mActivity);
         alphaRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -586,12 +612,14 @@ public class TouchLayoutEditor extends FrameLayout {
 
     private void openDrawer() {
         if (mDrawer == null) return;
+        if (mScrim != null) mScrim.setVisibility(View.VISIBLE);
         mDrawer.setVisibility(View.VISIBLE);
         mDrawer.animate().translationX(0f).setDuration(180).start();
     }
 
     private void closeDrawer() {
         if (mDrawer == null) return;
+        if (mScrim != null) mScrim.setVisibility(View.GONE);
         mDrawer.animate().translationX(dp(340)).setDuration(180)
             .withEndAction(() -> mDrawer.setVisibility(View.GONE)).start();
     }
@@ -705,6 +733,11 @@ public class TouchLayoutEditor extends FrameLayout {
         refresh();
     }
 
+    private void stretch(float d) {
+        mAsp[mSelected] = Math.max(0.4f, Math.min(4f, mAsp[mSelected] + d));
+        refresh();
+    }
+
     private void fade(float d) {
         mAlpha[mSelected] = Math.max(0.15f, Math.min(1.0f, mAlpha[mSelected] + d));
         refresh();
@@ -733,6 +766,8 @@ public class TouchLayoutEditor extends FrameLayout {
             return;
         mCurrent.setText(NAMES[mSelected]);
         mSizeValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(sizePercent())));
+        if (mWidthValue != null)
+            mWidthValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAsp[mSelected] * 100)));
         mXValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mX[mSelected] * 100)));
         mYValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mY[mSelected] * 100)));
         mAlphaValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAlpha[mSelected] * 100)));
@@ -767,6 +802,8 @@ public class TouchLayoutEditor extends FrameLayout {
         private float mLeft, mTop, mWidth, mHeight;
         private int mDrag = -1, mPointers;
         private float mLastX, mLastY, mPinch;
+        private float mHandleX, mHandleY, mHandleR;   /* the stretch grip of the key being edited */
+        private boolean mResize;
 
         Preview(TouchLayoutEditor editor) {
             super(editor.mActivity);
@@ -809,8 +846,9 @@ public class TouchLayoutEditor extends FrameLayout {
                 float cx = mLeft + mEditor.mX[id] * mWidth;
                 float cy = mTop + mEditor.mY[id] * mHeight;
                 float radius = mEditor.mR[id] * mHeight;
+                float asp = Math.max(0.4f, Math.min(4f, mEditor.mAsp[id]));
                 int rgb = COLOUR_RGB[mEditor.mColour[id]];
-                outline(mPath, cx, cy, radius, mEditor.mShape[id]);
+                outline(mPath, cx, cy, radius, asp, mEditor.mShape[id]);
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor((rgb & 0x00FFFFFF) | 0x14FFFFFF);
                 canvas.drawPath(mPath, mPaint);
@@ -830,6 +868,17 @@ public class TouchLayoutEditor extends FrameLayout {
                 else if (mEditor.mComboKind[id])
                     text = COMBO_SHORT[mEditor.mCombo[id]];
                 canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
+                if (id == mEditor.mSelected) {
+                    /* the grip at the right edge: drag it to stretch the key as long as wanted */
+                    mHandleX = cx + radius * asp;
+                    mHandleY = cy;
+                    mHandleR = Math.max(12 * mEditor.mDp, radius * 0.22f);
+                    mPaint.setStyle(Paint.Style.FILL);
+                    mPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(mHandleX, mHandleY, mHandleR, mPaint);
+                    mPaint.setColor(0xFF0D1014);
+                    canvas.drawCircle(mHandleX, mHandleY, mHandleR * 0.55f, mPaint);
+                }
             }
 
             mPaint.setStyle(Paint.Style.FILL);
@@ -851,6 +900,15 @@ public class TouchLayoutEditor extends FrameLayout {
                     break;
                 }
                 float px = ev.getX(), py = ev.getY();
+                if (mEditor.mShown[mEditor.mSelected] &&
+                    Math.abs(px - mHandleX) < Math.max(mHandleR * 2.2f, 26 * mEditor.mDp) &&
+                    Math.abs(py - mHandleY) < Math.max(mHandleR * 2.2f, 26 * mEditor.mDp)) {
+                    mResize = true;       /* (the grip: stretch the key, do not move it) */
+                    mDrag = mEditor.mSelected;
+                    mLastX = px;
+                    mLastY = py;
+                    break;
+                }
                 id = nearest(px, py);
                 if (id >= 0) {
                     mEditor.select(id);
@@ -868,6 +926,13 @@ public class TouchLayoutEditor extends FrameLayout {
                         mPinch = now;
                         mEditor.refresh();
                     }
+                    break;
+                }
+                if (mDrag >= 0 && mResize) {
+                    float cx = mLeft + mEditor.mX[mDrag] * mWidth;
+                    float rr = Math.max(1f, mEditor.mR[mDrag] * mHeight);
+                    mEditor.mAsp[mDrag] = Math.max(0.4f, Math.min(4f, Math.abs(ev.getX() - cx) / rr));
+                    mEditor.refresh();
                     break;
                 }
                 if (mDrag >= 0) {
@@ -891,6 +956,7 @@ public class TouchLayoutEditor extends FrameLayout {
             case MotionEvent.ACTION_CANCEL:
                 mPointers = 0;
                 mDrag = -1;
+                mResize = false;
                 mPinch = 0;
                 break;
             }
@@ -899,23 +965,24 @@ public class TouchLayoutEditor extends FrameLayout {
 
         /* The sixth shapes a control can take, drawn as paths so the pad's own drawing (src/touch_pad.c,
          * draw_style_outline) and this sheet look like the same button. */
-        private void outline(Path path, float cx, float cy, float r, int shape) {
+        private void outline(Path path, float cx, float cy, float r, float asp, int shape) {
+            float rx = r * asp;
             path.reset();
             switch (shape) {
             case 1:                                   /* square */
-                path.addRect(cx - r, cy - r, cx + r, cy + r, Path.Direction.CW);
+                path.addRect(cx - rx, cy - r, cx + rx, cy + r, Path.Direction.CW);
                 break;
             case 2:                                   /* diamond */
                 path.moveTo(cx, cy - r);
-                path.lineTo(cx + r, cy);
+                path.lineTo(cx + rx, cy);
                 path.lineTo(cx, cy + r);
-                path.lineTo(cx - r, cy);
+                path.lineTo(cx - rx, cy);
                 path.close();
                 break;
             case 4:                                   /* hexagon, flat top */
                 for (int i = 0; i < 6; i++) {
                     double a = Math.toRadians(60 * i);
-                    float px = cx + (float) (r * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
+                    float px = cx + (float) (rx * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
                     if (i == 0) path.moveTo(px, py); else path.lineTo(px, py);
                 }
                 path.close();
@@ -923,25 +990,26 @@ public class TouchLayoutEditor extends FrameLayout {
             case 5:                                   /* octagon */
                 for (int i = 0; i < 8; i++) {
                     double a = Math.toRadians(45 * i + 22.5);
-                    float px = cx + (float) (r * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
+                    float px = cx + (float) (rx * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
                     if (i == 0) path.moveTo(px, py); else path.lineTo(px, py);
                 }
                 path.close();
                 break;
             case 6:                                   /* wide rectangle, as the plain pad's */
-                mRect.set(cx - r * 1.55f, cy - r, cx + r * 1.55f, cy + r);
+                mRect.set(cx - rx * 1.55f, cy - r, cx + rx * 1.55f, cy + r);
                 path.addRoundRect(mRect, r * 0.22f, r * 0.22f, Path.Direction.CW);
                 break;
             case 8:                                   /* rounded square plate */
-                mRect.set(cx - r, cy - r, cx + r, cy + r);
+                mRect.set(cx - rx, cy - r, cx + rx, cy + r);
                 path.addRoundRect(mRect, r * 0.22f, r * 0.22f, Path.Direction.CW);
                 break;
             case 3:                                   /* rounded square */
-                mRect.set(cx - r, cy - r, cx + r, cy + r);
+                mRect.set(cx - rx, cy - r, cx + rx, cy + r);
                 path.addRoundRect(mRect, r * 0.32f, r * 0.32f, Path.Direction.CW);
                 break;
-            default:
-                path.addCircle(cx, cy, r, Path.Direction.CW);
+            default:                                  /* circle, or an ellipse once it is stretched */
+                mRect.set(cx - rx, cy - r, cx + rx, cy + r);
+                path.addOval(mRect, Path.Direction.CW);
             }
         }
 
