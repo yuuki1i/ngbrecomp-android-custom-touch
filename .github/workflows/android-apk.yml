@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/android-touch-v1.0.1
+      - feature/ngb-touch-ui-v1.0.3
     paths:
       - .github/workflows/android-apk.yml
       - packaging/android/**
@@ -110,14 +111,14 @@ jobs:
         run: |
           APK=build/android-release/NinjaGaidenBlack-android-arm64.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "package: name='io.github.gamboozino.ngbrecomp' versionCode='1002' versionName='1.0.2-touch-dev'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "package: name='io.github.gamboozino.ngbrecomp' versionCode='1003' versionName='1.0.3-touch-dev'"
           "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h build/android-release/build/libmain.so | grep 'Machine:.*AArch64'
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NinjaGaidenBlack-Android-ARM64-1.0.2-touch-dev
+          name: NinjaGaidenBlack-Android-ARM64-1.0.3-touch-dev
           path: build/android-release/NinjaGaidenBlack-android-arm64.apk
           if-no-files-found: error
           retention-days: 30
