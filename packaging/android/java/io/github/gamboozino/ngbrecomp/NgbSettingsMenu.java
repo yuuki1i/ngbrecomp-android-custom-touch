@@ -255,7 +255,11 @@ public class NgbSettingsMenu extends FrameLayout {
 
         final String filter = mActivity.videoFilterName();
         addAction("贴图包文件夹", "这个文件夹里的同名 PNG 顶替游戏里的贴图，改完点下面「重新读取」。",
-                  () -> showPath("贴图包文件夹", mActivity.texturePackPath()));
+                  () -> showTextureFolder());
+        addAction("打开贴图文件夹", "用手机自带的文件管理器把那个文件夹打开，看看里面到底有什么。",
+                  () -> mActivity.openTextureFolder());
+        addAction("写入一张测试图", "在那个文件夹里放一张红方块。放得进去说明权限没问题，放不进会说出原因。",
+                  () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());
         if (!mActivity.hasAllFiles())
             addAction("打开所有文件访问", "让它能读写手机存储里的 /NGB 文件夹（Android 11 以后要这一项）。", () -> {
                 mActivity.askAllFiles();
@@ -270,6 +274,11 @@ public class NgbSettingsMenu extends FrameLayout {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
         });
+        addAction("生成本目录索引", "把这个文件夹里的图排成一张网页（index.html），在浏览器里一次看全，找贴图快。",
+                  () -> Toast.makeText(mActivity, mActivity.makeTextureIndex(), Toast.LENGTH_LONG).show());
+        addAction("写一张测试图", "往文件夹里写一张纯色小图，确认真的能写进去、也能在文件管理器里看到。",
+                  () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());
+        addAction("打开贴图文件夹", "用手机自带的文件管理器跳到那个文件夹。", () -> mActivity.openTextureFolder());
         addAction(filter.length() == 0 ? "导入滤镜（.cube）" : "换一个滤镜（现在：" + filter + "）",
                   "选一个 .cube 调色表（PS、达芬奇的 LUT 都导得出来），整幅画面就按它调色；PNG 渐变也能用。",
                   () -> mActivity.pickVideoFilter());
@@ -281,6 +290,29 @@ public class NgbSettingsMenu extends FrameLayout {
     }
 
     /* A path to read and copy: the folder a player has to put a file in, shown rather than typed. */
+    /* Where the packed textures live, and how many the game has written there so far: a folder the page names
+     * but the player cannot find is no use. */
+    private void showTextureFolder() {
+        String p = mActivity.texturePackPath();
+        int count = mActivity.texturePackCount();
+        String msg = (p == null || p.length() == 0 ? "还没有这个文件夹（进一次游戏、让贴图出现才会建）" : p)
+                     + "\n\n已导出：" + count + " 张（含 DXT1/3/5：能看，换不了）";
+        if (!mActivity.hasAllFiles())
+            msg += "\n（没有「所有文件访问」时，会落在 Android/data/io.github.gamboozino.ngbrecomp/files/NGB/textures）";
+        final String shown = p == null ? "" : p;
+        new AlertDialog.Builder(mActivity)
+                .setTitle("贴图包文件夹")
+                .setMessage(msg)
+                .setPositiveButton("复制路径", (d, w) -> {
+                    ((android.content.ClipboardManager) mActivity.getSystemService(Context.CLIPBOARD_SERVICE))
+                            .setPrimaryClip(android.content.ClipData.newPlainText("贴图包", shown));
+                    Toast.makeText(mActivity, "已复制", Toast.LENGTH_SHORT).show();
+                })
+                .setNeutralButton("打开", (d, w) -> mActivity.openTextureFolder())
+                .setNegativeButton("关闭", null)
+                .show();
+    }
+
     private void showPath(String title, String path) {
         final String p = path == null ? "" : path;
         new AlertDialog.Builder(mActivity)

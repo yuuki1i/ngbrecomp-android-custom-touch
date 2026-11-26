@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -53,6 +54,9 @@ public class NgbActivity extends SDLActivity {
     private native void nativeVideoSet(int which, int value);
     private native String nativeTextureDir();
     private native void nativeTextureRescan();
+    private native int nativeTextureCount();
+    private native String nativeTextureIndex();
+    private native void nativeTextureDirForget();
     private native String nativeVideoFilterSet(String path);
     private native String nativeVideoFilterName();
     private native void nativeTouchChange(int item, int direction);
@@ -383,8 +387,58 @@ public class NgbActivity extends SDLActivity {
     public void setTouchSkinPath(int id, String path) { nativeTouchSkinSetPath(id, path); }
 
     /* The folder the game's own textures are packed in, and a second look at it (src/d3d/gpu/texture.cpp). */
-    public String texturePackPath() { return nativeTextureDir(); }
+    public String texturePackPath() {
+        nativeTextureDirForget();          /* (a permission given while running: work the folder out again) */
+        return nativeTextureDir();
+    }
+    public int texturePackCount() { return nativeTextureCount(); }
+    public String makeTextureIndex() { return nativeTextureIndex(); }
+    public void forgetTextureDir() { nativeTextureDirForget(); }
     public void rescanTextures() { nativeTextureRescan(); }
+
+    /* A mark of our own in the folder: if it lands there, the folder is writable and the player knows where
+     * to put their PNGs. If it does not, the folder -- or the permission -- is the trouble. */
+    public String writeTextureProbe() {
+        String dir = texturePackPath();
+        if (dir == null || dir.length() == 0) return "没有拿到贴图文件夹";
+        File folder = new File(dir);
+        if (!folder.exists() && !folder.mkdirs()) return "建不出文件夹：" + dir;
+        File out = new File(folder, "_贴图测试.png");
+        try {
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(16, 16,
+                    android.graphics.Bitmap.Config.ARGB_8888);
+            bmp.eraseColor(0xFFFF3B30);
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+            bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, fos);
+            fos.close();
+            bmp.recycle();
+            return out.exists() ? "写进去了：" + out.getAbsolutePath() : "写不进去：" + dir;
+        } catch (Throwable e) {
+            return "写不进去：" + e;
+        }
+    }
+
+    /* Show that folder in the phone's own file browser (DocumentsUI understands this content URI). */
+    public void openTextureFolder() {
+        String dir = texturePackPath();
+        if (dir == null || dir.length() == 0) {
+            Toast.makeText(this, "还没有贴图文件夹", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String path = dir.replace("/storage/emulated/0/", "").replace("/sdcard/", "");
+        android.net.Uri uri = android.net.Uri.parse(
+                "content://com.android.externalstorage.documents/document/primary%3A"
+                + android.net.Uri.encode(path));
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "vnd.android.document/directory");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Throwable e) {
+            Toast.makeText(this, "打不开文件管理器，路径：" + dir, Toast.LENGTH_LONG).show();
+        }
+    }
 
     /* A filter the player brings: one PNG read as colour curves (src/touch_pad.c, ngb_video_curve). */
     public String videoFilterName() { return nativeVideoFilterName(); }

@@ -519,8 +519,10 @@ public class TouchLayoutEditor extends FrameLayout {
         mComboValue = valueView(130);
         mComboValue.setOnClickListener(v -> {
             if (!mComboKind[mSelected]) return;
-            mCombo[mSelected] = (mCombo[mSelected] + 1) % COMBOS.length;
-            refresh();
+            choose("组合键", COMBOS, mCombo[mSelected], i -> {
+                mCombo[mSelected] = i;
+                refresh();
+            });
         });
         panel.addView(row("组合键", mComboValue));
 
@@ -658,31 +660,27 @@ public class TouchLayoutEditor extends FrameLayout {
         return mSelected;
     }
 
-    /* + : a control that is not on the pad yet comes back, and is selected. */
+    /* + : a key lands on the pad at once, chosen for the player, and the drawer opens on it so the next
+     * taps say what it is -- the action and the combo are rows there, not a list to pick from first. */
     private void addControl() {
-        String[] items = new String[N];
-        int count = 0;
-        final int[] ids = new int[N];
-        for (int i = 0; i < N; i++) {
-            if (mShown[i]) continue;
-            ids[count] = i;
-            items[count++] = NAMES[i];
-        }
-        if (count == 0) {
-            mHint.setText("所有按键都在画布上了");
+        int id = -1;
+        for (int i = 16; i < N; i++)                         /* (the combos and the customs first) */
+            if (i != SWAP && !mShown[i]) { id = i; break; }
+        if (id < 0)
+            for (int i = 0; i < 16; i++)
+                if (!mShown[i]) { id = i; break; }
+        if (id < 0) {
+            mHint.setText("所有按键都在画布上了，先删一个再加");
             return;
         }
-        String[] shown = new String[count];
-        System.arraycopy(items, 0, shown, 0, count);
-        waterfall("加一个按键", shown, -1, which -> {
-            int id = ids[which];
-            mShown[id] = true;
-            mX[id] = 0.5f;
-            mY[id] = 0.5f;
-            mSelected = id;
-            refresh();
-            mHint.setText("已加 " + NAMES[id] + "，拖到想放的位置");
-        });
+        mShown[id] = true;
+        mX[id] = 0.5f;
+        mY[id] = 0.5f;
+        if (mButton[id]) mAction[id] = -1;                   /* (nothing bound yet: the player says what it is) */
+        mSelected = id;
+        refresh();
+        if (!drawerOpen()) openDrawer();
+        mHint.setText("已放一个按键。下面是它：点「按键动作」定它按什么，「组合键」定它要不要连招");
     }
 
     /* - : the selected key leaves the pad (it can be added back with +). */
@@ -1196,11 +1194,32 @@ public class TouchLayoutEditor extends FrameLayout {
         private float mDownX, mDownY;
         private boolean mDragging;
         private final int mSlop;
+        private final float mDp;
+        private final float mGrip;      /* (the strip at the drawer's edge that takes a drag at once) */
 
         DrawerScroll(Context c) {
             super(c);
             mSlop = ViewConfiguration.get(c).getScaledTouchSlop();
+            mDp = c.getResources().getDisplayMetrics().density;
+            mGrip = 26 * mDp;
         }
+
+        /* A grip line at the drawer's edge: it says where to take hold of it. */
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            float w = 4 * mDp, h = 66 * mDp;
+            float left = 5 * mDp, top = (getHeight() - h) / 2f;
+            mGripPaint.setColor(0x38FFFFFF);
+            canvas.drawRoundRect(new RectF(left, top, left + w, top + h), w / 2f, w / 2f, mGripPaint);
+            mGripPaint.setColor(0x66FFFFFF);
+            for (int i = -1; i <= 1; i++) {
+                float y = getHeight() / 2f + i * 16 * mDp;
+                canvas.drawCircle(left + w / 2f, y, 2 * mDp, mGripPaint);
+            }
+        }
+
+        private final Paint mGripPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         void setSlide(Slide slide) { mSlide = slide; }
 
@@ -1210,11 +1229,12 @@ public class TouchLayoutEditor extends FrameLayout {
                 case MotionEvent.ACTION_DOWN:
                     mDownX = e.getX();
                     mDownY = e.getY();
-                    mDragging = false;
+                    mDragging = e.getX() <= mGrip;      /* (the grip takes a drag from the first pixel) */
+                    if (mDragging) return true;
                     break;
                 case MotionEvent.ACTION_MOVE: {
                     float dx = e.getX() - mDownX, dy = e.getY() - mDownY;
-                    if (!mDragging && Math.abs(dx) > mSlop * 1.5f && Math.abs(dx) > Math.abs(dy) * 1.4f) {
+                    if (!mDragging && Math.abs(dx) > mSlop && Math.abs(dx) > Math.abs(dy)) {
                         mDragging = true;
                         return true;
                     }

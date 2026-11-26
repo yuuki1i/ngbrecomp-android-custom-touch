@@ -28,6 +28,7 @@
  * NGB_TOUCH_LOG=1 logs each control a finger lands on.
  */
 #include <math.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -129,9 +130,13 @@ static const struct { int edge; float x, y, r; } s_classic[NCTRL] = {
 /* Where a texture pack goes: <sd card>/NGB/textures when the phone has a card the app can write, else the
  * app's own files (src/d3d/gpu/texture.cpp dumps a texture there the first time it is drawn, and paints with
  * whatever PNG of the same name is found). */
+static char s_tex_dir[512];
+
+void ngb_texture_dir_forget(void) { s_tex_dir[0] = 0; }
+
 const char *ngb_texture_dir(void)
 {
-    static char dir[512];
+    char *dir = s_tex_dir;
     if (dir[0]) return dir;
 #if defined(__ANDROID__)
     JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
@@ -143,7 +148,7 @@ const char *ngb_texture_dir(void)
         if (card) {
             const char *utf = (*env)->GetStringUTFChars(env, card, NULL);
             if (utf) {
-                snprintf(dir, sizeof dir, "%s/NGB/textures", utf);
+                snprintf(dir, sizeof s_tex_dir, "%s/NGB/textures", utf);
                 (*env)->ReleaseStringUTFChars(env, card, utf);
             }
             (*env)->DeleteLocalRef(env, card);
@@ -153,7 +158,7 @@ const char *ngb_texture_dir(void)
     if (!dir[0]) {
         char *pref = SDL_GetPrefPath("NinjaGaidenBlack", "textures");
         if (pref) {
-            snprintf(dir, sizeof dir, "%s", pref);
+            snprintf(dir, sizeof s_tex_dir, "%s", pref);
             SDL_free(pref);
         }
     }
@@ -286,6 +291,7 @@ static void filter_cube_build(void)
 }
 void ngb_video_filter_refresh(void);   /* src/d3d/hle.cpp (nothing on the other platforms) */
 void ngb_textures_rescan(void);        /* src/d3d/gpu/texture.cpp: forget which textures were dumped */
+int ngb_textures_dumped(void);         /* src/d3d/gpu/texture.cpp: how many have been written so far */
 
 static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
@@ -1882,7 +1888,67 @@ JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_native
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureRescan(
     JNIEnv *env, jobject activity) {
     (void)env; (void)activity;
+    ngb_texture_dir_forget();   /* (a folder permission given after start: the path is worked out again) */
     ngb_textures_rescan();
+}
+static int ends_png(const char *s) {
+    size_t n = strlen(s);
+    if (n < 5) return 0;
+    const char *e = s + n - 4;
+    return e[-1] == '.' && (e[0] == 'p' || e[0] == 'P') && (e[1] == 'n' || e[1] == 'N')
+        && (e[2] == 'g' || e[2] == 'G');
+}
+
+/* A sheet of every picture in the folder, so a player looking for one texture among hundreds can see them
+ * all at once in the phone's browser instead of opening files one by one. */
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureIndex(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    const char *dir = ngb_texture_dir();
+    if (!dir || !dir[0]) return (*env)->NewStringUTF(env, "还没有贴图文件夹");
+    char path[600], msg[256];
+    snprintf(path, sizeof path, "%s/index.html", dir);
+    FILE *fp = fopen(path, "wb");
+    if (!fp) {
+        snprintf(msg, sizeof msg, "写不出 index.html：%s", dir);
+        return (*env)->NewStringUTF(env, msg);
+    }
+    fprintf(fp, "<!doctype html><meta charset=utf-8><title>NGB 贴图</title>"
+                "<body style='background:#12141a;color:#dfe4ec;font:13px sans-serif;padding:10px'>"
+                "<h3 style='margin:6px 0'>NGB 贴图包</h3>"
+                "<p style='color:#9aa7b8'>点图看原图。同名 PNG 放回这个文件夹就顶替游戏贴图；"
+                "名字带 DXT1/DXT3/DXT5 的只能看，游戏里是压缩格式，换不了。</p>"
+                "<div style='display:flex;flex-wrap:wrap;gap:12px'>"
+                "<div id=wrap style='display:flex;flex-wrap:wrap;gap:12px'>");
+    int n = 0;
+    DIR *dp = opendir(dir);
+    if (dp) {
+        struct dirent *e;
+        while ((e = readdir(dp))) {
+            if (!ends_png(e->d_name)) continue;
+            fprintf(fp, "<figure style='margin:0;width:148px'>"
+                        "<a href='%s' target=_blank><img src='%s' loading=lazy "
+                        "style='width:148px;background:#000;image-rendering:pixelated'></a>"
+                        "<figcaption style='font-size:11px;color:#9aa7b8;word-break:break-all'>%s"
+                        "</figcaption></figure>", e->d_name, e->d_name, e->d_name);
+            n++;
+        }
+        closedir(dp);
+    }
+    fprintf(fp, "</div></div></body>");
+    fclose(fp);
+    snprintf(msg, sizeof msg, "索引好了：%d 张 → %s/index.html", n, dir);
+    return (*env)->NewStringUTF(env, msg);
+}
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureCount(
+    JNIEnv *env, jobject activity) {
+    (void)env; (void)activity;
+    return (jint)ngb_textures_dumped();
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureDirForget(
+    JNIEnv *env, jobject activity) {
+    (void)env; (void)activity;
+    ngb_texture_dir_forget();
 }
 JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoFilterSet(
     JNIEnv *env, jobject activity, jstring path) {

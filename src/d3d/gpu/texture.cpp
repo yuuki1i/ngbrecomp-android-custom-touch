@@ -358,6 +358,86 @@ uint64_t TexHash(const TextureDesc& d, uint32_t level, uint32_t face, const std:
     return h;
 }
 
+
+/* ---- compressed texels, for the folder only: the player's eye, not the pad's paint ----
+ * Character art on the console is DXT; it never reaches the BGRA path, so a pack could not hold it. It can
+ * still be looked at: decoded here and written out beside the rest, one PNG per texture. */
+void Rgb565(uint16_t v, uint8_t* o) {
+    o[0] = uint8_t(((v >> 11) & 0x1f) * 255 / 31);
+    o[1] = uint8_t(((v >> 5) & 0x3f) * 255 / 63);
+    o[2] = uint8_t((v & 0x1f) * 255 / 31);
+}
+
+void BcColor(const uint8_t* b, uint8_t px[16][4]) {
+    uint16_t c0 = uint16_t(b[0] | (b[1] << 8)), c1 = uint16_t(b[2] | (b[3] << 8));
+    uint8_t p0[4] = {0, 0, 0, 255}, p1[4] = {0, 0, 0, 255};
+    Rgb565(c0, p0);
+    Rgb565(c1, p1);
+    uint32_t idx = uint32_t(b[4]) | (uint32_t(b[5]) << 8) | (uint32_t(b[6]) << 16) | (uint32_t(b[7]) << 24);
+    for (int i = 0; i < 16; i++) {
+        int k = (idx >> (2 * i)) & 3;
+        if (k == 0) std::memcpy(px[i], p0, 3);
+        else if (k == 1) std::memcpy(px[i], p1, 3);
+        else if (k == 2) for (int c = 0; c < 3; c++) px[i][c] = uint8_t((2 * p0[c] + p1[c]) / 3);
+        else for (int c = 0; c < 3; c++) px[i][c] = uint8_t((p0[c] + 2 * p1[c]) / 3);
+    }
+}
+
+void BcAlpha3(const uint8_t* b, uint8_t a[16]) {
+    uint8_t a0 = b[0], a1 = b[1];
+    uint64_t bits = 0;
+    for (int i = 0; i < 6; i++) bits |= uint64_t(b[2 + i]) << (8 * i);
+    for (int i = 0; i < 16; i++) {
+        int k = int((bits >> (3 * i)) & 7);
+        a[i] = k == 0 ? a0 : k == 1 ? a1 : k == 6 ? 255 : k == 7 ? 0
+             : uint8_t(((8 - k) * a0 + (k - 1) * a1) / 7);
+    }
+}
+
+uint64_t BlockHash(const std::vector<uint8_t>& px) {
+    uint64_t h = 0xcbf29ce484222325ull;
+    size_t n = px.size(), step = n > 65536 ? n / 65536 : 1;
+    for (size_t i = 0; i < n; i += step) { h ^= px[i]; h *= 0x100000001b3ull; }
+    h ^= n; h *= 0x100000001b3ull;
+    return h;
+}
+
+bool DumpCompressed(const char* dir, uint32_t fmt, const FormatInfo& f, uint32_t w, uint32_t h,
+                    const std::vector<uint8_t>& blocks, uint64_t hash) {
+    int bw = int(std::max(1u, (w + 3) / 4)), bh = int(std::max(1u, (h + 3) / 4));
+    if (blocks.size() < size_t(bw) * bh * f.bits) return false;
+    std::vector<uint8_t> rgba(size_t(w) * h * 4, 255);
+    uint8_t px[16][4] = {};
+    for (int by = 0; by < bh; by++)
+        for (int bx = 0; bx < bw; bx++) {
+            const uint8_t* b = blocks.data() + (size_t(by) * bw + bx) * f.bits;
+            for (int i = 0; i < 16; i++) { px[i][0] = px[i][1] = px[i][2] = 0; px[i][3] = 255; }
+            if (fmt == 0x0C) {
+                BcColor(b, px);
+            } else if (fmt == 0x0E) {
+                for (int i = 0; i < 16; i++) px[i][3] = uint8_t(((b[i / 2] >> ((i & 1) * 4)) & 0xF) * 17);
+                BcColor(b + 8, px);
+            } else {
+                uint8_t a[16];
+                BcAlpha3(b, a);
+                BcColor(b + 8, px);
+                for (int i = 0; i < 16; i++) px[i][3] = a[i];
+            }
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++) {
+                    uint32_t gx = uint32_t(bx * 4 + x), gy = uint32_t(by * 4 + y);
+                    if (gx >= w || gy >= h) continue;
+                    std::memcpy(&rgba[(size_t(gy) * w + gx) * 4], px[y * 4 + x], 4);
+                }
+        }
+    char name[128], path[700];
+    snprintf(name, sizeof name, "%ux%u_%s_l0_%016llx.png", w, h, f.name, (unsigned long long)hash);
+    snprintf(path, sizeof path, "%s/%s", dir, name);
+    if (!stbi_write_png(path, int(w), int(h), 4, rgba.data(), int(w) * 4)) return false;
+    s_dumped++;
+    return true;
+}
+
 bool ReadFile(const char* path, std::vector<uint8_t>& out) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
@@ -382,6 +462,24 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
     uint32_t h = d.linear ? d.height : std::max(d.height >> level, 1u);
     if (w < 16 || h < 16 || w > 2048 || h > 2048) return;
     if (level != 0) return;                                             /* (the base level only: one file per texture) */
+    const FormatInfo& fmt = Format(d.format);
+    if (fmt.compressed) {          /* (character art: shown, not replaced -- it is DXT on the console) */
+        if (d.cube || d.depth != 1) return;
+        uint64_t hb = BlockHash(out);
+        bool fresh;
+        {
+            std::lock_guard<std::mutex> guard(s_pack_lock);
+            auto it = s_pack_seen.find(hb);
+            fresh = it == s_pack_seen.end();
+        }
+        if (!fresh) return;
+        int8_t mark = -1;
+        if (ngb_texture_dump_on && s_dumped < 800)
+            mark = DumpCompressed(dir, d.format, fmt, w, h, out, hb) ? 0 : -1;
+        std::lock_guard<std::mutex> guard(s_pack_lock);
+        s_pack_seen[hb] = mark;
+        return;
+    }
     if (row_pitch != w * 4 || out.size() != size_t(w) * h * 4) return;   /* BGRA8 rows only, one slice */
     uint64_t hash = TexHash(d, level, face, out);
     int8_t seen = 2;   /* 2: not looked at yet */
@@ -435,6 +533,11 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
     s_pack_seen[hash] = mark;
 }
 }  // namespace
+
+extern "C" int ngb_textures_dumped(void) {
+    std::lock_guard<std::mutex> guard(s_pack_lock);
+    return s_dumped;
+}
 
 extern "C" void ngb_textures_rescan(void) {
     std::lock_guard<std::mutex> guard(s_pack_lock);
@@ -517,9 +620,12 @@ static void DecodeLevelBody(const TextureDesc& d, uint32_t level, uint32_t face,
 void DecodeLevel(const TextureDesc& d, uint32_t level, uint32_t face, const uint8_t* guest, const uint32_t* palette,
                  std::vector<uint8_t>& out, uint32_t& row_pitch) {
     DecodeLevelBody(d, level, face, guest, palette, out, row_pitch);
-    if (!Format(d.format).compressed && Format(d.format).host == Host::BGRA8 && !Format(d.format).depth &&
-        d.depth == 1 && !d.cube)
+    const FormatInfo& f = Format(d.format);
+    if (f.compressed) {
+        PackLevel(d, level, face, out, row_pitch);       /* (the DXT ones: shown in the folder, not replaced) */
+    } else if (f.host == Host::BGRA8 && !f.depth && d.depth == 1 && !d.cube) {
         PackLevel(d, level, face, out, row_pitch);
+    }
 }
 
 uint32_t LinearColorFormat(uint32_t f) {
