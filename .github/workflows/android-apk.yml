@@ -1,0 +1,125 @@
+name: Android APK Build
+
+on:
+  push:
+    branches:
+      - feature/android-touch-v1.0.1
+      - feature/ngb-touch-ui-v1.0.3
+      - feature/ngb-touch-v1.0.2-blue
+    paths:
+      - .github/workflows/android-apk.yml
+      - packaging/android/**
+      - src/**
+      - CMakeLists.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-arm64:
+    name: Build Android ARM64 APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install host build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison flex curl git python3-venv zip unzip pkg-config libsdl2-dev glslang-tools
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android toolchain
+        run: |
+          export ANDROID_HOME="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o "$RUNNER_TEMP/android-tools.zip"
+          unzip -q "$RUNNER_TEMP/android-tools.zip" -d "$RUNNER_TEMP/android-tools"
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+          mv "$RUNNER_TEMP/android-tools/cmdline-tools/"* "$ANDROID_HOME/cmdline-tools/latest/"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Checkout uploaded XBE from master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: game-xbe
+          sparse-checkout: default.xbe
+          sparse-checkout-cone-mode: false
+
+      - name: Generate recompiled game sources from XBE
+        run: |
+          tools/pipeline.sh game-xbe/default.xbe
+
+      - name: Fetch NV2A Vulkan third-party sources
+        run: bash xboxrecomp/third_party/fetch.sh
+
+      - name: Cache native Android dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/android-deps
+          key: ngb-android-deps-arm64-api29-mesa26.3-glslanghost1-${{ runner.os }}-${{ hashFiles('packaging/android/build.sh') }}
+          restore-keys: |
+            ngb-android-deps-arm64-api29-mesa26.3-glslanghost1-${{ runner.os }}-
+
+      - name: Syntax-check Android touch controls
+        run: |
+          clang -std=gnu11 -fsyntax-only -Werror=implicit-function-declaration -D_GNU_SOURCE -I/usr/include/SDL2 -Ixboxrecomp/src -Isrc src/touch_pad.c
+
+      - name: Build APK
+        run: packaging/android/build.sh build/android-release
+
+      - name: Print build diagnostics on failure
+        if: failure()
+        run: |
+          for f in build/android-release/configure.log build/android-release/build.log build/android-deps/build-turnip.log build/android-deps/build-SDL-arm64-v8a.log build/android-deps/build-glslang-arm64-v8a.log build/android-deps/build-adrenotools.log; do
+            if [ -f "$f" ]; then
+              echo "===== $f (last 100 lines) ====="
+              tail -100 "$f"
+            fi
+          done
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-diagnostics
+          path: |
+            build/android-release/*.log
+            build/android-deps/*.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Verify APK metadata and architecture
+        run: |
+          APK=build/android-release/NinjaGaidenBlack-android-arm64.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "package: name='io.github.gamboozino.ngbrecomp' versionCode='1003' versionName='1.0.2-ngb-touch'"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h build/android-release/build/libmain.so | grep 'Machine:.*AArch64'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NinjaGaidenBlack-Android-ARM64-1.0.2-ngb-touch
+          path: build/android-release/NinjaGaidenBlack-android-arm64.apk
+          if-no-files-found: error
+          retention-days: 30
