@@ -225,7 +225,7 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
             p.y = 0.79f;
         }
     }
-    if (layout == 1 && aspect < 1.7f && (c == &s_ctrl[LSTICK] || c == &s_ctrl[DPAD_ID])) {
+    if (!custom && layout == 1 && aspect < 1.7f && (c == &s_ctrl[LSTICK] || c == &s_ctrl[DPAD_ID])) {
         /* Classic on a less wide screen (16:10, 4:3): the left stick a little smaller and further out, the d-pad
          * between it and Back, as large as fits there */
         float room0 = 0.25f + 0.14f, room1 = aspect / 2 - 0.14f, r = (room1 - room0) / 2.2f;
