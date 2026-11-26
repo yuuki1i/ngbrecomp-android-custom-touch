@@ -93,6 +93,7 @@ static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
 static float s_aspect = 16.0f / 9;            /* the window's width over its height */
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
+static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL];
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL];
 static unsigned s_layout_revision, d_layout_revision;
 static bool s_layout_loaded, s_edit_mode, d_edit_mode;
@@ -123,6 +124,7 @@ static void layout_defaults(void)
     for (int i = 0; i < NCTRL; i++) {
         s_layout_x[i] = s_ctrl[i].x; s_layout_y[i] = s_ctrl[i].y; s_layout_r[i] = s_ctrl[i].r;
         s_layout_alpha[i] = (i >= BA && i <= BY) ? 0.72f : 0.55f;
+        s_layout_color[i] = s_layout_shape[i] = s_layout_skin[i] = 0;
         s_layout_custom[i] = false;
     }
 }
@@ -139,11 +141,14 @@ static void layout_load(void)
     if (!fp) return;
     char line[256];
     while (fgets(line, sizeof line, fp)) {
-        int id, custom = 0; float x, y, r, a;
-        int n = sscanf(line, "%d %f %f %f %f %d", &id, &x, &y, &r, &a, &custom);
+        int id, custom = 0, color = 0, shape = 0, skin = 0; float x, y, r, a;
+        int n = sscanf(line, "%d %f %f %f %f %d %d %d %d", &id, &x, &y, &r, &a, &custom, &color, &shape, &skin);
         if (n < 5 || id < 0 || id >= NCTRL) continue;
         s_layout_x[id] = x; s_layout_y[id] = y; s_layout_r[id] = r; s_layout_alpha[id] = a;
         s_layout_custom[id] = n >= 6 && custom != 0;
+        if (n >= 7) s_layout_color[id] = (uint8_t)(color < 0 ? 0 : color > 5 ? 5 : color);
+        if (n >= 8) s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 2 ? 2 : shape);
+        if (n >= 9) s_layout_skin[id] = (uint8_t)(skin < 0 ? 0 : skin > 1 ? 1 : skin);
     }
     fclose(fp);
     for (int i = 0; i < NCTRL; i++) {
@@ -164,8 +169,9 @@ static void layout_save(void)
     FILE *fp = fopen(s_layout_path, "w");
     if (!fp) return;
     for (int i = 0; i < NCTRL; i++)
-        fprintf(fp, "%d %.5f %.5f %.5f %.5f %d\n", i, s_layout_x[i], s_layout_y[i],
-                s_layout_r[i], s_layout_alpha[i], s_layout_custom[i] ? 1 : 0);
+        fprintf(fp, "%d %.5f %.5f %.5f %.5f %d %u %u %u\n", i, s_layout_x[i], s_layout_y[i],
+                s_layout_r[i], s_layout_alpha[i], s_layout_custom[i] ? 1 : 0,
+                s_layout_color[i], s_layout_shape[i], s_layout_skin[i]);
     fclose(fp);
 }
 static void clear_touch_state(void)
@@ -179,13 +185,19 @@ static void toggle_editor(void)
     if (!s_edit_mode) layout_save();
     s_serial++;
 }
-static void edit_control(int c, bool opacity)
+static void edit_control(int c, int action)
 {
     if (c < 0 || c >= NCTRL) return;
-    if (opacity) {
+    if (action == 1) {
         static const float a[] = {0.25f, 0.40f, 0.55f, 0.70f, 0.85f, 1.0f};
         int n = 0; while (n < 6 && s_layout_alpha[c] >= a[n] - 0.01f) n++;
         s_layout_alpha[c] = a[n == 6 ? 0 : n];
+    } else if (action == 2) {
+        s_layout_color[c] = (uint8_t)((s_layout_color[c] + 1) % 6);
+    } else if (action == 3) {
+        s_layout_shape[c] = (uint8_t)((s_layout_shape[c] + 1) % 3);
+    } else if (action == 4) {
+        s_layout_skin[c] = (uint8_t)((s_layout_skin[c] + 1) % 2);
     } else {
         float ratio = s_layout_r[c] / s_ctrl[c].r;
         s_layout_r[c] = s_ctrl[c].r * (ratio < 0.88f ? 1.0f : ratio < 1.12f ? 1.25f : 0.75f);
@@ -234,8 +246,8 @@ static Place place(const Ctrl *c)
 
 static Place place_draw_at(const Ctrl *c, float aspect, int standin)
 {
-    int ci = (int)(c - s_ctrl);
     if (standin && (c == &s_ctrl[LB] || c == &s_ctrl[RB])) c = &s_ctrl[c == &s_ctrl[LB] ? RB : LB];
+    int ci = (int)(c - s_ctrl);
     Place p = { d_layout_x[ci], d_layout_y[ci], d_layout_r[ci] };
     if (!d_layout_custom[ci] && aspect < NARROW) {
         if (c == &s_ctrl[LT]) { p.x = 0.44f; p.y = 0.27f; p.r = 0.06f; }
@@ -397,7 +409,8 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         Uint32 held = ev->tfinger.timestamp - s_finger[f].down_timestamp;
         s_finger[f].used = false;
         if (s_edit_mode) {
-            if (!moved && was_selected && c >= 0) edit_control(c, held >= 500);
+            if (!moved && was_selected && c >= 0)
+                edit_control(c, held >= 2500 ? 4 : held >= 1800 ? 3 : held >= 1200 ? 2 : held >= 500 ? 1 : 0);
             if (moved) layout_save();
             if (!moved && c < 0 && sy > 0.86f && sx > s_aspect * 0.42f && sx < s_aspect * 0.58f) {
                 layout_defaults(); layout_save(); s_layout_revision++; s_selected = -1;
@@ -780,7 +793,7 @@ static const char *combo_second(int id) { return id == NINPO ? "button_b" : "but
 
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME) {
+    if (s_art == ART_GAME && !s_layout_skin[id]) {
         draw_piece(c->piece, cx - 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
         draw_piece(combo_second(id), cx + 0.38f * r, cy, 1.65f * r, 1.65f * r, a);
     } else {
@@ -790,7 +803,7 @@ static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
 {
-    if (s_art == ART_GAME) {
+    if (s_art == ART_GAME && !s_layout_skin[(int)(c - s_ctrl)]) {
         char n[40];
         snprintf(n, sizeof n, lit ? "%s_lit" : "%s", c->piece);
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
@@ -814,6 +827,31 @@ static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a
     uint8_t nr = (uint8_t)((r * a + orr * inv + 127) / 255);
     uint8_t na = (uint8_t)(a + (oa * inv + 127) / 255);
     *p = (uint32_t)nb | (uint32_t)ng << 8 | (uint32_t)nr << 16 | (uint32_t)na << 24;
+}
+
+
+static void draw_style_outline(float cx, float cy, float r, int color, int shape, bool selected)
+{
+    if (!selected && color == 0 && shape == 0) return;
+    static const uint8_t colors[6][3] = {
+        {245, 190, 65}, {70, 190, 255}, {245, 90, 90},
+        {95, 220, 135}, {190, 125, 255}, {255, 145, 65}
+    };
+    int ci = color < 0 || color > 5 ? 0 : color;
+    uint8_t cr = selected ? 255 : colors[ci][0], cg = selected ? 210 : colors[ci][1], cb = selected ? 90 : colors[ci][2];
+    float outer = r * 1.20f, inner = outer - fmaxf(1.5f, r * 0.055f);
+    int x0 = (int)floorf(cx - outer - 1), x1 = (int)ceilf(cx + outer + 1);
+    int y0 = (int)floorf(cy - outer - 1), y1 = (int)ceilf(cy + outer + 1);
+    over_box(x0, y0, x1 + 1, y1 + 1);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            float dx = fabsf(x + 0.5f - cx), dy = fabsf(y + 0.5f - cy), d;
+            if (shape == 1) d = fmaxf(dx, dy);
+            else if (shape == 2) d = (dx + dy) * 0.70710678f;
+            else d = hypotf(dx, dy);
+            if (d >= inner && d <= outer)
+                badge_pixel(x, y, cr, cg, cb, 230);
+        }
 }
 
 static void draw_editor_badge(void)
@@ -953,10 +991,8 @@ static void draw_all(void)
         } else if (c->kind == BUTTON && on) {
             draw_button(c, true, cx, cy, r, fmaxf(d_layout_alpha[i], 0.85f));
         }
-        if (d_edit_mode && i == d_selected) {
-            if (c->kind == STICK) draw_piece("pad_lit", cx, cy, 2.1f * r, 2.1f * r, 0.8f);
-            else draw_piece("button_a_lit", cx, cy, 2.7f * r, 2.7f * r, 0.75f);
-        }
+        if (d_layout_skin[i] && c->kind == BUTTON) draw("touch_button_lit", cx, cy, 2.2f * r, 2.2f * r, 0.30f);
+        draw_style_outline(cx, cy, r, d_layout_color[i], d_layout_shape[i], d_edit_mode && i == d_selected);
     }
     draw_editor_badge();
     s_rec = NULL;
@@ -1020,6 +1056,9 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_layout_r, s_layout_r, sizeof d_layout_r);
         memcpy(d_layout_alpha, s_layout_alpha, sizeof d_layout_alpha);
         memcpy(d_layout_custom, s_layout_custom, sizeof d_layout_custom);
+        memcpy(d_layout_color, s_layout_color, sizeof d_layout_color);
+        memcpy(d_layout_shape, s_layout_shape, sizeof d_layout_shape);
+        memcpy(d_layout_skin, s_layout_skin, sizeof d_layout_skin);
         d_layout_revision = s_layout_revision; d_edit_mode = s_edit_mode; d_selected = s_selected;
         d_aspect = s_aspect;
     }
