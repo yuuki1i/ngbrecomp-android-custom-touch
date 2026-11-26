@@ -27,3 +27,42 @@ The Android CI workflow is included on this branch. APK builds use versionCode 1
 versionName `1.0.2-ngb-touch` to distinguish this fork build from the author's release.
 The XBE is not included in this documentation. The build workflow expects the project's
 own XBE input to be available in the build repository; do not redistribute copyrighted game data.
+
+## Follow-on version: input and presentation extensions
+
+These are deliberately kept behind stable touch-control interfaces so they can be
+added without changing the renderer's per-control dirty-region contract:
+
+- Display filters: selectable shader/presentation effects, with a neutral default,
+  per-device performance cost checks, and no full-resolution CPU post-processing.
+- Button haptics: configurable short vibration on press, with a global toggle,
+  intensity/duration limits, and Android's native vibration API; never vibrate
+  continuously while a finger is held.
+- Native swipe-to-camera: an explicitly configurable gesture zone that translates
+  horizontal/vertical finger deltas into right-stick camera input. It must coexist
+  with normal buttons and avoid stealing gestures from Android system navigation.
+- 360Y and other techniques: a user-editable gesture/sequence engine supporting
+  ordered inputs, simultaneous inputs, timing windows, release gaps, repeat policy,
+  and cancellation. 360Y should be a named preset built on that engine, not a
+  hard-coded special case.
+- Additional actions: design the input model so future gestures, macros, and
+  per-control actions can be registered without growing a fixed enum for every move.
+
+The sequence engine must define timing in game-input frames (with a documented
+frame-rate policy), cancel safely when focus is lost or the editor opens, and
+never block the render/present thread. Haptics and gesture recognition run from
+input events; filter selection changes renderer state only when the setting changes.
+
+## Acceptance gates
+
+1. The Android ARM64 CI build completes from a legally supplied local XBE input.
+2. Editor changes preserve upstream v1.0.2 dirty-rectangle overlay updates; no
+   unconditional full overlay upload on finger movement.
+3. Layout, per-control appearance, artwork references, and combo definitions
+   survive app restart and are versioned/migratable.
+4. Editor can be entered/exited without leaving virtual buttons stuck down.
+5. Swipe camera can be disabled or assigned a dedicated region and does not
+   interfere with buttons, sticks, or Android edge navigation.
+6. Combo presets are tested in a repeatable input trace, including 360Y timing.
+7. Filters are benchmarked on target Adreno hardware at the device's native
+   resolution; effects that materially reduce frame pacing remain opt-in.
