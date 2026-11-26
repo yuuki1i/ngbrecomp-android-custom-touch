@@ -182,7 +182,7 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
         c = &s_ctrl[c == &s_ctrl[LB] ? RB : LB];
     int ci=(int)(c-s_ctrl); bool custom=s_layout_custom[ci]; Place p=custom?(Place){s_layout_x[ci],s_layout_y[ci],s_layout_r[ci]}:(Place){c->x,c->y,c->r};
     int edge = c->edge;
-    if (layout == 1) {
+    if (layout == 1 && !custom) {
         int i = (int)(c - s_ctrl);
         p.x = s_classic[i].x;
         p.y = s_classic[i].y;
