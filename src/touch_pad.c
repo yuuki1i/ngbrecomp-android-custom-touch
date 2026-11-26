@@ -296,7 +296,7 @@ static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTR
  * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
 enum { PA_A, PA_B, PA_X, PA_Y, PA_BLACK, PA_WHITE, PA_LT, PA_RT, PA_BACK, PA_START, PA_LS, PA_RS, PA_COUNT, PA_NONE = -1 };
 static int s_layout_action[NCTRL];
-static Uint32 s_combo_started[NCTRL];
+static Uint32 s_combo_started[NCTRL], s_combo_y_until[NCTRL];
 static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
 static bool d_haptics = true;
@@ -362,7 +362,7 @@ static void layout_save(void) {
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d %.3f\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i],s_layout_asp[i]);
     fclose(fp);
 }
-static void clear_touch_state(void){s_cam_hold=false;s_cam_px=s_cam_py=0;memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);s_dpad=0;}
+static void clear_touch_state(void){s_cam_hold=false;s_cam_px=s_cam_py=0;memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);memset(s_combo_y_until,0,sizeof s_combo_y_until);s_dpad=0;}
 static void layout_switch_preset(void) {
     layout_save();
     s_preset=(s_preset+1)%3;
@@ -551,7 +551,7 @@ static void finger_on(int ctrl, float x, float y)
         s_dpad = dpad_dirs(x, y);
     else {
         s_down[ctrl] = true;
-        if (ctrl >= NINPO && s_layout_combo[ctrl] == 6) { s_combo_active[ctrl] = true; s_combo_started[ctrl] = SDL_GetTicks(); }
+        if (ctrl >= NINPO && s_layout_combo[ctrl] == 6) { s_combo_active[ctrl] = true; s_combo_started[ctrl] = SDL_GetTicks(); s_combo_y_until[ctrl] = 0; }
         if (s_ctrl[ctrl].kind == BUTTON || s_ctrl[ctrl].kind == COMBO) touch_vibrate();
     }
     if (ctrl == LSTICK || ctrl == RSTICK || ctrl == DPAD_ID)
@@ -738,24 +738,11 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         if (s_layout_combo[i] < 6) {
             if (s_down[i]) { int p=s_layout_combo[i]; st->Gamepad.bAnalogButtons[combo_buttons[p][0]]=255; st->Gamepad.bAnalogButtons[combo_buttons[p][1]]=255; }
         } else if (s_combo_active[i]) {
-            /* The sweep, then Y held for as long as the key is held: the press charges, the release cuts. */
+            /* The 360's turn and its Y are put in after the bindings are rebuilt (ngb_touch_360, below):
+             * inside this state they were lost, and the Y held here would keep the next attack from starting. */
             if (!s_down[i]) {
                 s_combo_active[i] = false;
-                continue;
-            }
-            const Uint32 sweep = 250;   /* (a full turn of the stick in a quarter second, eased at both ends) */
-            Uint32 elapsed = combo_now - s_combo_started[i];
-            if (elapsed < sweep) {
-                float t = (float)elapsed / (float)sweep;
-                t = t * t * (3.0f - 2.0f * t);
-                float angle = t * 2.0f * (float)M_PI;
-                if (!s_down[RSTICK]) {   /* (a finger turning the camera keeps the camera) */
-                    st->Gamepad.sThumbLX = (SHORT)(cosf(angle) * 32767.0f);
-                    st->Gamepad.sThumbLY = (SHORT)(-sinf(angle) * 32767.0f);
-                }
-            } else {
-                if (!s_down[RSTICK]) st->Gamepad.sThumbLX = st->Gamepad.sThumbLY = 0;
-                st->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] = 255;
+                s_combo_y_until[i] = 0;
             }
         }
     }
@@ -772,20 +759,28 @@ int ngb_touch_360(float *lx, float *ly, int *y_down)
     *lx = *ly = 0.f;
     *y_down = 0;
     pthread_mutex_lock(&s_lock);
-
     Uint32 now = SDL_GetTicks();
     for (int i = NINPO; i < NCTRL; i++) {
         if (s_layout_combo[i] != 6 || !s_down[i] || !s_combo_active[i]) continue;
         Uint32 elapsed = now - s_combo_started[i];
-        const Uint32 sweep = 250;
+        const Uint32 sweep = 140;   /* (a full turn of the stick, quick: the strike must not wait for it) */
+        const Uint32 pulse = 70;    /* (Y down this long, then up: held, it would swallow the next attack) */
         if (elapsed < sweep) {
-            float t = (float)elapsed / (float)sweep;
-            t = t * t * (3.0f - 2.0f * t);
+            float t = (float)elapsed / (float)sweep;   /* (an even turn: even steps for the game to see) */
             float angle = t * 2.0f * (float)M_PI;
             *lx = cosf(angle);
             *ly = -sinf(angle);
-        } else
-            *y_down = 1;
+        } else {
+            if (!s_combo_y_until[i]) s_combo_y_until[i] = now + pulse;
+            if (now < s_combo_y_until[i]) {
+                *y_down = 1;
+                out = 1;
+            } else {                     /* done: the key rests, so a fresh press is a fresh 360 */
+                s_combo_active[i] = false;
+                s_combo_y_until[i] = 0;
+            }
+            continue;
+        }
         out = 1;
     }
     pthread_mutex_unlock(&s_lock);
