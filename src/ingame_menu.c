@@ -1456,14 +1456,10 @@ void nv2a_window_event_hook(const void *sdl_event)
     /* Physical mouse input must not steal focus from an active controller;
      * touchscreen input is explicitly tagged SDL_TOUCH_MOUSEID and bypasses
      * this desktop-only device arbitration. */
-    if ((ev->type == SDL_MOUSEMOTION || ev->type == SDL_MOUSEBUTTONDOWN ||
-         ev->type == SDL_MOUSEWHEEL) &&
-        ev->type != SDL_MOUSEWHEEL &&
-        ev->type == SDL_MOUSEMOTION && ev->motion.which != SDL_TOUCH_MOUSEID &&
-        !xbox_InputKeyboardActive())
-        return;
-    if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.which != SDL_TOUCH_MOUSEID &&
-        !xbox_InputKeyboardActive())
+    if (!xbox_InputKeyboardActive() &&
+        ((ev->type == SDL_MOUSEMOTION && ev->motion.which != SDL_TOUCH_MOUSEID) ||
+         (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.which != SDL_TOUCH_MOUSEID) ||
+         ev->type == SDL_MOUSEWHEEL))
         return;
     {
         extern int ngb_mouse_settling(void);   /* src/keyboard.c: the capture just changed */
