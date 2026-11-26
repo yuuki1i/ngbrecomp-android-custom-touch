@@ -379,6 +379,7 @@ static void let_go(void)
     memset(s_finger, 0, sizeof s_finger);
     memset(s_down, 0, sizeof s_down);
     memset(s_stick, 0, sizeof s_stick);
+    memset(s_combo_active, 0, sizeof s_combo_active);
     s_dpad = 0;
     s_serial++;
     pthread_mutex_unlock(&s_lock);
@@ -426,6 +427,14 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         {XBOX_BUTTON_A,XBOX_BUTTON_B},{XBOX_BUTTON_A,XBOX_BUTTON_X},{XBOX_BUTTON_A,XBOX_BUTTON_Y},
         {XBOX_BUTTON_B,XBOX_BUTTON_X},{XBOX_BUTTON_B,XBOX_BUTTON_Y},{XBOX_BUTTON_X,XBOX_BUTTON_Y}
     };
+    if (s_down[LSTICK]) {
+        st->Gamepad.sThumbLX = (SHORT)(s_stick[0][0] * 32767);
+        st->Gamepad.sThumbLY = (SHORT)(-s_stick[0][1] * 32767);
+    }
+    if (s_down[RSTICK]) {
+        st->Gamepad.sThumbRX = (SHORT)(s_stick[1][0] * 32767);
+        st->Gamepad.sThumbRY = (SHORT)(-s_stick[1][1] * 32767);
+    }
     Uint32 combo_now = SDL_GetTicks();
     for (int i=NINPO;i<NCTRL;i++) {
         if (s_layout_combo[i] < 6) {
@@ -441,14 +450,7 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
             } else s_combo_active[i] = false;
         }
     }
-    if (s_down[LSTICK]) {
-        st->Gamepad.sThumbLX = (SHORT)(s_stick[0][0] * 32767);
-        st->Gamepad.sThumbLY = (SHORT)(-s_stick[0][1] * 32767);
-    }
-    if (s_down[RSTICK]) {
-        st->Gamepad.sThumbRX = (SHORT)(s_stick[1][0] * 32767);
-        st->Gamepad.sThumbRY = (SHORT)(-s_stick[1][1] * 32767);
-    }
+
     pthread_mutex_unlock(&s_lock);
 }
 
@@ -773,7 +775,7 @@ static const char *combo_second(int id) {
 }
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a) {
     (void)c;
-    if (d_layout_combo[id] == 6) { draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
+    if (d_layout_combo[id] == 6) { if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
     if (s_art == ART_GAME && !d_layout_skin[id]) {
         draw_piece(combo_first(id), cx - 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
         draw_piece(combo_second(id), cx + 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
