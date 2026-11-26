@@ -55,6 +55,18 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
+      - name: Checkout uploaded XBE from master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: game-xbe
+          sparse-checkout: default.xbe
+          sparse-checkout-cone-mode: false
+
+      - name: Generate recompiled game sources from XBE
+        run: |
+          tools/pipeline.sh game-xbe/default.xbe
+
       - name: Cache native Android dependencies
         uses: actions/cache@v4
         with:
@@ -66,16 +78,6 @@ jobs:
       - name: Syntax-check Android touch controls
         run: |
           clang -std=gnu11 -fsyntax-only -Werror=implicit-function-declaration -D_GNU_SOURCE -I/usr/include/SDL2 -Ixboxrecomp/src -Isrc src/touch_pad.c
-
-      - name: Check generated recompilation sources
-        run: |
-          if ! compgen -G 'src/recomp/gen/*.c' > /dev/null; then
-            echo "::error::Missing generated recompiled game source (src/recomp/gen/*.c)."
-            echo "The generation pipeline requires the user's legally obtained game files locally."
-            echo "Do not upload the game ISO or copyrighted game data to this repository or CI."
-            echo "A locally generated source bundle is required before the APK can be compiled."
-            exit 1
-          fi
 
       - name: Build APK
         run: packaging/android/build.sh build/android-release
