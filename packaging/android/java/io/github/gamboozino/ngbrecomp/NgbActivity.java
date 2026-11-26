@@ -144,7 +144,7 @@ public class NgbActivity extends SDLActivity {
             new Thread(() -> {
                 try {
                     if (uri != null) {
-                        File target = new File(getFilesDir(), "ngb-touch-skin");
+                        File target = new File(getFilesDir(), "ngb-touch-skin-" + System.currentTimeMillis());
                         try (InputStream in = getContentResolver().openInputStream(uri);
                              FileOutputStream out = new FileOutputStream(target)) {
                             if (in == null) throw new IllegalStateException("Unable to open selected image");
