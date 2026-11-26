@@ -559,14 +559,16 @@ static float d_stick[2][2], d_aspect;
 static int d_layout;
 static int d_dpad;
 
-typedef struct { uint8_t *px; int w, h; } Sprite;   /* straight-alpha RGBA */
+typedef struct { uint8_t *px; int w, h; unsigned generation; } Sprite;   /* straight-alpha RGBA */
 static const Sprite *user_skin(void) {
     static Sprite image;
     static char loaded[512];
     if (!d_skin_path[0]) return NULL;
     if (strcmp(loaded, d_skin_path)) {
+        unsigned generation = image.generation + 1;
         if (image.px) stbi_image_free(image.px);
         memset(&image, 0, sizeof image);
+        image.generation = generation;
         snprintf(loaded, sizeof loaded, "%s", d_skin_path);
         int channels = 0;
         image.px = stbi_load(loaded, &image.w, &image.h, &channels, 4);
@@ -765,7 +767,7 @@ static void over_box(int x0, int y0, int x1, int y1)
  * held buttons and a dragged stick took milliseconds of every frame). Each pixel is the picture's texels under it
  * averaged by how much of each it covers (the game's pieces are made larger than drawn), or sampled bilinearly
  * where it is drawn larger. ox, oy: where the picture's corner lies in its first pixel (0..1). */
-typedef struct { const uint8_t *src; int sw, sh, w, h; float bw, bh, ox, oy; uint32_t *px; } Scaled;
+typedef struct { const uint8_t *src; int sw, sh, w, h; float bw, bh, ox, oy; unsigned generation; uint32_t *px; } Scaled;
 #define SCALED_N 96
 static Scaled s_scaled[SCALED_N];
 static int s_nscaled;
@@ -774,7 +776,7 @@ static const Scaled *scaled(const Sprite *sp, int w, int h, float bw, float bh, 
 {
     for (int i = 0; i < s_nscaled; i++) {
         const Scaled *c = &s_scaled[i];
-        if (c->src == sp->px && c->sw == sp->w && c->sh == sp->h && c->w == w && c->h == h &&
+        if (c->src == sp->px && c->sw == sp->w && c->sh == sp->h && c->generation == sp->generation && c->w == w && c->h == h &&
             fabsf(c->bw - bw) < 1e-3f && fabsf(c->bh - bh) < 1e-3f && fabsf(c->ox - ox) < 1e-3f &&
             fabsf(c->oy - oy) < 1e-3f)
             return c;
@@ -833,7 +835,7 @@ static const Scaled *scaled(const Sprite *sp, int w, int h, float bw, float bh, 
                                     (uint32_t)(acc[0] * 255 + 0.5f) << 16 | (uint32_t)(acc[3] * 255 + 0.5f) << 24;
         }
     Scaled *c = &s_scaled[s_nscaled++];
-    *c = (Scaled){ sp->px, sp->w, sp->h, w, h, bw, bh, ox, oy, px };
+    *c = (Scaled){ sp->px, sp->w, sp->h, w, h, bw, bh, ox, oy, sp->generation, px };
     return c;
 }
 
