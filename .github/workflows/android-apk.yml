@@ -67,13 +67,14 @@ jobs:
 
       - name: Ensure XBE input is present
         run: |
-          mkdir -p game-xbe
-          git -C game-xbe show master:default.xbe > game-xbe/default.xbe
           test -s game-xbe/default.xbe
+          mkdir -p game_files
+          cp game-xbe/default.xbe game_files/default.xbe
+          test -s game_files/default.xbe
 
       - name: Generate recompiled game sources from XBE
         run: |
-          tools/pipeline.sh game-xbe/default.xbe
+          tools/pipeline.sh
 
       - name: Fetch NV2A Vulkan third-party sources
         run: bash xboxrecomp/third_party/fetch.sh
