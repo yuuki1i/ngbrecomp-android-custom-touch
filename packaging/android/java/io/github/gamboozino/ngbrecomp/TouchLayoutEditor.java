@@ -506,25 +506,21 @@ public class TouchLayoutEditor extends FrameLayout {
         scroll.addView(panel);
         mDrawer = scroll;
         scroll.setSlide((dx, release) -> {
-            if (!release) {
-                mDrawer.setTranslationX(clampDrawer(mDrawerBase + dx));
-                return;
-            }
-            /* Let go: parked on whichever side it was dragged past the middle, or put away if it was
-             * pushed out past its own edge. */
             float w = mDrawer.getWidth() > 0 ? mDrawer.getWidth() : dp(300);
             float room = drawerRoom();
-            if ((mDockLeft ? -dx : dx) > w * 0.6f) {        /* (shoved outwards: it goes away) */
-                mDrawerBase = mDockLeft ? -room : 0;
+            if (!release) {
+                /* Where the finger is, the drawer is: no snapping while it moves. */
+                mDrawer.setTranslationX(clampDrawer(mDrawerBase + dx, room));
+                return;
+            }
+            float x = clampDrawer(mDrawerBase + dx, room);
+            if (x > room + w * 0.5f) {       /* (pushed out past its edge: it goes away) */
+                mDrawerBase = room;
                 closeDrawer();
                 return;
             }
-            float now = clampDrawer(mDrawerBase + dx);
-            boolean left = now < -room / 2f;
-            mDockLeft = left;
-            mDrawerBase = left ? -room : 0;
-            mDrawer.animate().translationX(mDrawerBase).setDuration(160).start();
-            mHint.setText(left ? "抽屉停靠左侧，滑到右边就回去" : "抽屉停靠右侧，向左滑能挪到左边");
+            mDrawerBase = x;
+            mDockLeft = x < -room / 3f;
         });
         FrameLayout.LayoutParams panelParams =
             new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT);
@@ -642,14 +638,14 @@ public class TouchLayoutEditor extends FrameLayout {
         return Math.max(0, (parent == null ? 0 : parent.getWidth()) - w);
     }
 
-    private float clampDrawer(float x) {
-        return Math.min(dp(340), Math.max(-dp(340) * 2, x));
+    /* Anywhere between parked at the right (0) and past the left edge it may stop, and it stays there. */
+    private float clampDrawer(float x, float room) {
+        return Math.min(room + dp(340), Math.max(-room - dp(340) * 0.35f, x));
     }
 
     private void openDrawer() {
         if (mDrawer == null) return;
         if (mScrim != null) mScrim.setVisibility(View.VISIBLE);
-        mDrawerBase = mDockLeft ? -drawerRoom() : 0f;
         mDrawer.setVisibility(View.VISIBLE);
         mDrawer.setTranslationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)));
         mDrawer.animate().translationX(mDrawerBase).setDuration(180).start();

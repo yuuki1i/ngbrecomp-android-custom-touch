@@ -395,7 +395,7 @@ public class NgbActivity extends SDLActivity {
         runOnUiThread(() -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("image/*");
+            i.setType("*/*");            /* (.cube: no mime type of its own; the picker shows any file) */
             try {
                 startActivityForResult(i, PICK_VIDEO_FILTER);
             } catch (Exception e) {
@@ -468,7 +468,9 @@ public class NgbActivity extends SDLActivity {
             new Thread(() -> {
                 try {
                     if (uri != null) {
-                        File target = new File(getFilesDir(), "ngb-video-filter.png");
+                        String name = uri.getLastPathSegment();
+                        boolean png = name != null && name.toLowerCase(java.util.Locale.ROOT).endsWith(".png");
+                        File target = new File(getFilesDir(), png ? "ngb-video-filter.png" : "ngb-video-filter.cube");
                         try (InputStream in = getContentResolver().openInputStream(uri);
                              FileOutputStream out = new FileOutputStream(target)) {
                             if (in == null) throw new IllegalStateException("Unable to open selected image");
@@ -529,12 +531,39 @@ public class NgbActivity extends SDLActivity {
     }
 
     /* The app's own folder on a removable SD card, if one is in (no permission needed there), or null */
+    /* The player's own folder on the shared storage (what a file manager, a USB cable and a phone's
+     * "Android" browser all see), and the app's private one only when the phone will not let us in. */
     public String sdCardFolder() {
+        if (hasAllFiles()) {
+            File shared = Environment.getExternalStorageDirectory();
+            if (shared != null) return shared.getPath();
+        }
         File[] dirs = getExternalFilesDirs(null);
         for (int i = 1; dirs != null && i < dirs.length; i++)
             if (dirs[i] != null && Environment.isExternalStorageRemovable(dirs[i]) &&
                 Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(dirs[i])))
                 return dirs[i].getPath();
+        for (File dir : dirs == null ? new File[0] : dirs)
+            if (dir != null && Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(dir)))
+                return dir.getPath();       /* (Android/data/<app>: no permission needed, seen over USB) */
         return null;
+    }
+
+    /* 所有文件访问: the one permission a folder outside Android/data needs on Android 11 and up. */
+    public boolean hasAllFiles() {
+        if (android.os.Build.VERSION.SDK_INT < 30) return true;   /* (storage was granted at install then) */
+        return Environment.isExternalStorageManager();
+    }
+
+    public void askAllFiles() {
+        if (android.os.Build.VERSION.SDK_INT < 30) return;
+        runOnUiThread(() -> {
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                         android.net.Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            }
+        });
     }
 }

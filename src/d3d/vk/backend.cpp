@@ -51,6 +51,12 @@ extern "C" {
 #include "quick_select.h"
 extern "C" {
 bool nv2a_present_show_fps(void);   // xboxrecomp present_sdl.c: the frame counter on
+
+#if defined(__ANDROID__)
+extern float ngb_video_contrast, ngb_video_saturation;   // src/touch_pad.c: the picture's grading
+extern unsigned char *ngb_video_lut_rgba;                // a .cube the player brought (N*N by N, BGRA)
+extern int ngb_video_lut_size, ngb_video_lut_serial;
+#endif
 extern volatile int nv2a_fps_drawn_outside;   // (its own corner copy off once this draws it)
 int ngb_fps_picture(uint32_t* out, size_t max, int* w, int* h, unsigned* serial);   // src/fps_text.c
 extern volatile int ngb_fps_target_h;
@@ -741,6 +747,8 @@ private:
     uint8_t gamma_[768] = {};
     bool gamma_on_ = false, gamma_dirty_ = false;
     Image gamma_lut_;    // 256 x 1, each channel its ramp
+    Image cube_lut_;     // the player's .cube, N tiles of N x N across
+    int cube_serial_ = -1, cube_n_ = 0;
     // src into dst through the gamma ramp (gamma_on_), with black beyond the middle's edges (bars: the
     // picture's part at each side, 0 none)
     void GammaCopy(Image& src, Image& dst, float bars = 0, float bars_y = 0);
@@ -2117,9 +2125,43 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
     }
     uint32_t edge = uint32_t(std::lround(std::clamp(bars, 0.0f, 0.49f) * 10000));
     uint32_t edge_y = uint32_t(std::lround(std::clamp(bars_y, 0.0f, 0.49f) * 10000));
+#if defined(__ANDROID__)
+    /* the player's .cube, uploaded when it changes: N*N wide, N tall, one N x N tile per blue level */
+    const int cube_n = ngb_video_lut_rgba ? ngb_video_lut_size : 0;
+    if (cube_n && cube_serial_ != ngb_video_lut_serial) {
+        if (!cube_lut_.image ||
+            !CreateImage(cube_lut_, kColorFormat, uint32_t(cube_n * cube_n), uint32_t(cube_n), 1, 1, false, false,
+                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+            cube_serial_ = -1;
+        else {
+            VkDeviceSize bytes = VkDeviceSize(cube_n) * cube_n * cube_n * 4;
+            VkDeviceSize at = Upload(ngb_video_lut_rgba, bytes, 16);
+            Barrier(cube_lut_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            VkBufferImageCopy c{};
+            c.bufferOffset = at;
+            c.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+            c.imageExtent = {uint32_t(cube_n * cube_n), uint32_t(cube_n), 1};
+            d_.vkCmdCopyBufferToImage(cmd_, ring_, cube_lut_.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &c);
+            cube_serial_ = ngb_video_lut_serial;
+            cube_n_ = cube_n;
+        }
+    } else if (!cube_n) {
+        cube_serial_ = -1;
+        cube_n_ = 0;
+    }
+    const bool cube_on = cube_n_ > 0 && cube_lut_.image && ngb_video_lut_rgba != nullptr;
+    const float con_f = std::clamp(ngb_video_contrast, 0.5f, 1.5f);
+    const float sat_f = std::clamp(ngb_video_saturation, 0.0f, 2.0f);
+#else
+    const bool cube_on = false;
+    const float con_f = 1.f, sat_f = 1.f;
+#endif
+    const uint32_t con_q = uint32_t(std::lround(con_f * 100.f));
+    const uint32_t sat_q = uint32_t(std::lround(sat_f * 100.f));
     const uint64_t kVs = 0xF1110000F1110001ull,
                    kPs = 0xF1110000F1120000ull | uint64_t(gamma_on_) << 16 | 1ull << 17 | edge | uint64_t(edge_y) << 20 |
-                         uint64_t(edge_use_ && edge_.image) << 18;
+                         uint64_t(edge_use_ && edge_.image) << 18 | uint64_t(con_q) << 34 | uint64_t(sat_q) << 42 |
+                         (cube_on ? uint64_t(cube_n_) << 50 : 0);
     const bool fill = edge_use_ && edge_.image;
     const std::string bar = fill ? "" : "    return float4(0, 0, 0, 1);\n";
     // both side bars in the right edge's colours: the same on both sides looks better, and the menus' left
@@ -2134,10 +2176,37 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
         char e[48], ey[48];
         std::snprintf(e, sizeof e, "%.4f", edge / 10000.0);
         std::snprintf(ey, sizeof ey, "%.4f", edge_y / 10000.0);
+        const bool grade = con_q != 100 || sat_q != 100;
+        const bool cube = cube_on;
+        char nums[96];
+        std::snprintf(nums, sizeof nums, "static const float CON = %.4f, SAT = %.4f;\n",
+                      con_f, sat_f);
+        std::ostringstream extra;
+        if (grade)
+            extra << nums
+                  << "float3 grade3(float3 g) {\n"
+                     "    g = (g - 0.5) * CON + 0.5;\n"
+                     "    float l = dot(g, float3(0.299, 0.587, 0.114));\n"
+                     "    return lerp(float3(l), g, SAT);\n}\n";
+        if (cube)
+            extra << "Texture2D tex3 : register(t3);\nSamplerState smp3 : register(s3);\n"
+                     "static const float LN = " << cube_n_ << ".0;\n"
+                     "float3 cube3(float3 v) {\n"
+                     "    float3 p = saturate(v) * (LN - 1);\n"
+                     "    float3 i0 = floor(p), f = p - i0;\n"
+                     "    float3 o = 0;\n"
+                     "    for (int dz = 0; dz < 2; dz++) for (int dy = 0; dy < 2; dy++) for (int dx = 0; dx < 2; dx++) {\n"
+                     "        float3 t = min(i0 + float3(dx, dy, dz), float3(LN - 1, LN - 1, LN - 1));\n"
+                     "        float2 uv = float2((t.z * LN + t.x + 0.5) / (LN * LN), (t.y + 0.5) / LN);\n"
+                     "        float w = (dx ? f.x : 1 - f.x) * (dy ? f.y : 1 - f.y) * (dz ? f.z : 1 - f.z);\n"
+                     "        o += tex3.SampleLevel(smp3, uv, 0).rgb * w;\n"
+                     "    }\n"
+                     "    return o;\n}\n";
         return std::string("Texture2D tex0 : register(t0);\nSamplerState smp0 : register(s0);\n"
                            "Texture2D tex1 : register(t1);\nSamplerState smp1 : register(s1);\n"
-                           "Texture2D tex2 : register(t2);\nSamplerState smp2 : register(s2);\n"
-                           "struct VO { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+                           "Texture2D tex2 : register(t2);\nSamplerState smp2 : register(s2);\n") +
+               extra.str() +
+               "struct VO { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
                            "float ramp(float v, int c) {\n"
                            "    float4 t = tex1.SampleLevel(smp1, float2((round(saturate(v) * 255) + 0.5) / 256, 0.5), 0);\n"
                            "    return c == 0 ? t.r : c == 1 ? t.g : t.b;\n}\n"
@@ -2153,7 +2222,13 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
                              "    if (i.uv.y > 1 - " + ey + ") {\n" + bar +
                              "        return tex2.SampleLevel(smp2, float2(i.uv.x, 0.875), 0);\n    }\n"
                        : std::string()) +
-               (gamma_on_ ? "    return float4(ramp(c.r, 0), ramp(c.g, 1), ramp(c.b, 2), c.a);\n}\n" : "    return c;\n}\n");
+               (gamma_on_ || grade || cube
+                    ? ((gamma_on_ ? std::string("    float3 g = float3(ramp(c.r, 0), ramp(c.g, 1), ramp(c.b, 2));\n")
+                                 : std::string("    float3 g = c.rgb;\n")) +
+                       (grade ? "    g = grade3(g);\n" : "") +
+                       (cube ? "    g = cube3(g);\n" : "") +
+                       "    return float4(saturate(g), c.a);\n}\n")
+                    : std::string("    return c;\n}\n"));
     }, false);
     PipeKey k;
     std::memset(&k, 0, sizeof(k));
@@ -2197,8 +2272,10 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
     VkDescriptorImageInfo sm{fill_sampler_, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
     VkDescriptorImageInfo im2{VK_NULL_HANDLE, fill ? edge_.view : null2d_.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     VkDescriptorImageInfo sm2{edge_sampler_ ? edge_sampler_ : fill_sampler_, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
-    VkWriteDescriptorSet w[6] = {};
-    for (int i = 0; i < 6; i++) {
+    VkDescriptorImageInfo im3{VK_NULL_HANDLE, cube_on && cube_lut_.image ? cube_lut_.view : null2d_.view,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    VkWriteDescriptorSet w[8] = {};
+    for (int i = 0; i < 8; i++) {
         w[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         w[i].descriptorCount = 1;
     }
@@ -2208,7 +2285,13 @@ void VulkanBackend::GammaCopy(Image& src, Image& dst, float bars, float bars_y) 
     w[3].dstBinding = 7; w[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER; w[3].pImageInfo = &sm;
     w[4].dstBinding = 4; w[4].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; w[4].pImageInfo = &im2;
     w[5].dstBinding = 8; w[5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER; w[5].pImageInfo = &sm2;
-    PushSet(6, w);
+    if (cube_on) {                       /* (the player's LUT: looked up by index, a nearest sampler for it) */
+        Barrier(cube_lut_, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        w[6].dstBinding = 5; w[6].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; w[6].pImageInfo = &im3;
+        w[7].dstBinding = 9; w[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER; w[7].pImageInfo = &sm;
+        PushSet(8, w);
+    } else
+        PushSet(6, w);
     d_.vkCmdDraw(cmd_, 3, 1, 0, 0);
     d_.vkCmdEndRendering(cmd_);
 }

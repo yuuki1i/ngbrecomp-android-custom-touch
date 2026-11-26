@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <SDL.h>
 #if defined(__ANDROID__)
@@ -199,6 +200,10 @@ int ngb_video_tint;
  * and blue down it), and mixed with the brightness. Like the colour filters of a PSP's plugins. */
 unsigned char ngb_video_curve[3][256];
 int ngb_video_curve_on;
+float ngb_video_contrast = 1.f, ngb_video_saturation = 1.f;   /* the picture's own grading, 1 = as the title */
+unsigned char *ngb_video_lut_rgba;                           /* a .cube the player brought: N*N by N tiles */
+int ngb_video_lut_size;
+int ngb_video_lut_serial;
 static char s_filter_path[512];
 
 static void filter_curve_build(void)
@@ -228,6 +233,55 @@ static void filter_curve_build(void)
         }
     stbi_image_free(px);
     ngb_video_curve_on = 1;
+}
+
+/* A .cube (the 3D LUT Photoshop, Resolve and the console emulators' filters are written in): N*N*N triples, red
+ * varying fastest, laid out for a 2D texture N tiles of N x N across (x = b*N + r, y = g). */
+static void filter_cube_build(void)
+{
+    free(ngb_video_lut_rgba);
+    ngb_video_lut_rgba = NULL;
+    ngb_video_lut_size = 0;
+    if (!s_filter_path[0]) { ngb_video_lut_serial++; return; }
+    const char *dot = strrchr(s_filter_path, '.');
+    char ext[8] = "";
+    if (dot) snprintf(ext, sizeof ext, "%s", dot);
+    for (char *q = ext; *q; q++) *q = (char)tolower((unsigned char)*q);
+    if (strcmp(ext, ".cube")) { ngb_video_lut_serial++; return; }
+    FILE *file = fopen(s_filter_path, "rb");
+    if (!file) { ngb_video_lut_serial++; return; }
+    char line[256];
+    int n = 0, got = 0;
+    unsigned char *data = NULL;
+    while (fgets(line, sizeof line, file)) {
+        if (line[0] == '#') continue;
+        if (!n && strncmp(line, "LUT_3D_SIZE", 11) == 0) {
+            n = atoi(line + 11);
+            if (n < 2 || n > 64) { n = 0; break; }
+            data = calloc((size_t)n * n * n, 4);
+            if (!data) { n = 0; break; }
+            continue;
+        }
+        if (!n) continue;
+        float r, g, b;
+        if (sscanf(line, "%f %f %f", &r, &g, &b) != 3) continue;
+        if (got >= n * n * n) break;
+        int ri = got % n, gi = (got / n) % n, bi = got / (n * n);
+        size_t px = ((size_t)gi * n*n + (size_t)bi * n + (size_t)ri) * 4;
+        data[px + 0] = (unsigned char)(fminf(fmaxf(b, 0.f), 1.f) * 255.f);
+        data[px + 1] = (unsigned char)(fminf(fmaxf(g, 0.f), 1.f) * 255.f);
+        data[px + 2] = (unsigned char)(fminf(fmaxf(r, 0.f), 1.f) * 255.f);
+        data[px + 3] = 255;
+        got++;
+    }
+    fclose(file);
+    if (data && got == n * n * n) {
+        ngb_video_lut_rgba = data;
+        ngb_video_lut_size = n;
+    } else
+        free(data);
+    ngb_video_lut_serial++;
+    if (ngb_video_lut_size) ngb_video_curve_on = 0;   /* (a cube beats a curve: one filter at a time) */
 }
 void ngb_video_filter_refresh(void);   /* src/d3d/hle.cpp (nothing on the other platforms) */
 void ngb_textures_rescan(void);        /* src/d3d/gpu/texture.cpp: forget which textures were dumped */
@@ -286,9 +340,10 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
     fclose(fp);
     filter_curve_build();
+    filter_cube_build();
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
@@ -299,7 +354,9 @@ static void layout_save(void) {
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
-    fprintf(fp,"# VIDEO %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),(int)lroundf(ngb_video_gamma*100.f),ngb_video_tint);
+    fprintf(fp,"# VIDEO %d %d %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),
+            (int)lroundf(ngb_video_gamma*100.f),ngb_video_tint,(int)lroundf(ngb_video_contrast*100.f),
+            (int)lroundf(ngb_video_saturation*100.f));
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d %.3f\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i],s_layout_asp[i]);
     fclose(fp);
 }
@@ -1757,6 +1814,8 @@ JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
     (void)env; (void)activity;
     if (which == 0) return (jint)lroundf(ngb_video_brightness * 100.f);
     if (which == 1) return (jint)lroundf(ngb_video_gamma * 100.f);
+    if (which == 3) return (jint)lroundf(ngb_video_contrast * 100.f);
+    if (which == 4) return (jint)lroundf(ngb_video_saturation * 100.f);
     return ngb_video_tint;
 }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoSet(
@@ -1768,6 +1827,10 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
         ngb_video_brightness = fminf(1.6f, fmaxf(.5f, value / 100.f));
     else if (which == 1)
         ngb_video_gamma = fminf(2.f, fmaxf(.4f, value / 100.f));
+    else if (which == 3)
+        ngb_video_contrast = fminf(1.5f, fmaxf(.5f, value / 100.f));
+    else if (which == 4)
+        ngb_video_saturation = fminf(2.f, fmaxf(0.f, value / 100.f));
     else
         ngb_video_tint = value < 0 ? 0 : value > 2 ? 2 : (int)value;
     layout_save();
@@ -1799,6 +1862,7 @@ JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_native
     } else
         s_filter_path[0] = 0;
     filter_curve_build();
+    filter_cube_build();
     layout_save();
     pthread_mutex_unlock(&s_lock);
     ngb_video_filter_refresh();

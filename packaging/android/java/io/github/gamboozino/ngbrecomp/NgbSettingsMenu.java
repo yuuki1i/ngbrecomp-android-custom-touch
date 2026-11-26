@@ -76,7 +76,7 @@ public class NgbSettingsMenu extends FrameLayout {
     private int mSel;   /* the control the 按键 tab is about */
 
     /* the picture values */
-    private int mBright, mGamma, mTint;
+    private int mBright, mGamma, mTint, mContrast = 100, mSat = 100;
 
     private static class Row {
         View view;
@@ -242,16 +242,30 @@ public class NgbSettingsMenu extends FrameLayout {
             mTint = v;
             mActivity.setVideoValue(2, mTint);
         });
+        addChoice("对比度", "亮和暗拉开多少。100% 是游戏本来的样子。",
+                  percents(50, 150, 5), mContrast / 5 - 10, v -> {
+                      mContrast = (v + 10) * 5;
+                      mActivity.setVideoValue(3, mContrast);
+                  });
+        addChoice("饱和度", "颜色浓淡。0% 是黑白。", percents(0, 200, 10), mSat / 10, v -> {
+            mSat = v * 10;
+            mActivity.setVideoValue(4, mSat);
+        });
 
         final String filter = mActivity.videoFilterName();
         addAction("贴图包文件夹", "这个文件夹里的同名 PNG 顶替游戏里的贴图，改完点下面「重新读取」。",
                   () -> showPath("贴图包文件夹", mActivity.texturePackPath()));
+        if (!mActivity.hasAllFiles())
+            addAction("打开所有文件访问", "让它能读写手机存储里的 /NGB 文件夹（Android 11 以后要这一项）。", () -> {
+                mActivity.askAllFiles();
+                Toast.makeText(mActivity, "允许后回到游戏，贴图位置就是 /sdcard/NGB", Toast.LENGTH_LONG).show();
+            });
         addAction("重新读取贴图", "放好或换掉贴图之后重扫一遍，不必重启游戏。", () -> {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
         });
-        addAction(filter.length() == 0 ? "导入滤镜图" : "换一张滤镜图（现在：" + filter + "）",
-                  "选一张横向渐变的 PNG，左到右是暗到亮，红绿蓝各一行（或一行原色）；画面按它调色。",
+        addAction(filter.length() == 0 ? "导入滤镜（.cube）" : "换一个滤镜（现在：" + filter + "）",
+                  "选一个 .cube 调色表（PS、达芬奇的 LUT 都导得出来），整幅画面就按它调色；PNG 渐变也能用。",
                   () -> mActivity.pickVideoFilter());
         if (filter.length() != 0)
             addAction("关闭滤镜图", "回到游戏本来的颜色。", () -> {
@@ -562,6 +576,8 @@ public class NgbSettingsMenu extends FrameLayout {
             mBright = mActivity.getVideoValue(0);
             mGamma = mActivity.getVideoValue(1);
             mTint = mActivity.getVideoValue(2);
+            mContrast = mActivity.getVideoValue(3);
+            mSat = mActivity.getVideoValue(4);
         } catch (Throwable e) {
             mBright = 100;
             mGamma = 100;
