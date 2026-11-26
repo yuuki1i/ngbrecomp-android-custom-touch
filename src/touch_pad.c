@@ -1198,6 +1198,56 @@ int nv2a_overlay_changed(int (*box)[4], int max)
     return s_chg_n;
 }
 
+/* Settings-menu bridge: these are the native touch controls, not the game's
+ * controller settings. All mutations share the touch-state lock and persist
+ * to the active touch-layout preset. */
+int ngb_touch_menu_get(int item)
+{
+    int value = 0;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    switch (item) {
+    case 1: value = s_preset; break;
+    case 2: value = s_haptics ? 1 : 0; break;
+    case 3: value = s_layout_combo[NINPO]; break;
+    case 4: value = s_layout_combo[WINDRUN]; break;
+    default: break;
+    }
+    pthread_mutex_unlock(&s_lock);
+    return value;
+}
+
+void ngb_touch_menu_change(int item, int dir)
+{
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (item == 1) {
+        layout_switch_preset();
+    } else if (item == 2) {
+        s_haptics = !s_haptics;
+        layout_save();
+        s_serial++;
+    } else if (item == 3 || item == 4) {
+        int id = item == 3 ? NINPO : WINDRUN;
+        s_layout_combo[id] = (uint8_t)((s_layout_combo[id] + (dir < 0 ? 6 : 1)) % 7);
+        layout_save();
+        s_layout_revision++;
+        s_serial++;
+    }
+    pthread_mutex_unlock(&s_lock);
+}
+
+void ngb_touch_menu_activate(int item)
+{
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (item == 0)
+        toggle_editor();
+    else if (item == 5)
+        add_custom_combo();
+    pthread_mutex_unlock(&s_lock);
+}
+
 /* The presenter asks first whether there is a picture at all */
 bool nv2a_layer_wanted(void)
 {
