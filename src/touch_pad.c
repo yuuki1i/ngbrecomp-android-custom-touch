@@ -52,7 +52,7 @@ extern const int ngb_touch_png_count;   /* (CMakeLists.txt: the stand-in pieces 
 __attribute__((weak)) const NgbPic *ngb_gp_touch(const char *piece);
 
 enum Kind { BUTTON, COMBO, STICK, DPAD };
-enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, SWAP, NINPO, WINDRUN, NCTRL };
+enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, SWAP, NINPO, WINDRUN, CUSTOM1, CUSTOM2, CUSTOM3, CUSTOM4, NCTRL };
 
 typedef struct {
     enum Kind kind;
@@ -87,7 +87,11 @@ static const Ctrl s_ctrl[NCTRL] = {
     [RS]      = { BUTTON, 1, 0.09f,  0.90f,  0.045f, "RS", "RS", 0xE6E6E6, "click_r" },
     [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.050f, "edit", "EDIT", 0x4C9BEA, "swap" },
     [NINPO]   = { COMBO, 1, 0.52f, 0.46f, 0.060f, "NINPO", "N", 0x4C9BEA, "button_y" },
-    [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0x4C9EA, "button_x" },
+    [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0x4C9BEA, "button_x" },
+    [CUSTOM1] = { COMBO, 1, 0.52f, 0.32f, 0.055f, "C1", "C1", 0x4C9BEA, "button_a" },
+    [CUSTOM2] = { COMBO, 1, 0.52f, 0.44f, 0.055f, "C2", "C2", 0x4C9BEA, "button_b" },
+    [CUSTOM3] = { COMBO, 1, 0.52f, 0.56f, 0.055f, "C3", "C3", 0x4C9BEA, "button_x" },
+    [CUSTOM4] = { COMBO, 1, 0.52f, 0.68f, 0.055f, "C4", "C4", 0x4C9BEA, "button_y" },
 };
 
 /* Classic: the places of 0.9.x's controls, in the same pictures (#285: Block held by a left finger at the top
@@ -133,7 +137,7 @@ static float s_aspect = 16.0f / 9;
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
-static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL];
+static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 static int s_selected = -1, d_selected = -1;
 static unsigned s_layout_revision, d_layout_revision;
 static char s_layout_path[512];
@@ -146,7 +150,7 @@ static int s_art_shown;                       /* the controls drawn (the last pi
 #define MAX_FINGERS 10
 static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 static void layout_defaults(void) {
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults();
