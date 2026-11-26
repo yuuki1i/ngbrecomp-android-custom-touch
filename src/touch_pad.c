@@ -179,7 +179,7 @@ static void layout_load(void) {
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-preset-%d.cfg",dir,s_preset);SDL_free(dir);}
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");
-    if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\\n",s_preset);fclose(af);}SDL_free(dir);}
+    if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V2 %d\n",s_haptics?1:0);
     if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
