@@ -1255,6 +1255,28 @@ void ngb_touch_menu_change(int item,int dir)
     if(item!=1){layout_save();s_layout_revision++;s_serial++;}
     pthread_mutex_unlock(&s_lock);
 }
+void ngb_touch_menu_set(int item,int value)
+{
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
+    if(item==1){
+        int target=(value%3+3)%3;
+        for(int n=0;n<3&&s_preset!=target;n++)layout_switch_preset();
+    }else if(item==2)s_haptics=value!=0;
+    else if(item==3)s_camera_swipe=value!=0;
+    else if(item==4)s_selected=value<0?0:value>=NCTRL?NCTRL-1:value;
+    else if(item==5)s_layout_enabled[id]=value!=0;
+    else if(item==6){s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,(float)value/100.f));s_layout_custom[id]=true;}
+    else if(item==7)s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,(float)value/100.f));
+    else if(item==8)s_layout_color[id]=(uint8_t)((value%6+6)%6);
+    else if(item==9)s_layout_shape[id]=(uint8_t)((value%3+3)%3);
+    else if(item==10)s_layout_skin[id]=value!=0;
+    else if(item>=11&&item<=16){int ci=item==11?NINPO:item==12?WINDRUN:CUSTOM1+item-13;s_layout_combo[ci]=(uint8_t)((value%7+7)%7);}
+    layout_save();s_layout_revision++;s_serial++;
+    pthread_mutex_unlock(&s_lock);
+}
+
 void ngb_touch_menu_activate(int item)
 {
     pthread_mutex_lock(&s_lock);
