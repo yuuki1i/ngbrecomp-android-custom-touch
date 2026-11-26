@@ -335,9 +335,9 @@ static void change(int row, int step)
 #define NGB_MENU_ROW_TOUCH 1000
 int ngb_menu_tab_count(void) { return CATS; }
 const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_name[tab] : ""; }
-#define NGB_MENU_CTL_BASE 1100
-#define NGB_MENU_CTL_MOUSE 1105
-#define NGB_MENU_CTL_PROMPTS 1106
+#define NGB_MENU_CTL_BASE 50
+#define NGB_MENU_CTL_MOUSE 55
+#define NGB_MENU_CTL_PROMPTS 56
 int ngb_menu_tab_row_count(int tab) {
     if (tab == CAT_CTL) return 8;
     if (tab < 0 || tab >= CATS) return 0;
