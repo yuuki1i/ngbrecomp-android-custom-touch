@@ -441,9 +441,11 @@ static void touch_poll_skin(void) {
 #endif
 }
 
+extern int ngb_menu_touch_blocked(void);
 static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
 {
     (void)unused;
+    if (ngb_menu_touch_blocked()) return 0;
     if(ev->type!=SDL_FINGERDOWN&&ev->type!=SDL_FINGERMOTION&&ev->type!=SDL_FINGERUP)return 0;
     if(ev->type!=SDL_FINGERUP&&xbox_InputControllerPresent())return 0;
     if(ev->type==SDL_FINGERDOWN&&!__atomic_load_n(&s_art_shown,__ATOMIC_ACQUIRE))return 0;
