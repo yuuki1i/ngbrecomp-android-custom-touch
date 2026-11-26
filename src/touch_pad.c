@@ -185,7 +185,7 @@ static void layout_save(void) {
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    fprintf(fp,"# NGB_TOUCH_LAYOUT_V2 %d\n",s_haptics?1:0);
+    fprintf(fp,"# NGB_TOUCH_LAYOUT_V3 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i]);
     fclose(fp);
@@ -1211,7 +1211,7 @@ int ngb_touch_menu_get(int item)
     case 1:value=s_preset;break;
     case 2:value=s_haptics;break;
     case 3:value=s_camera_swipe;break;
-    case 4:value=id;break;
+    case 4:if(s_selected<0)s_selected=LSTICK;value=s_selected;break;
     case 5:value=s_layout_enabled[id];break;
     case 6:value=(int)lroundf(s_layout_r[id]/s_ctrl[id].r*100.f);break;
     case 7:value=(int)lroundf(s_layout_alpha[id]*100.f);break;
@@ -1258,12 +1258,12 @@ void ngb_touch_menu_activate(int item)
     pthread_mutex_lock(&s_lock);
     layout_load();
     int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
-    if(item==17) touch_pick_skin();
+    if(item==17){s_selected=id;touch_pick_skin();}
     else if(item==18) add_custom_combo();
     else if(item==19) delete_selected_combo();
     else if(item==10) s_layout_skin[id]^=1;
     else if(item==5) s_layout_enabled[id]=!s_layout_enabled[id];
-    if(item==5||item==10){layout_save();s_layout_revision++;s_serial++;}
+    if(item==5||item==10||item==17){layout_save();s_layout_revision++;s_serial++;}
     pthread_mutex_unlock(&s_lock);
 }
 
