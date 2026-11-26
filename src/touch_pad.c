@@ -445,7 +445,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
             float was_x = c == DPAD_ID ? 0 : s_stick[stick][0], was_y = c == DPAD_ID ? 0 : s_stick[stick][1];
             finger_on(c, x, y);
             if (c == DPAD_ID ? s_dpad != was_dpad :
-                fabsf(s_stick[stick][0] - was_x) + fabsf(s_stick[stick][1] - was_y) > 1.0f / 32) s_serial++;
+                fabsf(s_stick[stick][0] - was_x) + fabsf(s_stick[stick][1] - was_y) > 1.0f / 12) s_serial++;
         }
     } else if (ev->type == SDL_FINGERUP && f < MAX_FINGERS) {
         int c = s_finger[f].ctrl; bool moved = s_finger[f].moved, was_selected = s_finger[f].was_selected;
@@ -1090,19 +1090,14 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
 {
     if (xbox_InputControllerPresent() || !win_w || !win_h)
         return false;
-    /* (the window's own size; one of more pixels than the presenter's buffer holds at three quarters, or half) */
-    static int half = -1;
-    if (half < 0)
-        { const char *e = getenv("NGB_TOUCH_HALF"); half = e && *e == '1'; }
-    int w = (int)win_w, h = (int)win_h;
-    if (!half && (size_t)w * h > max) {
-        w = (int)(win_w * 3 / 4);
-        h = (int)(win_h * 3 / 4);
-    }
-    if (half || (size_t)w * h > max) {
-        w = (int)(win_w / 2);
-        h = (int)(win_h / 2);
-    }
+    /* Touch artwork has no need for game-frame resolution. Render at half resolution by default:
+     * this cuts CPU raster work, upload bandwidth and the sampled overlay area by 75% at 2K.
+     * NGB_TOUCH_HALF=0 opts into the old full-resolution path for visual comparisons. */
+    static int full_res = -1;
+    if (full_res < 0) { const char *e = getenv("NGB_TOUCH_HALF"); full_res = e && *e == '0'; }
+    int w = full_res ? (int)win_w : (int)(win_w / 2);
+    int h = full_res ? (int)win_h : (int)(win_h / 2);
+    if ((size_t)w * h > max) { w = (int)(win_w / 2); h = (int)(win_h / 2); }
     if (!w || !h || (size_t)w * h > max)
         return false;
     pthread_mutex_lock(&s_lock);
