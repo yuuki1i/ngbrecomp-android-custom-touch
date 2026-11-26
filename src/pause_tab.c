@@ -341,7 +341,7 @@ const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_n
 #define NGB_MENU_BIND_BASE 100
 static int s_menu_bind_slot; /* keyboard 1, keyboard 2, controller */
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CAT_CTL) return 7 + A_COUNT;
+    if (tab == CAT_CTL) return 8 + A_COUNT;
     if (tab < 0 || tab >= CATS) return 0;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
@@ -356,7 +356,7 @@ int ngb_menu_tab_row(int tab, int index) {
         if (index >= 0 && index < 5) return NGB_MENU_CTL_BASE + index;
         if (index == 5) return NGB_MENU_CTL_MOUSE;
         if (index == 6) return NGB_MENU_CTL_PROMPTS;
-        return index >= 7 && index < 7 + A_COUNT ? NGB_MENU_BIND_BASE + index - 7 : -1;
+        return index >= 7 && index < 7 + A_COUNT ? NGB_MENU_BIND_BASE + index - 7 : index == 7 + A_COUNT ? NGB_MENU_ROW_TOUCH : -1;
     }
     if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
     if (tab == CAT_CHEAT) {
@@ -1012,7 +1012,7 @@ static float s_cat_x[CATS][2];
 /* Cheats on the strip only once they are unlocked: "Do you want to use cheats?" Yes in RECOMP SETTINGS
  * (src/pc_menu.c), or one already on (ngb_cheats_unlocked). Until then the pause menu has no Cheats at all. */
 int ngb_cheats_unlocked(void);        /* src/ingame_menu.c */
-static int cat_shown(int c) { return c != CAT_CHEAT || ngb_cheats_unlocked(); }
+static int cat_shown(int c) { return c != CAT_CTL && (c != CAT_CHEAT || ngb_cheats_unlocked()); }
 
 /* row -1 is the strip. */
 /* ---------- Controls ---------- */
