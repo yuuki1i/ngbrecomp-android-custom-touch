@@ -66,7 +66,7 @@ extern const char *ngb_menu_row_help(int row);
 extern int ngb_menu_row_get(int row);
 extern void ngb_menu_row_value(int row, char *out, size_t n);
 extern void ngb_menu_row_change(int row, int dir);
-extern void ngb_menu_row_set(int row, int value);
+extern void ngb_menu_row_set(int row, int value);\nextern void ngb_menu_row_activate(int row);
 
 /* The picture's shape, now: the game's own mode (src/pc_menu.c), the
  * presenter's and the window's -- the window takes the nearest size of the
