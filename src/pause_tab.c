@@ -374,7 +374,7 @@ int ngb_menu_tab_row(int tab, int index) {
 }
 const char *ngb_menu_row_label(int row) {
     static const char *const touch[] = {
-        "Open Visual Layout Editor", "Layout Preset", "Touch Vibration", "Camera Swipe",
+        "Touch Control Center", "Layout Preset", "Touch Vibration", "Camera Swipe",
         "Selected Control", "Control Enabled", "Control Size", "Control Opacity",
         "Control Color", "Control Shape", "Custom Image", "Ninpo Combo",
         "Wind Run Combo", "Custom Combo 1", "Custom Combo 2", "Custom Combo 3",
@@ -393,7 +393,7 @@ const char *ngb_menu_row_label(int row) {
 }
 const char *ngb_menu_row_help(int row) {
     static const char *const help[] = {
-        "Open the full-screen touch editor. Drag controls to move them and pinch with two fingers to resize.",
+        "Open the dedicated Android touch-control centre. Change touch settings directly by tapping; open the visual editor from inside it.",
         "Switch between Default, Classic and Custom layouts. Each preset is saved separately.",
         "Turn touch vibration feedback on or off.",
         "Allow swipes on empty screen space to move the camera.",
