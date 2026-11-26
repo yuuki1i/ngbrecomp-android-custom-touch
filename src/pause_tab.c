@@ -181,7 +181,8 @@ static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
 #define CTL_PROMPTS 6             /* Button Prompts: Auto, Xbox, PlayStation, Nintendo, PC (#113, #170) */
 #define CTL_BIND0 7               /* the first action's row */
 #define CTL_DEF  (CTL_BIND0 + A_COUNT)
-#define CTL_ROWS (CTL_DEF + 1)
+#define CTL_TOUCH (CTL_DEF + 1)       /* open the on-screen touch layout editor */
+#define CTL_ROWS (CTL_TOUCH + 1)
 #define CTL_IS_BIND(r) ((r) >= CTL_BIND0 && (r) < CTL_DEF)
 #define CTL_TOGGLE(r) ((r) >= CTL_INVX && (r) <= CTL_RESET)
 static const char *const s_ctl_toggle_name[5] = {
@@ -1003,6 +1004,13 @@ static void draw_controls(uint32_t *px, uint8_t *m, int focused, int row)
             page_text(px, m, v, 441, y + 18, 15, sel ? 0xFFFFFF : 0xC8C8D0, 2);   /* (right: clear of the bar at 446) */
             continue;
         }
+        if (r == CTL_TOUCH) {
+            if (sel) page_fill(px, 10, y + 2, 440, ROW_H - 4, 0x24518A, 0.88f, 0.08f);
+            page_text(px, m, "Touch Layout Editor", CTL_NAME_X + 6, y + 19, 19,
+                      sel ? 0xF5EB5A : focused ? 0xE6E6EB : 0xA0A0A8, 0);
+            page_text(px, m, "OPEN", 438, y + 18, 14, sel ? 0xFFFFFF : 0x8C8C96, 2);
+            continue;
+        }
         if (r == CTL_DEF) {                            /* Default Controls */
             if (sel)
                 page_fill(px, 10, y + 2, 440, ROW_H - 4, 0x6E64DC, 0.85f, 0.05f);
@@ -1067,6 +1075,8 @@ static void draw_controls(uint32_t *px, uint8_t *m, int focused, int row)
              : "Press the controller's button (wait to cancel).";
     else if (focused && row == CTL_DEF)
         help = "Every action as it was.";
+    else if (focused && row == CTL_TOUCH)
+        help = "Return to the game and edit touch buttons, sticks, size, position and appearance on screen.";
     else if (focused && CTL_TOGGLE(row))
         help = s_ctl_toggle_help[row - CTL_INVX];
     else if (focused && row == CTL_MOUSE)
@@ -2414,6 +2424,8 @@ static void sprite(uint32_t id, int x, int y, int z, uint8_t anchor, float sx, f
 
 int ngb_pause_tab_key(int *focus);   /* src/ingame_menu.c */
 void ngb_pause_tab_hold(void);
+void ngb_pause_resume(void);
+void ngb_touch_editor_open(void);
 void ngb_menu_mark(void);            /* src/menu_mouse.c */
 #include "menu_mouse.h"
 
@@ -2524,6 +2536,10 @@ static int ctl_keys(int key, int *row, int strip)
         } else if (*row == CTL_DEF) {
             ngb_bind_defaults();
             ngb_bind_set(0, 0, ngb_bind_get(0, 0));   /* saved */
+            play_sound(6);
+        } else if (*row == CTL_TOUCH) {
+            ngb_pause_resume();
+            ngb_touch_editor_open();
             play_sound(6);
         } else if (CTL_IS_BIND(*row) && !(s_ctl_col == 2 && ngb_bind_pad_fixed(*row - CTL_BIND0))) {
             ngb_bind_capture_begin(*row - CTL_BIND0, s_ctl_col);
