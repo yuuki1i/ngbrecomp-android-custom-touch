@@ -6792,8 +6792,12 @@ int ngb_game_text_picture(const char *s, float cap, uint32_t *out, int maxw, int
 }
 
 void ngb_menu_row_activate(int row) {
-    if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS)
-        ngb_touch_menu_activate(row - NGB_MENU_TOUCH_BASE);
-    else if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT)
+    if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS) {
+        int item = row - NGB_MENU_TOUCH_BASE;
+        if ((item >= 1 && item <= 4) || (item >= 6 && item <= 16))
+            ngb_touch_menu_change(item, 1);
+        else
+            ngb_touch_menu_activate(item);
+    } else if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT)
         ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot);
 }
