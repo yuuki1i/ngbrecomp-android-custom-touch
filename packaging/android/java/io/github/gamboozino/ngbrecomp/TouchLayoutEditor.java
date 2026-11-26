@@ -285,7 +285,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout top = new LinearLayout(mActivity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setBackground(glass(18, 0x1AFFFFFF, 0x2EFFFFFF, 1));
+        top.setBackground(glass(18, 0x14FFFFFF, 0x26FFFFFF, 1));
         top.setPadding(dp(10), dp(8), dp(10), dp(8));
         LinearLayout.LayoutParams topParams =
             new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -293,11 +293,11 @@ public class TouchLayoutEditor extends FrameLayout {
         top.setLayoutParams(topParams);
         Button cancel = button("取消", 14, 0x1FFFFFFF);
         top.addView(cancel, new LinearLayout.LayoutParams(dp(72), dp(40)));
-        mMenu = button("按键菜单", 15, 0x332E7FFF);
+        mMenu = button("按键菜单", 15, 0x26FFFFFF);
         LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(0, dp(40), 1f);
         menuParams.setMargins(dp(10), 0, dp(10), 0);
         top.addView(mMenu, menuParams);
-        Button save = button("保存", 14, 0x332E7FFF);
+        Button save = button("保存", 14, 0x26FFFFFF);
         top.addView(save, new LinearLayout.LayoutParams(dp(72), dp(40)));
         column.addView(top);
 
@@ -321,7 +321,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout panel = new LinearLayout(mActivity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
-        panel.setBackground(glass(18, 0x14FFFFFF, 0x2EFFFFFF, 1));
+        panel.setBackground(glass(18, 0x14FFFFFF, 0x22FFFFFF, 1));
         mPanel = panel;
 
         LinearLayout tools = new LinearLayout(mActivity);       /* the functions the master menu offers */
@@ -799,7 +799,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 canvas.drawLine(x, 0, x, viewH, mPaint);
                 canvas.drawLine(0, y, viewW, y, mPaint);
             }
-            mPaint.setColor(0x66FF5555);
+            mPaint.setColor(0x44FFFFFF);
             canvas.drawLine(viewW / 2f, 0, viewW / 2f, viewH, mPaint);
             canvas.drawLine(0, viewH / 2f, viewW, viewH / 2f, mPaint);
 

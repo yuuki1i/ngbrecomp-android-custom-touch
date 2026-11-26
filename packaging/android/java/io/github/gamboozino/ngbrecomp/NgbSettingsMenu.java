@@ -99,7 +99,7 @@ public class NgbSettingsMenu extends FrameLayout {
             mShown[i] = true;
         loadPad();
         loadPicture();
-        setBackgroundColor(0xF2080604);
+        setBackgroundColor(0xD20E1014);
         setClickable(true);
         setFocusable(true);
         buildShell();
@@ -117,22 +117,22 @@ public class NgbSettingsMenu extends FrameLayout {
 
         LinearLayout titles = new LinearLayout(mActivity);
         titles.setOrientation(LinearLayout.VERTICAL);
-        mTitle = text("设置 ◆ 画面", 20, 0xFFF2E6C8, true);
-        mSub = text("亮度 · 伽马 · 色调", 11, 0x99D8C79A, false);
+        mTitle = text("设置 ◆ 画面", 20, 0xFFE8EBF0, true);
+        mSub = text("亮度 · 伽马 · 色调", 11, 0x99A9B2BF, false);
         titles.addView(mTitle);
         titles.addView(mSub);
         top.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
-        TextView close = text("✕  关闭", 13, 0xFFE8D7AE, false);
+        TextView close = text("✕  关闭", 13, 0xFFDCE1E9, false);
         close.setPadding(dp(16), dp(8), dp(16), dp(8));
-        close.setBackground(plate(dp(8), 0x1FFFFFFF, 0x40E8D7AE, 1));
+        close.setBackground(plate(dp(8), 0x1FFFFFFF, 0x33FFFFFF, 1));
         close.setOnClickListener(v -> close());
         top.addView(close);
 
         LinearLayout head = new LinearLayout(mActivity);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setPadding(0, 0, 0, dp(4));
-        head.setBackground(drawable(0x0DFFE2B0, 0, 0, 0, dp(1)));
+        head.setBackground(drawable(0x0FFFFFFF, 0, 0, 0, dp(1)));
         head.addView(top, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                                         ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -155,9 +155,9 @@ public class NgbSettingsMenu extends FrameLayout {
         LinearLayout help = new LinearLayout(mActivity);
         help.setOrientation(LinearLayout.VERTICAL);
         help.setPadding(dp(14), dp(12), dp(14), dp(12));
-        help.setBackground(plate(dp(10), 0x14FFE9BE, 0x33C9A96A, 1));
-        mHelpTitle = text("", 14, 0xFFE9D6A8, true);
-        mHelpBody = text("", 12, 0xC9E6DCC8, false);
+        help.setBackground(plate(dp(10), 0x14FFFFFF, 0x26FFFFFF, 1));
+        mHelpTitle = text("", 14, 0xFFDCE1E9, true);
+        mHelpBody = text("", 12, 0x99C2C9D4, false);
         mHelpBody.setLineSpacing(dp(3), 1.0f);
         help.addView(mHelpTitle);
         help.addView(mHelpBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -185,11 +185,11 @@ public class NgbSettingsMenu extends FrameLayout {
             line.setGravity(Gravity.CENTER_VERTICAL);
             line.setPadding(dp(14), dp(4), dp(8), dp(4));
             boolean on = tab == mTab;
-            line.setBackground(plate(0, on ? 0x33A87F3C : 0x08FFFFFF, on ? 0x00000000 : 0x1FFFFFFF, on ? 0 : 1));
+            line.setBackground(plate(0, on ? 0x33FFFFFF : 0x08FFFFFF, on ? 0x00000000 : 0x1FFFFFFF, on ? 0 : 1));
             View bar = new View(mActivity);
-            bar.setBackgroundColor(on ? 0xFFD9B26A : 0x00000000);
+            bar.setBackgroundColor(on ? 0xFF5C6472 : 0x00000000);
             line.addView(bar, new LinearLayout.LayoutParams(dp(3), dp(34)));
-            TextView t = text(names[i], 15, on ? 0xFFF6E3B4 : 0x99E4DBC8, on);
+            TextView t = text(names[i], 15, on ? 0xFFF2F5FA : 0x99E4DBC8, on);
             t.setPadding(dp(12), 0, 0, 0);
             line.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
             line.setOnClickListener(v -> {
@@ -313,7 +313,7 @@ public class NgbSettingsMenu extends FrameLayout {
     }
 
     private void addHead(String s) {
-        TextView t = text(s, 11, 0x88C9A96A, true);
+        TextView t = text(s, 11, 0x888D96A3, true);
         t.setPadding(dp(12), dp(10), 0, dp(4));
         mRowBox.addView(t);
     }
@@ -327,9 +327,9 @@ public class NgbSettingsMenu extends FrameLayout {
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setPadding(dp(12), dp(10), dp(12), dp(10));
-        TextView t = text(label, 14, 0xFFE9D6A8, false);
+        TextView t = text(label, 14, 0xFFDCE1E9, false);
         line.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView arrow = text("›", 14, 0x99C9A96A, false);
+        TextView arrow = text("›", 14, 0x998D96A3, false);
         line.addView(arrow);
         r.view = line;
         mRows.add(r);
@@ -353,9 +353,9 @@ public class NgbSettingsMenu extends FrameLayout {
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setPadding(dp(12), dp(9), dp(12), dp(9));
-        TextView t = text(label, 14, 0xFFE9D6A8, false);
+        TextView t = text(label, 14, 0xFFDCE1E9, false);
         line.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView val = text(choices[Math.max(0, Math.min(choices.length - 1, value))], 14, 0xFFF6E3B4, true);
+        TextView val = text(choices[Math.max(0, Math.min(choices.length - 1, value))], 14, 0xFFF2F5FA, true);
         val.setGravity(Gravity.RIGHT);
         line.addView(val);
         r.view = line;
@@ -381,9 +381,9 @@ public class NgbSettingsMenu extends FrameLayout {
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setPadding(dp(12), dp(9), dp(12), dp(9));
-        TextView t = text(label, 14, 0xFFE9D6A8, false);
+        TextView t = text(label, 14, 0xFFDCE1E9, false);
         line.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        TextView val = text(on ? "开" : "关", 14, on ? 0xFF9BD3A0 : 0x99909090, true);
+        TextView val = text(on ? "开" : "关", 14, on ? 0xFFBFC8D4 : 0x99808A96, true);
         val.setGravity(Gravity.RIGHT);
         line.addView(val);
         r.view = line;
@@ -394,7 +394,7 @@ public class NgbSettingsMenu extends FrameLayout {
             mFocus = mRows.indexOf(r);
             r.value = r.value == 0 ? 1 : 0;
             val.setText(r.value == 0 ? "开" : "关");
-            val.setTextColor(r.value == 0 ? 0xFF9BD3A0 : 0x99909090);
+            val.setTextColor(r.value == 0 ? 0xFFBFC8D4 : 0x99808A96);
             paintRows();
             if (r.sink != null)
                 r.sink.on(r.value);
@@ -420,7 +420,7 @@ public class NgbSettingsMenu extends FrameLayout {
         if (r.choices == null)
             return;
         mSheetBox.removeAllViews();
-        TextView head = text(r.label, 13, 0xFFF2E6C8, true);
+        TextView head = text(r.label, 13, 0xFFE8EBF0, true);
         head.setPadding(dp(16), dp(12), dp(16), dp(6));
         mSheetBox.addView(head);
 
@@ -432,9 +432,9 @@ public class NgbSettingsMenu extends FrameLayout {
         for (int i = 0; i < r.choices.length; i++) {
             final int v = i;
             boolean on = i == r.value;
-            TextView chip = text(r.choices[i], 13, on ? 0xFF1A1208 : 0xFFE9DCC0, on);
+            TextView chip = text(r.choices[i], 13, on ? 0xFFF2F5FA : 0xFFE9DCC0, on);
             chip.setPadding(dp(14), dp(9), dp(14), dp(9));
-            chip.setBackground(on ? plate(0, 0xFFD9B26A, 0, 0) : plate(0, 0x14FFFFFF, 0x33FFFFFF, 1));
+            chip.setBackground(on ? plate(0, 0xFF5C6472, 0, 0) : plate(0, 0x14FFFFFF, 0x33FFFFFF, 1));
             chip.setSingleLine(true);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                                                                          ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -586,8 +586,8 @@ public class NgbSettingsMenu extends FrameLayout {
 
     private GradientDrawable bar() {
         GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                                                 new int[] {0x55D9B26A, 0x18D9B26A, 0x00D9B26A});
-        d.setColor(0x18D9B26A);
+                                                 new int[] {0x55FFFFFF, 0x1FFFFFFF, 0x00FFFFFF});
+        d.setColor(0x1FFFFFFF);
         return d;
     }
 
@@ -612,7 +612,7 @@ public class NgbSettingsMenu extends FrameLayout {
         mSheet.setOnClickListener(v -> hideSheet());
         mSheetBox = new LinearLayout(mActivity);
         mSheetBox.setOrientation(LinearLayout.VERTICAL);
-        mSheetBox.setBackground(plate(12, 0xF0120E08, 0x55C9A96A, 1));
+        mSheetBox.setBackground(plate(12, 0xF014171C, 0x44FFFFFF, 1));
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                                                    ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.gravity = Gravity.BOTTOM;

@@ -628,14 +628,25 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         if (s_layout_combo[i] < 6) {
             if (s_down[i]) { int p=s_layout_combo[i]; st->Gamepad.bAnalogButtons[combo_buttons[p][0]]=255; st->Gamepad.bAnalogButtons[combo_buttons[p][1]]=255; }
         } else if (s_combo_active[i]) {
+            /* The sweep, then Y held for as long as the key is held: the press charges, the release cuts. */
+            if (!s_down[i]) {
+                s_combo_active[i] = false;
+                continue;
+            }
+            const Uint32 sweep = 250;   /* (a full turn of the stick in a quarter second, eased at both ends) */
             Uint32 elapsed = combo_now - s_combo_started[i];
-            if (elapsed < 360) {
-                float angle = (float)elapsed * (2.0f * (float)M_PI / 360.0f);
-                st->Gamepad.sThumbLX = (SHORT)(cosf(angle) * 32767.0f);
-                st->Gamepad.sThumbLY = (SHORT)(-sinf(angle) * 32767.0f);
-            } else if (elapsed < 480) {
+            if (elapsed < sweep) {
+                float t = (float)elapsed / (float)sweep;
+                t = t * t * (3.0f - 2.0f * t);
+                float angle = t * 2.0f * (float)M_PI;
+                if (!s_down[RSTICK]) {   /* (a finger turning the camera keeps the camera) */
+                    st->Gamepad.sThumbLX = (SHORT)(cosf(angle) * 32767.0f);
+                    st->Gamepad.sThumbLY = (SHORT)(-sinf(angle) * 32767.0f);
+                }
+            } else {
+                if (!s_down[RSTICK]) st->Gamepad.sThumbLX = st->Gamepad.sThumbLY = 0;
                 st->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] = 255;
-            } else s_combo_active[i] = false;
+            }
         }
     }
 
