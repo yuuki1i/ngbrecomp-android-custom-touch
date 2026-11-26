@@ -338,8 +338,10 @@ const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_n
 #define NGB_MENU_CTL_BASE 50
 #define NGB_MENU_CTL_MOUSE 55
 #define NGB_MENU_CTL_PROMPTS 56
+#define NGB_MENU_BIND_BASE 100
+static int s_menu_bind_slot; /* keyboard 1, keyboard 2, controller */
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CAT_CTL) return 8;
+    if (tab == CAT_CTL) return 7 + A_COUNT;
     if (tab < 0 || tab >= CATS) return 0;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
@@ -354,7 +356,7 @@ int ngb_menu_tab_row(int tab, int index) {
         if (index >= 0 && index < 5) return NGB_MENU_CTL_BASE + index;
         if (index == 5) return NGB_MENU_CTL_MOUSE;
         if (index == 6) return NGB_MENU_CTL_PROMPTS;
-        return index == 7 ? NGB_MENU_ROW_TOUCH : -1;
+        return index >= 7 && index < 7 + A_COUNT ? NGB_MENU_BIND_BASE + index - 7 : -1;
     }
     if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
     if (tab == CAT_CHEAT) {
@@ -383,7 +385,7 @@ int ngb_menu_row_get(int row) {
     if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl_toggle_get(row - NGB_MENU_CTL_BASE);
     if (row == NGB_MENU_CTL_MOUSE) return ngb_bind_mouse_sensitivity();
     if (row == NGB_MENU_CTL_PROMPTS) return ngb_bind_prompts();
-    return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row);
+    if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) return ngb_bind_get(row - NGB_MENU_BIND_BASE, s_menu_bind_slot);\n    return row == NGB_MENU_ROW_TOUCH ? 0 : ngb_pc_setting(row);
 }
 void ngb_menu_row_value(int row, char *out, size_t n) {
     if (!n) return;
@@ -6722,3 +6724,4 @@ int ngb_game_text_picture(const char *s, float cap, uint32_t *out, int maxw, int
     *oh = h;
     return 1;
 }
+\nvoid ngb_menu_row_activate(int row) { if (row >= NGB_MENU_BIND_BASE && row < NGB_MENU_BIND_BASE + A_COUNT) ngb_bind_capture_begin(row-NGB_MENU_BIND_BASE,s_menu_bind_slot); }\n
