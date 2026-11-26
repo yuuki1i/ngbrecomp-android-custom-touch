@@ -382,6 +382,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
+    if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();s_layout=s_layout!=1;s_layout_save=1;s_serial++;pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
@@ -927,6 +928,7 @@ static void draw_badge_text(const char *label, int centre, int y0, int bw)
 static void draw_editor_badge(void)
 {
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
+    draw_badge_text(d_edit_mode ? "X" : "E", s_w - 24, s_h / 2 - 9, 42);
     if (d_edit_mode) {
         draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
         draw_badge_text(s_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
@@ -997,6 +999,7 @@ static void draw_all(void)
     s_cvrec.n = 0;
     s_rec = &s_cvrec;
     for (int i = 0; i < NCTRL; i++) {
+        if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
