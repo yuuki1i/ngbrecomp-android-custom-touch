@@ -28,6 +28,7 @@
  * NGB_TOUCH_LOG=1 logs each control a finger lands on.
  */
 #include <math.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -124,6 +125,49 @@ static const struct { int edge; float x, y, r; } s_classic[NCTRL] = {
     [RS]      = { 1, 0.09f, 0.30f, 0.045f },
     [SWAP]    = { 0, 0.05f, 0.40f, 0.035f },
 };
+/* Where a texture pack goes: <sd card>/NGB/textures when the phone has a card the app can write, else the
+ * app's own files (src/d3d/gpu/texture.cpp dumps a texture there the first time it is drawn, and paints with
+ * whatever PNG of the same name is found). */
+const char *ngb_texture_dir(void)
+{
+    static char dir[512];
+    if (dir[0]) return dir;
+#if defined(__ANDROID__)
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity = SDL_AndroidGetActivity();
+    if (env && activity) {
+        jclass cls = (*env)->GetObjectClass(env, activity);
+        jmethodID method = cls ? (*env)->GetMethodID(env, cls, "sdCardFolder", "()Ljava/lang/String;") : NULL;
+        jstring card = method ? (jstring)(*env)->CallObjectMethod(env, activity, method) : NULL;
+        if (card) {
+            const char *utf = (*env)->GetStringUTFChars(env, card, NULL);
+            if (utf) {
+                snprintf(dir, sizeof dir, "%s/NGB/textures", utf);
+                (*env)->ReleaseStringUTFChars(env, card, utf);
+            }
+            (*env)->DeleteLocalRef(env, card);
+        }
+        if (cls) (*env)->DeleteLocalRef(env, cls);
+    }
+    if (!dir[0]) {
+        char *pref = SDL_GetPrefPath("NinjaGaidenBlack", "textures");
+        if (pref) {
+            snprintf(dir, sizeof dir, "%s", pref);
+            SDL_free(pref);
+        }
+    }
+#endif
+    if (!dir[0]) return NULL;
+    /* both levels of the folder, then ready */
+    for (char *slash = dir + 1; *slash; slash++) {
+        if (*slash != '/' && *slash != '\\') continue;
+        *slash = 0;
+        mkdir(dir, 0777);
+        *slash = '/';
+    }
+    return dir;
+}
+
 int ngb_pc_setting(int which);                    /* src/ingame_menu.c (48: the touch layout) */
 void ngb_touch_editor_open(void);   /* the Android touch editor (NgbActivity), src/touch_pad.c below */
 void ngb_settings_open(void);       /* the Android settings page: 画面 and 按键 */

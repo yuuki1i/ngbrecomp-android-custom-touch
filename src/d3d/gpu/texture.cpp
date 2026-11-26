@@ -1,6 +1,8 @@
 #include "gpu/texture.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <sys/stat.h>
 #include <bit>
 #include <cstring>
 #include <mutex>
@@ -321,8 +323,112 @@ uint32_t FaceSize(const TextureDesc& d) { return (LevelOffset(d, d.levels) + 127
 
 uint32_t TotalSize(const TextureDesc& d) { return d.cube ? FaceSize(d) * 6 : LevelOffset(d, d.levels); }
 
-void DecodeLevel(const TextureDesc& d, uint32_t level, uint32_t face, const uint8_t* guest, const uint32_t* palette,
-                 std::vector<uint8_t>& out, uint32_t& row_pitch) {
+/* ---- texture packs: the phone's own pictures where the game's textures would be ----
+ * Every level is dumped once as PNG (named by its size, level and a hash of the console texels), so a player
+ * can paint over it; the next run a file of the same name is loaded in its place. Exact matches only, so a
+ * pack can never disturb a texture it did not come from. */
+extern "C" const char *ngb_texture_dir(void) __attribute__((weak));
+extern "C" int stbi_write_png(const char *filename, int w, int h, int comp, const void *data, int stride_in_bytes);
+extern "C" unsigned char *stbi_load_from_memory(const unsigned char *buffer, int len, int *x, int *y, int *comp,
+                                                int req_comp);
+extern "C" void stbi_image_free(void *retval_from_stbi_load);
+
+namespace {
+uint64_t TexHash(const TextureDesc& d, uint32_t level, uint32_t face, const std::vector<uint8_t>& px) {
+    uint64_t h = 0xcbf29ce484222325ull;
+    auto mix = [&h](uint64_t v) {
+        for (int i = 0; i < 8; i++) { h ^= (v >> (i * 8)) & 0xff; h *= 0x100000001b3ull; }
+    };
+    mix(d.format); mix(d.width); mix(d.height); mix(d.linear ? 1 : 0); mix(level); mix(face);
+    size_t n = px.size();
+    size_t step = n > 65536 ? n / 65536 : 1;   /* a sample of the texels, not all of them, for speed */
+    for (size_t i = 0; i < n; i += step) { h ^= px[i]; h *= 0x100000001b3ull; }
+    mix(n);
+    return h;
+}
+
+bool ReadFile(const char* path, std::vector<uint8_t>& out) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return false;
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    bool ok = len > 0 && len < 64 * 1024 * 1024;
+    if (ok) {
+        out.resize((size_t)len);
+        ok = fread(out.data(), 1, (size_t)len, f) == (size_t)len;
+    }
+    fclose(f);
+    return ok;
+}
+
+void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<uint8_t>& out, uint32_t row_pitch) {
+    if (!ngb_texture_dir) return;
+    const char* dir = ngb_texture_dir();
+    if (!dir || !dir[0]) return;
+    uint32_t w = d.linear ? d.width : std::max(d.width >> level, 1u);
+    uint32_t h = d.linear ? d.height : std::max(d.height >> level, 1u);
+    if (w < 16 || h < 16 || w > 2048 || h > 2048) return;
+    if (level != 0) return;                                             /* (the base level only: one file per texture) */
+    if (row_pitch != w * 4 || out.size() != size_t(w) * h * 4) return;   /* BGRA8 rows only, one slice */
+    static std::mutex s_pack_lock;
+    static std::unordered_map<uint64_t, int8_t> s_pack_seen;   /* hash: 1 packed, 0 dumped, -1 not to be packed */
+    static int s_dumped;                                      /* (a pack of a whole game is a great many files) */
+    uint64_t hash = TexHash(d, level, face, out);
+    int8_t seen = 2;   /* 2: not looked at yet */
+    {
+        std::lock_guard<std::mutex> guard(s_pack_lock);
+        auto it = s_pack_seen.find(hash);
+        if (it != s_pack_seen.end()) seen = it->second;
+    }
+    if (seen == 0 || seen == -1) return;   /* (already dumped, or given up on: no disk work again) */
+    char name[96], path[640];
+    snprintf(name, sizeof name, "%ux%u_l%u_%016llx.png", w, h, level, (unsigned long long)hash);
+    snprintf(path, sizeof path, "%s/%s", dir, name);
+    FILE* probe = seen == 1 ? nullptr : fopen(path, "rb");
+    if (seen == 1 || probe) {   /* a pack has this texture: paint with it */
+        if (probe) fclose(probe);
+        std::vector<uint8_t> bytes;
+        if (ReadFile(path, bytes)) {
+            int iw = 0, ih = 0, ic = 0;
+            unsigned char* px = stbi_load_from_memory(bytes.data(), (int)bytes.size(), &iw, &ih, &ic, 4);
+            if (px) {
+                if (uint32_t(iw) == w && uint32_t(ih) == h)
+                    for (size_t i = 0, n = size_t(w) * h; i < n; i++) {
+                        out[i * 4 + 0] = px[i * 4 + 2];
+                        out[i * 4 + 1] = px[i * 4 + 1];
+                        out[i * 4 + 2] = px[i * 4 + 0];
+                        out[i * 4 + 3] = px[i * 4 + 3];
+                    }
+                stbi_image_free(px);
+            }
+        }
+        std::lock_guard<std::mutex> guard(s_pack_lock);
+        s_pack_seen[hash] = 1;
+        return;
+    }
+    /* not there yet: dump it once, so the player can see -- and repaint -- the console's own texels */
+    int8_t mark = -1;
+    if (s_dumped < 800) {
+        std::vector<uint8_t> rgba(out.size());
+        for (size_t i = 0, n = size_t(w) * h; i < n; i++) {
+            rgba[i * 4 + 0] = out[i * 4 + 2];
+            rgba[i * 4 + 1] = out[i * 4 + 1];
+            rgba[i * 4 + 2] = out[i * 4 + 0];
+            rgba[i * 4 + 3] = out[i * 4 + 3];
+        }
+        if (stbi_write_png(path, (int)w, (int)h, 4, rgba.data(), (int)w * 4)) {
+            s_dumped++;
+            mark = 0;
+        }
+    }
+    std::lock_guard<std::mutex> guard(s_pack_lock);
+    s_pack_seen[hash] = mark;
+}
+}  // namespace
+
+static void DecodeLevelBody(const TextureDesc& d, uint32_t level, uint32_t face, const uint8_t* guest,
+                            const uint32_t* palette, std::vector<uint8_t>& out, uint32_t& row_pitch) {
     const FormatInfo& f = Format(d.format);
     uint32_t w = d.linear ? d.width : std::max(d.width >> level, 1u);
     uint32_t h = d.linear ? d.height : std::max(d.height >> level, 1u);
@@ -392,6 +498,14 @@ void DecodeLevel(const TextureDesc& d, uint32_t level, uint32_t face, const uint
                     Texel(d.format, p, o);
                 }
             }
+}
+
+void DecodeLevel(const TextureDesc& d, uint32_t level, uint32_t face, const uint8_t* guest, const uint32_t* palette,
+                 std::vector<uint8_t>& out, uint32_t& row_pitch) {
+    DecodeLevelBody(d, level, face, guest, palette, out, row_pitch);
+    if (!Format(d.format).compressed && Format(d.format).host == Host::BGRA8 && !Format(d.format).depth &&
+        d.depth == 1 && !d.cube)
+        PackLevel(d, level, face, out, row_pitch);
 }
 
 uint32_t LinearColorFormat(uint32_t f) {
