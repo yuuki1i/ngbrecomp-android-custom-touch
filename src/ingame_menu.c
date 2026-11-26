@@ -1988,8 +1988,8 @@ static void activate(int key)
                 SDL_Event q = { .type = SDL_QUIT }; SDL_PushEvent(&q);
             } else s_quit_armed = true;
         } else if (s_sel >= 0 && s_sel < 1000) {
-            ngb_menu_row_change(s_sel, 1);
-            s_cfg = s_running;
+            if (s_sel >= 100 && s_sel < 100 + 40) ngb_menu_row_activate(s_sel);
+            else { ngb_menu_row_change(s_sel, 1); s_cfg = s_running; }
         }
         break;
     case KEY_BACK: apply_and_close(); break;
