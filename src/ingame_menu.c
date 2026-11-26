@@ -43,7 +43,7 @@ static volatile int s_want;              /* open at the next frame */
 static bool s_open;
 static NgbSettings s_cfg, s_original;
 static int s_sel;
-static int s_original_values[8][10];
+static int s_original_values[8][20];
 static bool s_quit_armed;
 static bool s_wait_release;              /* pad blocked until let go */
 
@@ -2009,7 +2009,7 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
         s_cfg = s_running;
         memset(s_original_values, 0, sizeof s_original_values);
         for (int t = 0; t < ngb_menu_tab_count() && t < 8; t++)
-            for (int i = 0; i < ngb_menu_tab_row_count(t) && i < 10; i++) {
+            for (int i = 0; i < ngb_menu_tab_row_count(t) && i < 20; i++) {
                 int row = ngb_menu_tab_row(t, i);
                 s_original_values[t][i] = ngb_menu_row_get(row);
             }

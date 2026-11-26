@@ -341,7 +341,11 @@ const char *ngb_menu_tab_name(int tab) { return tab >= 0 && tab < CATS ? s_cat_n
 int ngb_menu_tab_row_count(int tab) {
     if (tab == CAT_CTL) return 8;
     if (tab < 0 || tab >= CATS) return 0;
-    if (tab == CAT_CHEAT) return 7;
+    if (tab == CAT_CHEAT) {
+        int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
+        int u = 0; while (u < CAT_ROWS && s_cat_rows[CAT_UNL][u] >= 0) u++;
+        return n + u;
+    }
     int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0) n++;
     return n;
 }
@@ -353,6 +357,10 @@ int ngb_menu_tab_row(int tab, int index) {
         return index == 7 ? NGB_MENU_ROW_TOUCH : -1;
     }
     if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
+    if (tab == CAT_CHEAT) {
+        int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
+        return index < n ? s_cat_rows[tab][index] : s_cat_rows[CAT_UNL][index - n];
+    }
     return s_cat_rows[tab][index];
 }
 const char *ngb_menu_row_label(int row) {
