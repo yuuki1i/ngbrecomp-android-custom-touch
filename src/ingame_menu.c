@@ -1999,6 +1999,8 @@ static void activate(int key)
 /* Renderer's thread, every frame while the game is held. */
 bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
 {
+    extern int ngb_bind_capture_tick(void);
+    if (s_open) ngb_bind_capture_tick(); /* poll controller captures from the unified menu */
     if (!s_open) {
         s_open = true;
         fprintf(stderr, "[MENU] opened\n");
