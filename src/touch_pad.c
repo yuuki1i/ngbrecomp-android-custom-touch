@@ -93,7 +93,7 @@ static const Ctrl s_ctrl[NCTRL] = {
     [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.035f, "layout", "<>", 0xE6E6E6, "swap" },
     [NINPO]   = { COMBO, 1, 0.52f, 0.46f, 0.060f, "NINPO", "N", 0xD8DDE4, "button_y" },
     [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0xD8DDE4, "button_x" },
-    [CUSTOM1] = { COMBO, 1, 0.52f, 0.32f, 0.055f, "C1", "C1", 0xD8DDE4, "button_a" },
+    [CUSTOM1] = { COMBO, 1, 0.135f, 0.63f, 0.052f, "C1", "360", 0xD8DDE4, "button_a" },
     [CUSTOM2] = { COMBO, 1, 0.52f, 0.44f, 0.055f, "C2", "C2", 0xD8DDE4, "button_b" },
     [CUSTOM3] = { COMBO, 1, 0.52f, 0.56f, 0.055f, "C3", "C3", 0x4C9BEA, "button_x" },
     [CUSTOM4] = { COMBO, 1, 0.52f, 0.68f, 0.055f, "C4", "C4", 0x4C9BEA, "button_y" },
@@ -176,7 +176,11 @@ static void layout_defaults(void) {
         [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
         [SWAP]=PA_NONE,
     };
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
+    /* The 360 charge, one tap: the stick sweeps a full turn and Y follows (combo 6), beside the face buttons
+     * where the right thumb already is. It starts out on the pad -- it is a move, not a setting. */
+    s_layout_enabled[CUSTOM1]=true; s_layout_combo[CUSTOM1]=6; s_layout_alpha[CUSTOM1]=0.6f;
+    s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0;
