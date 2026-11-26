@@ -163,7 +163,7 @@ static void layout_defaults(void) {
     for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
-    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_skin_path[0]=0;
+    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_skin_path[0]=0;
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     char active[512]; snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);
     FILE *af=fopen(active,"r"); if(af){int p;if(fscanf(af,"%d",&p)==1&&p>=0&&p<=2)s_preset=p;fclose(af);}
