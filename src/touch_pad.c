@@ -124,6 +124,11 @@ static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, mov
 typedef struct { float x, y, r; } Place;
 
 
+static void add_custom_combo(void);
+static void delete_selected_combo(void);
+static void toggle_editor(void);
+static void edit_control(int c, int action);
+
 static void layout_defaults(void)
 {
     for (int i = 0; i < NCTRL; i++) {
@@ -219,6 +224,24 @@ static void edit_control(int c, int action)
     s_layout_revision++; layout_save(); s_serial++;
 }
 
+
+/* One-tap editor actions; targets are expressed as screen fractions for 1080p/2K. */
+static int editor_toolbar_action(float x, float y)
+{
+    if (!s_edit_mode || y >= 0.105f) return 0;
+    float q = x / s_aspect;
+    if (q < 0.105f) { add_custom_combo(); return 1; }
+    if (q > 0.895f) { delete_selected_combo(); return 1; }
+    if (q > 0.455f && q < 0.545f) { toggle_editor(); return 1; }
+    if (s_selected < 0) return 0;
+    if (q > 0.245f && q < 0.335f) edit_control(s_selected, 0);
+    else if (q > 0.355f && q < 0.445f) edit_control(s_selected, 1);
+    else if (q > 0.555f && q < 0.645f) edit_control(s_selected, 2);
+    else if (q > 0.665f && q < 0.755f) edit_control(s_selected, 3);
+    else if (q > 0.775f && q < 0.865f) edit_control(s_selected, 4);
+    else return 0;
+    return 1;
+}
 
 static void add_custom_combo(void)
 {
@@ -388,16 +411,13 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     if (ww > 0 && wh > 0) s_aspect = (float)ww / (float)wh;
     float x = ev->tfinger.x * s_aspect, y = ev->tfinger.y;
 
-    /* Editor toolbar: add at top-left; delete the selected custom combo at top-right. */
-    if (ev->type == SDL_FINGERDOWN && s_edit_mode && y < 0.12f && x < s_aspect * 0.16f) {
-        add_custom_combo(); pthread_mutex_unlock(&s_lock); return 0;
-    }
-    if (ev->type == SDL_FINGERDOWN && s_edit_mode && y < 0.12f && x > s_aspect * 0.84f) {
-        delete_selected_combo(); pthread_mutex_unlock(&s_lock); return 0;
-    }
-    /* Tap the small EDIT badge at the top centre to enter/leave layout editing. */
-    if (ev->type == SDL_FINGERDOWN && x > s_aspect * 0.42f && x < s_aspect * 0.58f && y < 0.12f) {
-        toggle_editor(); pthread_mutex_unlock(&s_lock); return 0;
+    /* Compact NGB Touch editor toolbar: direct access to common properties. */
+    if (ev->type == SDL_FINGERDOWN && y < 0.105f) {
+        if (s_edit_mode) {
+            if (editor_toolbar_action(x, y)) { pthread_mutex_unlock(&s_lock); return 0; }
+        } else if (x > s_aspect * 0.455f && x < s_aspect * 0.545f) {
+            toggle_editor(); pthread_mutex_unlock(&s_lock); return 0;
+        }
     }
     int f;
     for (f = 0; f < MAX_FINGERS && !(s_finger[f].used && s_finger[f].id == ev->tfinger.fingerId); f++);
@@ -898,8 +918,8 @@ static void draw_style_outline(float cx, float cy, float r, int color, int shape
 {
     if (!selected && color == 0 && shape == 0) return;
     static const uint8_t colors[6][3] = {
-        {245, 190, 65}, {70, 190, 255}, {245, 90, 90},
-        {95, 220, 135}, {190, 125, 255}, {255, 145, 65}
+        {55, 166, 255}, {38, 205, 232}, {92, 132, 255},
+        {85, 205, 190}, {130, 160, 255}, {90, 220, 245}
     };
     int ci = color < 0 || color > 5 ? 0 : color;
     uint8_t cr = selected ? 255 : colors[ci][0], cg = selected ? 210 : colors[ci][1], cb = selected ? 90 : colors[ci][2];
@@ -926,7 +946,7 @@ static void draw_badge_text(const char *label, int centre, int y0, int bw)
     for (int y = y0; y < y0 + bh; y++)
         for (int x = x0; x < x0 + bw; x++) {
             bool edge = x == x0 || x == x0 + bw - 1 || y == y0 || y == y0 + bh - 1;
-            badge_pixel(x, y, edge ? 210 : 27, edge ? 177 : 34, edge ? 92 : 45, edge ? 220 : 190);
+            badge_pixel(x, y, edge ? 55 : 12, edge ? 166 : 24, edge ? 255 : 42, edge ? 238 : 218);
         }
     int total = 0, n = (int)strlen(label);
     for (int i = 0; i < n; i++) total += launcher_font_w[label[i] - 32];
@@ -948,8 +968,13 @@ static void draw_editor_badge(void)
 {
     draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
     if (d_edit_mode) {
-        draw_badge_text("ADD", 24, 2, 42);
-        draw_badge_text("DEL", s_w - 24, 2, 42);
+        draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
+        draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
+        draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
+        draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
+        draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
+        draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
+        draw_badge_text("ART", (int)(s_w * 0.82f), 2, 42);
     }
 }
 
