@@ -274,7 +274,9 @@ public class NgbSettingsMenu extends FrameLayout {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
         });
-        addAction("生成本目录索引", "把这个文件夹里的图排成一张网页（index.html）一次看全，找贴图快；电脑上用浏览器打开最方便。",
+        addAction("整理贴图文件夹", "把散在根目录的图按尺寸（512_plus / 256 / 128 / small）归进各自文件夹。",
+                  () -> Toast.makeText(mActivity, mActivity.tidyTextureFolder(), Toast.LENGTH_LONG).show());
+        addAction("生成本目录索引", "把这个文件夹里的图（按尺寸分组）排成一张网页 index.html，一次看全，找贴图快。",
                   () -> Toast.makeText(mActivity, mActivity.makeTextureIndex(), Toast.LENGTH_LONG).show());
         addAction("写一张测试图", "往文件夹里写一张纯色小图，确认真的能写进去、也能在文件管理器里看到。",
                   () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());

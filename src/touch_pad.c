@@ -1899,14 +1899,53 @@ static int ends_png(const char *s) {
         && (e[2] == 'g' || e[2] == 'G');
 }
 
+/* The folder a picture belongs to, worked out from its own name ("512x1024_..."), so a pack dumped before the
+ * buckets existed can be put where the eye expects it. */
+static const char *bucket_for_name(const char *name) {
+    unsigned w = 0, h = 0;
+    if (sscanf(name, "%ux%u_", &w, &h) != 2) return NULL;
+    unsigned m = w > h ? w : h;
+    return m >= 512 ? "512_plus" : m >= 256 ? "256" : m >= 128 ? "128" : "small";
+}
+
+static int write_section(FILE *fp, const char *root, const char *sub, const char *heading, int *total) {
+    char folder[620];
+    if (sub && sub[0]) snprintf(folder, sizeof folder, "%s/%s", root, sub);
+    else snprintf(folder, sizeof folder, "%s", root);
+    DIR *dp = opendir(folder);
+    if (!dp) return 0;
+    int n = 0;
+    struct dirent *e;
+    while ((e = readdir(dp))) {
+        if (!ends_png(e->d_name)) continue;
+        if (n == 0)
+            fprintf(fp, "<h3 style='margin:18px 0 6px;color:#cfd8e6'>%s</h3>"
+                        "<div style='display:flex;flex-wrap:wrap;gap:12px'>", heading);
+        char href[640];
+        if (sub && sub[0]) snprintf(href, sizeof href, "%s/%s", sub, e->d_name);
+        else snprintf(href, sizeof href, "%s", e->d_name);
+        fprintf(fp, "<figure style='margin:0;width:148px'>"
+                    "<a href='%s' target=_blank><img src='%s' loading=lazy "
+                    "style='width:148px;background:#000;image-rendering:pixelated'></a>"
+                    "<figcaption style='font-size:11px;color:#9aa7b8;word-break:break-all'>%s"
+                    "</figcaption></figure>", href, href, e->d_name);
+        n++;
+        (*total)++;
+    }
+    if (n) fprintf(fp, "</div>");
+    closedir(dp);
+    return n;
+}
+
 /* A sheet of every picture in the folder, so a player looking for one texture among hundreds can see them
- * all at once in the phone's browser instead of opening files one by one. */
+ * all at once in the phone's browser instead of opening files one by one. The pictures are grouped the way
+ * the folders are grouped: by their own size. */
 JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureIndex(
     JNIEnv *env, jobject activity) {
     (void)activity;
     const char *dir = ngb_texture_dir();
     if (!dir || !dir[0]) return (*env)->NewStringUTF(env, "还没有贴图文件夹");
-    char path[600], msg[256];
+    char path[620], msg[256];
     snprintf(path, sizeof path, "%s/index.html", dir);
     FILE *fp = fopen(path, "wb");
     if (!fp) {
@@ -1915,31 +1954,49 @@ JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_native
     }
     fprintf(fp, "<!doctype html><meta charset=utf-8><title>NGB 贴图</title>"
                 "<body style='background:#12141a;color:#dfe4ec;font:13px sans-serif;padding:10px'>"
-                "<h3 style='margin:6px 0'>NGB 贴图包</h3>"
-                "<p style='color:#9aa7b8'>点图看原图。同名 PNG 放回这个文件夹就顶替游戏贴图，"
-                "DXT1/DXT3/DXT5 也一样（会按原尺寸重新压回 DXT）；改完回到游戏按「重新读取贴图」。</p>"
-                "<div style='display:flex;flex-wrap:wrap;gap:12px'>"
-                "<div id=wrap style='display:flex;flex-wrap:wrap;gap:12px'>");
-    int n = 0;
+                "<h2 style='margin:6px 0'>NGB 贴图包</h2>"
+                "<p style='color:#9aa7b8'>点图看原图。同名 PNG 放回原来的尺寸文件夹就顶替游戏贴图（DXT1/3/5 "
+                "也一样，会按原尺寸重新压回 DXT）；改完回游戏按「重新读取贴图」。</p>");
+    int total = 0;
+    write_section(fp, dir, "512_plus", "512 及更大", &total);
+    write_section(fp, dir, "256", "256", &total);
+    write_section(fp, dir, "128", "128", &total);
+    write_section(fp, dir, "small", "小图（128 以下）", &total);
+    write_section(fp, dir, "", "未分类", &total);
+    fprintf(fp, "</body>");
+    fclose(fp);
+    snprintf(msg, sizeof msg, "索引好了：%d 张 → %s/index.html", total, dir);
+    return (*env)->NewStringUTF(env, msg);
+}
+
+/* Put the pictures already in the root where they belong: "512x1024_..." into 512_plus/ and so on. */
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureTidy(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    const char *dir = ngb_texture_dir();
+    if (!dir || !dir[0]) return (*env)->NewStringUTF(env, "还没有贴图文件夹");
+    int moved = 0;
     DIR *dp = opendir(dir);
     if (dp) {
         struct dirent *e;
         while ((e = readdir(dp))) {
             if (!ends_png(e->d_name)) continue;
-            fprintf(fp, "<figure style='margin:0;width:148px'>"
-                        "<a href='%s' target=_blank><img src='%s' loading=lazy "
-                        "style='width:148px;background:#000;image-rendering:pixelated'></a>"
-                        "<figcaption style='font-size:11px;color:#9aa7b8;word-break:break-all'>%s"
-                        "</figcaption></figure>", e->d_name, e->d_name, e->d_name);
-            n++;
+            const char *bucket = bucket_for_name(e->d_name);
+            if (!bucket) continue;
+            char sub[640], from[700], to[720];
+            snprintf(sub, sizeof sub, "%s/%s", dir, bucket);
+            mkdir(sub, 0777);
+            snprintf(from, sizeof from, "%s/%s", dir, e->d_name);
+            snprintf(to, sizeof to, "%s/%s", sub, e->d_name);
+            if (rename(from, to) == 0) moved++;
         }
         closedir(dp);
     }
-    fprintf(fp, "</div></div></body>");
-    fclose(fp);
-    snprintf(msg, sizeof msg, "索引好了：%d 张 → %s/index.html", n, dir);
+    char msg[256];
+    snprintf(msg, sizeof msg, "整理好了：%d 张按尺寸放进了各自文件夹", moved);
     return (*env)->NewStringUTF(env, msg);
 }
+
 JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureCount(
     JNIEnv *env, jobject activity) {
     (void)env; (void)activity;

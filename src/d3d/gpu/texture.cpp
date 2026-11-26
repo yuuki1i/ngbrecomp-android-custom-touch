@@ -534,7 +534,37 @@ bool EncodeCompressed(const char* path, uint32_t fmt, const FormatInfo& f, uint3
     return true;
 }
 
-bool DumpCompressed(const char* dir, uint32_t fmt, const FormatInfo& f, uint32_t w, uint32_t h,
+/* The folder a texture's own size puts it in: the eye finds a 512 or a 1024 far quicker in a bucket than in
+ * one flat list of eight hundred pictures. */
+const char* SizeFolder(uint32_t w, uint32_t h) {
+    uint32_t m = w > h ? w : h;
+    if (m >= 512) return "512_plus";
+    if (m >= 256) return "256";
+    if (m >= 128) return "128";
+    return "small";
+}
+
+/* The path a pack's picture would be at: the size folder first, then the folder's own root (a player may
+ * simply drop one there). When nothing is found the size folder is left in out, so a dump lands in it. */
+bool PackLookup(const char* dir, const char* bucket, const char* name, char* out, size_t n) {
+    char sub[680];
+    snprintf(sub, sizeof sub, "%s/%s", dir, bucket);
+    mkdir(sub, 0777);
+    snprintf(out, n, "%s/%s", sub, name);
+    FILE* f = fopen(out, "rb");
+    if (f) { fclose(f); return true; }
+    char flat[700];
+    snprintf(flat, sizeof flat, "%s/%s", dir, name);
+    f = fopen(flat, "rb");
+    if (f) {
+        fclose(f);
+        snprintf(out, n, "%s", flat);
+        return true;
+    }
+    return false;
+}
+
+bool DumpCompressed(const char* path, uint32_t fmt, const FormatInfo& f, uint32_t w, uint32_t h,
                     const std::vector<uint8_t>& blocks, uint64_t hash) {
     int bw = int(std::max(1u, (w + 3) / 4)), bh = int(std::max(1u, (h + 3) / 4));
     if (blocks.size() < size_t(bw) * bh * f.bits) return false;
@@ -562,9 +592,6 @@ bool DumpCompressed(const char* dir, uint32_t fmt, const FormatInfo& f, uint32_t
                     std::memcpy(&rgba[(size_t(gy) * w + gx) * 4], px[y * 4 + x], 4);
                 }
         }
-    char name[128], path[700];
-    snprintf(name, sizeof name, "%ux%u_%s_l0_%016llx.png", w, h, f.name, (unsigned long long)hash);
-    snprintf(path, sizeof path, "%s/%s", dir, name);
     if (!stbi_write_png(path, int(w), int(h), 4, rgba.data(), int(w) * 4)) return false;
     s_dumped++;
     return true;
@@ -607,18 +634,15 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
         if (!fresh) return;
         char cname[128], cpath[700];
         snprintf(cname, sizeof cname, "%ux%u_%s_l0_%016llx.png", w, h, fmt.name, (unsigned long long)hb);
-        snprintf(cpath, sizeof cpath, "%s/%s", dir, cname);
-        FILE* cprobe = fopen(cpath, "rb");
-        if (cprobe) {                      /* (a PNG of this name: paint the texture with it) */
-            fclose(cprobe);
-            bool done = EncodeCompressed(cpath, d.format, fmt, w, h, out, row_pitch);
+        if (PackLookup(dir, SizeFolder(w, h), cname, cpath, sizeof cpath)) {
+            bool done = EncodeCompressed(cpath, d.format, fmt, w, h, out, row_pitch);   /* (a pack: paint with it) */
             std::lock_guard<std::mutex> guard(s_pack_lock);
             s_pack_seen[hb] = done ? 1 : -1;
             return;
         }
         int8_t mark = -1;
         if (ngb_texture_dump_on && s_dumped < 800)
-            mark = DumpCompressed(dir, d.format, fmt, w, h, out, hb) ? 0 : -1;
+            mark = DumpCompressed(cpath, d.format, fmt, w, h, out, hb) ? 0 : -1;
         std::lock_guard<std::mutex> guard(s_pack_lock);
         s_pack_seen[hb] = mark;
         return;
@@ -632,12 +656,10 @@ void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<
         if (it != s_pack_seen.end()) seen = it->second;
     }
     if (seen == 0 || seen == -1) return;   /* (already dumped, or given up on: no disk work again) */
-    char name[96], path[640];
+    char name[96], path[700];
     snprintf(name, sizeof name, "%ux%u_l%u_%016llx.png", w, h, level, (unsigned long long)hash);
-    snprintf(path, sizeof path, "%s/%s", dir, name);
-    FILE* probe = seen == 1 ? nullptr : fopen(path, "rb");
-    if (seen == 1 || probe) {   /* a pack has this texture: paint with it */
-        if (probe) fclose(probe);
+    bool have = PackLookup(dir, SizeFolder(w, h), name, path, sizeof path);
+    if (have) {                 /* a pack has this texture: paint with it */
         std::vector<uint8_t> bytes;
         if (ReadFile(path, bytes)) {
             int iw = 0, ih = 0, ic = 0;

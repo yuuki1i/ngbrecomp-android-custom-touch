@@ -56,6 +56,7 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTextureRescan();
     private native int nativeTextureCount();
     private native String nativeTextureIndex();
+    private native String nativeTextureTidy();
     private native void nativeTextureDirForget();
     private native String nativeVideoFilterSet(String path);
     private native String nativeVideoFilterName();
@@ -393,6 +394,7 @@ public class NgbActivity extends SDLActivity {
     }
     public int texturePackCount() { return nativeTextureCount(); }
     public String makeTextureIndex() { return nativeTextureIndex(); }
+    public String tidyTextureFolder() { return nativeTextureTidy(); }
     public void forgetTextureDir() { nativeTextureDirForget(); }
     public void rescanTextures() { nativeTextureRescan(); }
 
