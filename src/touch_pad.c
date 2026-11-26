@@ -1292,6 +1292,46 @@ void ngb_touch_menu_activate(int item)
 }
 
 #if defined(__ANDROID__)
+extern int ngb_menu_row_get(int row);
+extern void ngb_menu_row_change(int row,int dir);
+extern void ngb_menu_row_value(int row,char *out,size_t n);
+extern int ngb_touch_bind_count(void);
+extern int ngb_touch_bind_slot(void);
+extern void ngb_touch_bind_slot_change(int dir);
+extern const char *ngb_touch_bind_name(int action);
+extern int ngb_touch_bind_value(int action);
+extern void ngb_touch_bind_capture(int action);
+extern int ngb_touch_bind_capturing(void);
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchGameGet(JNIEnv *env,jobject activity,jint row) {
+    (void)env;(void)activity;return ngb_menu_row_get(row);
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchGameValue(JNIEnv *env,jobject activity,jint row) {
+    (void)activity;char value[96]={0};ngb_menu_row_value(row,value,sizeof value);return (*env)->NewStringUTF(env,value);
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchGameChange(JNIEnv *env,jobject activity,jint row,jint dir) {
+    (void)env;(void)activity;ngb_menu_row_change(row,dir);
+}
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindCount(JNIEnv *env,jobject activity) {
+    (void)env;(void)activity;return ngb_touch_bind_count();
+}
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindSlot(JNIEnv *env,jobject activity) {
+    (void)env;(void)activity;return ngb_touch_bind_slot();
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindSlotChange(JNIEnv *env,jobject activity,jint dir) {
+    (void)env;(void)activity;ngb_touch_bind_slot_change(dir);
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindName(JNIEnv *env,jobject activity,jint action) {
+    (void)activity;return (*env)->NewStringUTF(env,ngb_touch_bind_name(action));
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindValue(JNIEnv *env,jobject activity,jint action) {
+    (void)activity;char value[64]={0};ngb_bind_input_name(ngb_touch_bind_value(action),value,sizeof value);return (*env)->NewStringUTF(env,value);
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindCapture(JNIEnv *env,jobject activity,jint action) {
+    (void)env;(void)activity;ngb_touch_bind_capture(action);
+}
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchBindCapturing(JNIEnv *env,jobject activity) {
+    (void)env;(void)activity;return ngb_touch_bind_capturing();
+}
 JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchGet(
     JNIEnv *env, jobject activity, jint item) { (void)env; (void)activity; return ngb_touch_menu_get(item); }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchChange(
