@@ -335,9 +335,13 @@ static void change(int row, int step)
 #define NGB_MENU_ROW_TOUCH 1000
 #define NGB_MENU_TOUCH_BASE 1100
 #define NGB_MENU_TOUCH_ROWS 20
-int ngb_menu_tab_count(void) { return CATS + 1; }
+/* The unified Android menu has one Controls centre, not the legacy bindings tab.
+ * Visible tabs: Graphics, Display, Sound, Gameplay, Cheats, Menu Options, Touch. */
+int ngb_menu_tab_count(void) { return CATS; }
 const char *ngb_menu_tab_name(int tab) {
-    return tab == CATS ? "Touch" : tab >= 0 && tab < CATS ? s_cat_name[tab] : "";
+    if (tab == CATS - 1) return "Touch";
+    int actual = tab >= CAT_CTL ? tab + 1 : tab;
+    return tab >= 0 && actual < CATS ? s_cat_name[actual] : "";
 }
 #define NGB_MENU_CTL_BASE 50
 #define NGB_MENU_CTL_MOUSE 55
@@ -345,9 +349,10 @@ const char *ngb_menu_tab_name(int tab) {
 #define NGB_MENU_BIND_BASE 100
 static int s_menu_bind_slot; /* keyboard 1, keyboard 2, controller */
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CATS) return NGB_MENU_TOUCH_ROWS;
-    if (tab == CAT_CTL) return 8 + A_COUNT;
-    if (tab < 0 || tab >= CATS) return 0;
+    if (tab == CATS - 1) return NGB_MENU_TOUCH_ROWS;
+    int actual = tab >= CAT_CTL ? tab + 1 : tab;
+    if (actual < 0 || actual >= CATS) return 0;
+    tab = actual;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
         int u = 0; while (u < CAT_ROWS && s_cat_rows[CAT_UNL][u] >= 0) u++;
@@ -357,14 +362,10 @@ int ngb_menu_tab_row_count(int tab) {
     return n;
 }
 int ngb_menu_tab_row(int tab, int index) {
-    if (tab == CATS) return index >= 0 && index < NGB_MENU_TOUCH_ROWS ? NGB_MENU_TOUCH_BASE + index : -1;
-    if (tab == CAT_CTL) {
-        if (index >= 0 && index < 5) return NGB_MENU_CTL_BASE + index;
-        if (index == 5) return NGB_MENU_CTL_MOUSE;
-        if (index == 6) return NGB_MENU_CTL_PROMPTS;
-        return index >= 7 && index < 7 + A_COUNT ? NGB_MENU_BIND_BASE + index - 7 : index == 7 + A_COUNT ? NGB_MENU_ROW_TOUCH : -1;
-    }
-    if (tab < 0 || tab >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
+    if (tab == CATS - 1) return index >= 0 && index < NGB_MENU_TOUCH_ROWS ? NGB_MENU_TOUCH_BASE + index : -1;
+    int actual = tab >= CAT_CTL ? tab + 1 : tab;
+    if (actual < 0 || actual >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
+    tab = actual;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
         return index < n ? s_cat_rows[tab][index] : s_cat_rows[CAT_UNL][index - n];
