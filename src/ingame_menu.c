@@ -1636,9 +1636,9 @@ static int pad_key(void)
 
 /* ---------- drawing (0xAARRGGBB, software) ---------- */
 
-#define LH 740
-#define ROW_Y0 174
-#define ROW_H  44
+#define LH 540
+#define ROW_Y0 156
+#define ROW_H  30
 
 static uint32_t *s_px;
 
@@ -1727,8 +1727,8 @@ static int row_y(int row)
     return ROW_Y0 + row * ROW_H + (row >= ROW_RESUME ? 16 : 0);
 }
 
-#define LIST_TOP (ROW_Y0 - 8)
-#define LIST_BOTTOM 548
+#define LIST_TOP (ROW_Y0 - 6)
+#define LIST_BOTTOM 390
 #define LIST_VIEW_H (LIST_BOTTOM - LIST_TOP)
 static int category_count(void) { return ngb_menu_tab_row_count(s_cat); }
 static int category_row(int i) { return ngb_menu_tab_row(s_cat, i); }
@@ -1758,11 +1758,11 @@ static void list_scroll_step(void)
 static int row_hit(float lx, float ly, int *zone)
 {
     *zone = 0;
-    if (ly >= 98 && ly < 148 && lx >= 24 && lx < 934) {
+    if (ly >= 78 && ly < 114 && lx >= 24 && lx < 934) {
         int tab = (int)((lx - 24) / 130.0f);
         return tab < ngb_menu_tab_count() ? -100 - tab : -1;
     }
-    if (ly >= 612 && ly < 690) {
+    if (ly >= 444 && ly < 496) {
         if (lx >= 24 && lx < 210) return ROW_RESET;
         if (lx >= 365 && lx < 595) return ROW_RESUME;
         if (lx >= 742 && lx < 934) return ROW_QUIT;
@@ -1812,28 +1812,27 @@ static void draw(const uint32_t *backdrop)
                   ((q >> 8 & 255) * 3 / 10) << 8 | (q & 255) * 3 / 10;
     }
     fill(14, 14, LW - 28, LH - 28, 0x09121E, 246);
-    fill(14, 14, LW - 28, 76, 0x101D2C, 250);
-    fill(14, 88, LW - 28, 3, accent, 255);
+    fill(14, 14, LW - 28, 56, 0x101D2C, 250);
+    fill(14, 70, LW - 28, 3, accent, 255);
     fill(14, 14, 3, LH - 28, accent, 230);
-    text("NINJA GAIDEN BLACK", 34, 25, 30, white, 255, 0);
-    text("SETTINGS", 36, 58, 14, grey, 255, 0);
-    text("RECOMP  /  CONFIGURATION", LW - 34, 42, 15, accent, 255, 2);
+    text("NINJA GAIDEN BLACK", 34, 18, 24, white, 255, 0);
+    text("SETTINGS", 36, 44, 12, grey, 255, 0);
+    text("RECOMP  /  CONFIGURATION", LW - 34, 32, 13, accent, 255, 2);
 
     for (int i = 0; i < ngb_menu_tab_count(); i++) {
         int x = 24 + i * 130;
-        bool active = i == s_cat && s_cat_focus;
         bool current = i == s_cat;
-        fill(x, 99, 124, 43, current ? 0x24518A : 0x1B2A3B, current ? 245 : 205);
-        if (current) fill(x, 139, 124, 3, accent, 255);
-        text(ngb_menu_tab_name(i), x + 62, 113, 14, current ? white : grey, 255, 1);
-        (void)active;
+        bool focused = current && s_cat_focus;
+        fill(x, 78, 124, 34, current ? (focused ? 0x3268A2 : 0x24518A) : 0x1B2A3B, current ? 248 : 205);
+        if (current) fill(x, 109, 124, 3, accent, 255);
+        text(ngb_menu_tab_name(i), x + 62, 88, 12, current ? white : grey, 255, 1);
     }
 
-    fill(24, 158, 642, 400, 0x142235, 245);
-    fill(680, 158, 254, 400, 0x142235, 245);
-    text("OPTIONS", 42, 168, 13, accent, 255, 0);
-    text("VALUE", 638, 168, 12, grey, 255, 2);
-    fill(40, 190, 610, 1, 0x38506B, 180);
+    fill(24, 118, 642, 278, 0x142235, 245);
+    fill(680, 118, 254, 278, 0x142235, 245);
+    text("OPTIONS", 42, 128, 11, accent, 255, 0);
+    text("VALUE", 638, 128, 10, grey, 255, 2);
+    fill(40, 148, 610, 1, 0x38506B, 180);
 
     for (int i = 0; i < category_count(); i++) {
         int row = category_row(i);
@@ -1841,25 +1840,24 @@ static void draw(const uint32_t *backdrop)
         if (y + ROW_H <= LIST_TOP || y >= LIST_BOTTOM) continue;
         bool sel = row == s_sel && !s_cat_focus;
         if (sel) {
-            fill(34, y + 1, 618, ROW_H - 3, 0x24518A, 245);
-            fill(34, y + 1, 4, ROW_H - 3, accent, 255);
-        } else if (i & 1) fill(34, y + 1, 618, ROW_H - 3, 0x54708D, 18);
-        const char *label = ngb_menu_row_label(row);
+            fill(34, y + 1, 618, ROW_H - 2, 0x24518A, 245);
+            fill(34, y + 1, 4, ROW_H - 2, accent, 255);
+        } else if (i & 1) fill(34, y + 1, 618, ROW_H - 2, 0x54708D, 18);
         char val[96]; ngb_menu_row_value(row, val, sizeof val);
-        text(label, 52, y + 12, 16, sel ? white : grey, 255, 0);
-        text("<", 506, y + 12, 15, sel ? white : grey, 255, 1);
-        text(val, 570, y + 12, 15, white, 255, 2);
-        text(">", 632, y + 12, 15, sel ? white : grey, 255, 1);
+        text(ngb_menu_row_label(row), 52, y + 8, 13, sel ? white : grey, 255, 0);
+        text("<", 506, y + 8, 12, sel ? white : grey, 255, 1);
+        text(val, 570, y + 8, 12, white, 255, 2);
+        text(">", 632, y + 8, 12, sel ? white : grey, 255, 1);
     }
     fill(650, LIST_TOP, 4, LIST_VIEW_H, 0x34465B, 180);
     if (LIST_MAX_SCROLL > 0) {
-        float th = fmaxf(30.0f, LIST_VIEW_H * (float)LIST_VIEW_H / LIST_CONTENT_H);
+        float th = fmaxf(24.0f, LIST_VIEW_H * (float)LIST_VIEW_H / LIST_CONTENT_H);
         float ty = LIST_TOP + (LIST_VIEW_H - th) * s_list_scroll / LIST_MAX_SCROLL;
         fill(648, ty, 8, th, accent, 240);
     }
 
-    text("OPTION DETAILS", 698, 174, 14, accent, 255, 0);
-    fill(698, 198, 218, 2, 0x4C6D91, 200);
+    text("OPTION DETAILS", 698, 132, 12, accent, 255, 0);
+    fill(698, 153, 218, 2, 0x4C6D91, 200);
     const char *selected_label = s_sel == ROW_RESET ? "Reset Section" :
                                  s_sel == ROW_RESUME ? "Save & Resume" :
                                  s_sel == ROW_QUIT ? "Exit Game" : ngb_menu_row_label(s_sel);
@@ -1867,27 +1865,27 @@ static void draw(const uint32_t *backdrop)
                                s_sel == ROW_RESUME ? "Save all changed settings and return to the game." :
                                s_sel == ROW_QUIT ? "Close Ninja Gaiden Black. Confirm this action a second time." :
                                ngb_menu_row_help(s_sel);
-    text(selected_label, 698, 216, 17, white, 255, 0);
-    text_wrapped(selected_help, 698, 250, 218, 14, grey, 255, 22);
-    text("CURRENT VALUE", 698, 474, 12, accent, 255, 0);
+    text(selected_label, 698, 169, 15, white, 255, 0);
+    text_wrapped(selected_help, 698, 196, 218, 12, grey, 255, 17);
+    text("CURRENT VALUE", 698, 332, 10, accent, 255, 0);
     char current[96] = ""; ngb_menu_row_value(s_sel, current, sizeof current);
-    text(current, 698, 496, 16, white, 255, 0);
+    text(current, 698, 350, 13, white, 255, 0);
 
-    fill(24, 574, 910, 1, 0x38506B, 200);
-    text("D-PAD / STICK  NAVIGATE", 34, 590, 12, grey, 255, 0);
-    text("A / ENTER  SELECT", 480, 590, 12, grey, 255, 1);
-    text("B / ESC  BACK", 924, 590, 12, grey, 255, 2);
+    fill(24, 410, 910, 1, 0x38506B, 200);
+    text("D-PAD / STICK  NAVIGATE", 34, 421, 10, grey, 255, 0);
+    text("L / R  CHANGE TAB", 480, 421, 10, grey, 255, 1);
+    text("A  SELECT     B  BACK", 924, 421, 10, grey, 255, 2);
 
-    fill(24, 614, 186, 54, 0x1B2A3B, 235);
-    fill(24, 614, 186, 2, 0x4B9BEE, 255);
-    text("RESET SECTION", 117, 635, 14, white, 255, 1);
-    fill(365, 614, 230, 54, 0x24518A, 250);
-    fill(365, 614, 230, 2, accent, 255);
-    text("SAVE & RESUME", 480, 635, 16, white, 255, 1);
-    fill(742, 614, 192, 54, 0x1B2A3B, 235);
-    fill(742, 614, 192, 2, 0x4B9BEE, 255);
-    text("EXIT GAME", 838, 635, 14, white, 255, 1);
-    text("Changes are saved when you resume.", LW / 2, 686, 12, grey, 255, 1);
+    fill(24, 444, 186, 48, 0x1B2A3B, 235);
+    fill(24, 444, 186, 2, 0x4B9BEE, 255);
+    text("RESET SECTION", 117, 463, 12, white, 255, 1);
+    fill(365, 444, 230, 48, 0x24518A, 250);
+    fill(365, 444, 230, 2, accent, 255);
+    text("SAVE & RESUME", 480, 463, 14, white, 255, 1);
+    fill(742, 444, 192, 48, 0x1B2A3B, 235);
+    fill(742, 444, 192, 2, 0x4B9BEE, 255);
+    text("EXIT GAME", 838, 463, 12, white, 255, 1);
+    text("Changes are saved when you resume.", LW / 2, 505, 10, grey, 255, 1);
 }
 
 /* ---------- open, run, close ---------- */
