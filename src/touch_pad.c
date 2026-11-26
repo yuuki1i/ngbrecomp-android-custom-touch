@@ -85,7 +85,7 @@ static const Ctrl s_ctrl[NCTRL] = {
                                                        nearer each other, both pressed at once for a reset: #284) */
     [LS]      = { BUTTON, 0, 0.09f,  0.90f,  0.04f,  "LS", "LS", 0xE6E6E6, "click_l" },
     [RS]      = { BUTTON, 1, 0.09f,  0.90f,  0.045f, "RS", "RS", 0xE6E6E6, "click_r" },
-    [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.035f, "layout", "<>", 0xE6E6E6, "swap" },   /* the layout switch */
+    [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.050f, "edit", "EDIT", 0x4C9BEA, "swap" },   /* the layout switch */
 };
 
 /* Classic: the places of 0.9.x's controls, in the same pictures (#285: Block held by a left finger at the top
@@ -326,7 +326,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     layout_load(); pthread_mutex_lock(&s_lock);
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
-    if(ev->type==SDL_FINGERDOWN&&y<.105f&&x>s_aspect*.455f&&x<s_aspect*.545f){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
