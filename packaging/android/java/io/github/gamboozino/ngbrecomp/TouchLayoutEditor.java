@@ -77,7 +77,7 @@ public class TouchLayoutEditor extends FrameLayout {
             mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
-    private ScrollView mPanelScroll;
+    private DrawerScroll mPanelScroll;
     private DrawerScroll mDrawer;    /* the settings drawer: dragged left and right, parked on either side */
     private float mDrawerBase;       /* where it rests when parked (0 at the right, negative at the left) */
     private View mScrim;             /* dims the canvas while the drawer is out */
@@ -330,8 +330,8 @@ public class TouchLayoutEditor extends FrameLayout {
                                                           ViewGroup.LayoutParams.MATCH_PARENT));
 
         /* the side panel: which control, and how it looks and what it presses */
-        mPanelScroll = new ScrollView(mActivity);
-        ScrollView scroll = mPanelScroll;
+        mPanelScroll = new DrawerScroll(mActivity);
+        DrawerScroll scroll = mPanelScroll;
         scroll.setBackground(glass(0, 0x00000000, 0, 0));
         LinearLayout panel = new LinearLayout(mActivity);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -640,6 +640,10 @@ public class TouchLayoutEditor extends FrameLayout {
         float w = mDrawer.getWidth() > 0 ? mDrawer.getWidth() : dp(300);
         View parent = (View) mDrawer.getParent();
         return Math.max(0, (parent == null ? 0 : parent.getWidth()) - w);
+    }
+
+    private float clampDrawer(float x) {
+        return Math.min(dp(340), Math.max(-dp(340) * 2, x));
     }
 
     private void openDrawer() {
