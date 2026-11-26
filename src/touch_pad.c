@@ -571,8 +571,24 @@ static const Sprite *user_skin(void) {
         image.generation = generation;
         snprintf(loaded, sizeof loaded, "%s", d_skin_path);
         int channels = 0;
-        image.px = stbi_load(loaded, &image.w, &image.h, &channels, 4);
-        if (image.px && (image.w > 2048 || image.h > 2048 || image.w < 8 || image.h < 8)) { stbi_image_free(image.px); memset(&image, 0, sizeof image); }
+        FILE *file = fopen(loaded, "rb");
+        if (file && !fseek(file, 0, SEEK_END)) {
+            long size = ftell(file);
+            if (size >= 8 && size <= 16 * 1024 * 1024 && !fseek(file, 0, SEEK_SET)) {
+                unsigned char *bytes = malloc((size_t)size);
+                if (bytes) {
+                    if (fread(bytes, 1, (size_t)size, file) == (size_t)size)
+                        image.px = stbi_load_from_memory(bytes, (int)size, &image.w, &image.h, &channels, 4);
+                    free(bytes);
+                }
+            }
+        }
+        if (file) fclose(file);
+        if (image.px && (image.w > 2048 || image.h > 2048 || image.w < 8 || image.h < 8)) {
+            stbi_image_free(image.px);
+            image.px = NULL;
+            image.w = image.h = 0;
+        }
     }
     return image.px ? &image : NULL;
 }
