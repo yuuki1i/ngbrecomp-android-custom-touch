@@ -1057,31 +1057,6 @@ static void draw_badge_text(const char *label, int centre, int y0, int bw)
         pen += gw * scale;
     }
 }
-static void draw_editor_badge(void)
-{
-    draw_badge_text(d_edit_mode ? "DONE" : "EDIT", s_w / 2, 2, 58);
-    static const char *presets[] = {"DEFAULT","CLASSIC","CUSTOM"};
-    if (d_edit_mode) draw_badge_text(presets[d_preset >= 0 && d_preset < 3 ? d_preset : 0], s_w / 2, 24, 72);
-    draw_badge_text(d_edit_mode ? "LOAD" : "EDIT", s_w - 30, s_h / 2 - 9, 54);
-    if (d_edit_mode) {
-        draw_badge_text("ADD", (int)(s_w * 0.07f), 2, 42);
-        draw_badge_text(d_haptics ? "VIBE" : "MUTE", (int)(s_w * 0.17f), 2, 48);
-        draw_badge_text("DEL", (int)(s_w * 0.93f), 2, 42);
-        draw_badge_text("SIZE", (int)(s_w * 0.29f), 2, 48);
-        draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
-        draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
-        draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
-        /* Show the actual action assigned to a selected combo, not the opaque "MAP" label.
-         * In particular, make the requested 360-degree stick sweep followed by Y discoverable. */
-        if (d_selected >= NINPO && d_selected < NCTRL) {
-            static const char *const names[7] = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360Y"};
-            unsigned map = d_layout_combo[d_selected] < 7 ? d_layout_combo[d_selected] : 0;
-            draw_badge_text(names[map], (int)(s_w * 0.82f), 2, 52);
-        } else {
-            draw_badge_text("SKIN", (int)(s_w * 0.82f), 2, 42);
-        }
-    }
-}
 
 
 /* The picture is drawn in memory of our own and its changed boxes copied into the presenter's buffer: blended
@@ -1178,7 +1153,6 @@ static void draw_all(void)
         }
     }
     for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
-    draw_editor_badge();
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */

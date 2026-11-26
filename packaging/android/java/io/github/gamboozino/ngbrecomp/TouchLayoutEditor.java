@@ -247,9 +247,13 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout top = new LinearLayout(mActivity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setBackground(glass(0, 0x00000000, 0, 0));
-        top.setPadding(dp(14), dp(10), dp(14), dp(8));
-        TextView title = label("触控布局", 19, 0xFFFFFFFF, true);
+        top.setBackground(glass(18, 0x1AFFFFFF, 0x2EFFFFFF, 1));
+        top.setPadding(dp(18), dp(10), dp(10), dp(10));
+        LinearLayout.LayoutParams topParams =
+            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        topParams.setMargins(dp(10), dp(8), dp(10), dp(4));
+        top.setLayoutParams(topParams);
+        TextView title = label("触控布局\n模板 · 本机", 17, 0xFFFFFFFF, true);
         top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         mHint = label("拖动移动 · 双指缩放", 12, 0xFF8492A6, false);
         top.addView(mHint);
@@ -550,34 +554,30 @@ public class TouchLayoutEditor extends FrameLayout {
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float viewW = getWidth(), viewH = getHeight();
-            {
-                float aspect = mEditor.mAspect;
-                mHeight = viewH;
-                mWidth = mHeight * aspect;
-                if (mWidth > viewW) {
-                    mWidth = viewW;
-                    mHeight = mWidth / aspect;
-                }
-                mLeft = (viewW - mWidth) / 2f;
-                mTop = (viewH - mHeight) / 2f;
-            }
-            /* the game's frame, and a grid to place by: a sheet of glass, not a black box */
-            mRect.set(mLeft, mTop, mLeft + mWidth, mTop + mHeight);
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setColor(0x0F0C1220);
-            canvas.drawRoundRect(mRect, 14 * mEditor.mDp, 14 * mEditor.mDp, mPaint);
+            mLeft = 0;
+            mTop = 0;
+            mWidth = viewW;
+            mHeight = viewH;
+            /* The whole screen is the sheet, ruled like Winlator's editor: fine grid to place by, a stronger
+             * line every sixth, and the centre crosshair the eye lines a pad up with. */
             mPaint.setStyle(Paint.Style.STROKE);
             mPaint.setStrokeWidth(1);
-            mPaint.setColor(0x22FFFFFF);
-            canvas.drawRoundRect(mRect, 14 * mEditor.mDp, 14 * mEditor.mDp, mPaint);
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setColor(0x12FFFFFF);
-            mPaint.setStrokeWidth(1);
-            for (int i = 1; i < 6; i++) {
-                float x = mLeft + mWidth * i / 6f, y = mTop + mHeight * i / 6f;
-                canvas.drawLine(x, mTop, x, mTop + mHeight, mPaint);
-                canvas.drawLine(mLeft, y, mLeft + mWidth, y, mPaint);
+            mPaint.setColor(0x14FFFFFF);
+            for (int i = 1; i < 36; i++) {
+                if (i % 6 == 0) continue;
+                float x = viewW * i / 36f, y = viewH * i / 36f;
+                canvas.drawLine(x, 0, x, viewH, mPaint);
+                canvas.drawLine(0, y, viewW, y, mPaint);
             }
+            mPaint.setColor(0x2EFFFFFF);
+            for (int i = 1; i < 6; i++) {
+                float x = viewW * i / 6f, y = viewH * i / 6f;
+                canvas.drawLine(x, 0, x, viewH, mPaint);
+                canvas.drawLine(0, y, viewW, y, mPaint);
+            }
+            mPaint.setColor(0x66FF5555);
+            canvas.drawLine(viewW / 2f, 0, viewW / 2f, viewH, mPaint);
+            canvas.drawLine(0, viewH / 2f, viewW, viewH / 2f, mPaint);
 
             for (int id = 0; id < N; id++) {
                 if (id == SWAP || !mEditor.mShown[id])
@@ -588,17 +588,24 @@ public class TouchLayoutEditor extends FrameLayout {
                 int rgb = COLOUR_RGB[mEditor.mColour[id]];
                 outline(mPath, cx, cy, radius, mEditor.mShape[id]);
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor((rgb & 0x00FFFFFF) | 0x4D000000);
+                mPaint.setColor((rgb & 0x00FFFFFF) | 0x14FFFFFF);
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
-                mPaint.setStrokeWidth(id == mEditor.mSelected ? 2.5f : 1f);
-                mPaint.setColor(id == mEditor.mSelected ? 0xFFFFD86B : ((rgb & 0x00FFFFFF) | 0xCC000000));
+                mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f : 1.5f);
+                mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xB3000000));
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor(0xFFFFFFFF);
                 mPaint.setTextAlign(Paint.Align.CENTER);
-                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.75f));
-                canvas.drawText(SHORT[id], cx, cy + radius * 0.18f, mPaint);
+                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.7f));
+                String text = SHORT[id];
+                if (mEditor.mButton[id] && mEditor.mAction[id] >= 0 && mEditor.mAction[id] < 12)
+                    text = ACTIONS[mEditor.mAction[id]].replace(" 键", "");
+                else if (mEditor.mButton[id])
+                    text = "NONE";                    /* Winlator's word for a button with no key on it */
+                else if (mEditor.mComboKind[id])
+                    text = COMBOS[mEditor.mCombo[id]];
+                canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
             }
 
             mPaint.setStyle(Paint.Style.FILL);
