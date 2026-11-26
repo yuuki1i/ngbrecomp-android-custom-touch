@@ -544,7 +544,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
         if(f<MAX_FINGERS&&s_edit_mode){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].down_timestamp=ev->tfinger.timestamp;s_finger[f].ctrl=hit_id;s_finger[f].x0=x;s_finger[f].y0=y;s_finger[f].moved=false;s_finger[f].was_selected=hit_id==s_selected;if(hit_id>=0)s_selected=hit_id;s_serial++;}
         else if(hit_id>=0&&f<MAX_FINGERS){xbox_InputTouchUsed();s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=hit_id;finger_on(hit_id,x,y);s_serial++;}
-        else if(hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;s_cam_hold=true;s_cam_px=s_cam_py=0;}
+        else if(!s_edit_mode&&hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;s_cam_hold=true;s_cam_px=s_cam_py=0;}
     }else if(ev->type==SDL_FINGERMOTION&&f<MAX_FINGERS){
         int id=s_finger[f].ctrl;
         if(!s_edit_mode&&id==-2){float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.001f){s_cam_px+=dx;s_cam_py+=dy;xbox_InputTouchUsed();s_finger[f].x0=x;s_finger[f].y0=y;s_serial++;}}
