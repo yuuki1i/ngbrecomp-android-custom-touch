@@ -65,7 +65,7 @@ jobs:
 
       - name: Syntax-check Android touch controls
         run: |
-          clang -std=gnu11 -fsyntax-only -Werror=implicit-function-declaration -D_GNU_SOURCE -Ixboxrecomp/src -Isrc src/touch_pad.c
+          clang -std=gnu11 -fsyntax-only -Werror=implicit-function-declaration -D_GNU_SOURCE -I/usr/include/SDL2 -Ixboxrecomp/src -Isrc src/touch_pad.c
 
       - name: Check generated recompilation sources
         run: |
