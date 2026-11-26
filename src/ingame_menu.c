@@ -43,7 +43,7 @@ static volatile int s_want;              /* open at the next frame */
 static bool s_open;
 static NgbSettings s_cfg, s_original;
 static int s_sel;
-static int s_original_values[8][20];
+static int s_original_values[9][24];
 static bool s_quit_armed;
 static bool s_wait_release;              /* pad blocked until let go */
 
@@ -1812,7 +1812,7 @@ static int row_hit(float lx, float ly, int *zone)
 {
     *zone = 0;
     if (ly >= 78 && ly < 114 && lx >= 24 && lx < 934) {
-        int tab = (int)((lx - 24) / 130.0f);
+        int tab = (int)((lx - 24) / (910.0f / ngb_menu_tab_count()));
         return tab < ngb_menu_tab_count() ? -100 - tab : -1;
     }
     if (ly >= 444 && ly < 496) {
@@ -1873,12 +1873,13 @@ static void draw(const uint32_t *backdrop)
     text("RECOMP  /  CONFIGURATION", LW - 34, 32, 13, accent, 255, 2);
 
     for (int i = 0; i < ngb_menu_tab_count(); i++) {
-        int x = 24 + i * 130;
+        int tab_w = 910 / ngb_menu_tab_count();
+        int x = 24 + i * tab_w;
         bool current = i == s_cat;
         bool focused = current && s_cat_focus;
-        fill(x, 78, 124, 34, current ? (focused ? 0x3268A2 : 0x24518A) : 0x1B2A3B, current ? 248 : 205);
-        if (current) fill(x, 109, 124, 3, accent, 255);
-        text(ngb_menu_tab_name(i), x + 62, 86, 15, current ? white : grey, 255, 1);
+        fill(x, 78, tab_w - 6, 34, current ? (focused ? 0x3268A2 : 0x24518A) : 0x1B2A3B, current ? 248 : 205);
+        if (current) fill(x, 109, tab_w - 6, 3, accent, 255);
+        text(ngb_menu_tab_name(i), x + (tab_w - 6) / 2, 86, 13, current ? white : grey, 255, 1);
     }
 
     fill(24, 118, 642, 278, 0x142235, 245);
@@ -2020,7 +2021,7 @@ static void activate(int key)
             i = (i + d + 3) % 3;
             s_sel = i == 0 ? ROW_RESET : i == 1 ? ROW_RESUME : ROW_QUIT;
         } else if (s_cat_focus) choose_category(s_cat + (key == KEY_LEFT ? -1 : 1));
-        else if (s_sel != ROW_TOUCH && s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1106))) {
+        else if (s_sel != ROW_TOUCH && s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1100 + 20))) {
             ngb_menu_row_change(s_sel, key == KEY_LEFT ? -1 : 1);
             s_cfg = s_running;
         }
@@ -2038,8 +2039,12 @@ static void activate(int key)
                     ngb_settings_save(&s_cfg);
                 SDL_Event q = { .type = SDL_QUIT }; SDL_PushEvent(&q);
             } else s_quit_armed = true;
-        } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1106))) {
-            if ((s_sel >= 100 && s_sel < 100 + 40) || (s_sel >= 1100 && s_sel < 1106)) ngb_menu_row_activate(s_sel);
+        } else if (s_sel >= 0 && (s_sel < 1000 || (s_sel >= 1100 && s_sel < 1100 + 20))) {
+            if (s_sel == 1100) {
+                apply_and_close();
+                extern void ngb_touch_editor_open(void);
+                ngb_touch_editor_open();
+            } else if ((s_sel >= 100 && s_sel < 100 + 40) || (s_sel >= 1100 && s_sel < 1100 + 20)) ngb_menu_row_activate(s_sel);
             else { ngb_menu_row_change(s_sel, 1); s_cfg = s_running; }
         }
         break;
@@ -2063,8 +2068,8 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
         s_original = s_running;
         s_cfg = s_running;
         memset(s_original_values, 0, sizeof s_original_values);
-        for (int t = 0; t < ngb_menu_tab_count() && t < 8; t++)
-            for (int i = 0; i < ngb_menu_tab_row_count(t) && i < 20; i++) {
+        for (int t = 0; t < ngb_menu_tab_count() && t < 9; t++)
+            for (int i = 0; i < ngb_menu_tab_row_count(t) && i < 24; i++) {
                 int row = ngb_menu_tab_row(t, i);
                 s_original_values[t][i] = ngb_menu_row_get(row);
             }
