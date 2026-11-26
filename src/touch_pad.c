@@ -158,15 +158,16 @@ static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults();
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir); SDL_free(dir);
-    FILE *fp=fopen(s_layout_path,"r"); if(!fp)return; char line[192];
-    while(fgets(line,sizeof line,fp)){int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&combo,&enabled);if(n<6||id<0||id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=11)s_layout_enabled[id]=enabled!=0;}
+    FILE *fp=fopen(s_layout_path,"r"); if(!fp)return; char line[192]; bool legacy_ids=true;
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V2"))legacy_ids=false;continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",dir);SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_combo[i],s_layout_enabled[i]?1:0);
+    fprintf(fp,"# NGB_TOUCH_LAYOUT_V2\n");
+    for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i]);
     fclose(fp);
 }
 static void clear_touch_state(void){memset(s_finger,0,sizeof s_finger);memset(s_down,0,sizeof s_down);memset(s_stick,0,sizeof s_stick);memset(s_combo_active,0,sizeof s_combo_active);s_dpad=0;}
