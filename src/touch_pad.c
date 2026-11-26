@@ -1269,6 +1269,29 @@ void ngb_touch_menu_activate(int item)
     pthread_mutex_unlock(&s_lock);
 }
 
+#if defined(__ANDROID__)
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchGet(
+    JNIEnv *env, jobject activity, jint item) { (void)env; (void)activity; return ngb_touch_menu_get(item); }
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchChange(
+    JNIEnv *env, jobject activity, jint item, jint direction) { (void)env; (void)activity; ngb_touch_menu_change(item,direction); }
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchActivate(
+    JNIEnv *env, jobject activity, jint item) { (void)env; (void)activity; ngb_touch_menu_activate(item); }
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchEditorRequest(
+    JNIEnv *env, jobject activity) { (void)env; (void)activity; extern void ngb_menu_request_touch_editor(void); ngb_menu_request_touch_editor(); }
+void ngb_touch_menu_show_android(void)
+{
+    JNIEnv *env=(JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject activity=SDL_AndroidGetActivity();
+    if(!env||!activity)return;
+    jclass cls=(*env)->GetObjectClass(env,activity);
+    jmethodID method=cls?(*env)->GetMethodID(env,cls,"showTouchControlCenterFromNative","()V"):NULL;
+    if(method)(*env)->CallVoidMethod(env,activity,method);
+    if(cls)(*env)->DeleteLocalRef(env,cls);
+}
+#else
+void ngb_touch_menu_show_android(void) { ngb_touch_editor_open(); }
+#endif
+
 /* The presenter asks first whether there is a picture at all */
 bool nv2a_layer_wanted(void)
 {
