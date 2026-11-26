@@ -1295,6 +1295,11 @@ void ngb_touch_menu_set(int item,int value)
 void ngb_touch_menu_activate(int item)
 {
     pthread_mutex_lock(&s_lock);
+    if(item==0){                                   /* the settings page's first row: hand it to the editor */
+        pthread_mutex_unlock(&s_lock);
+        ngb_touch_editor_open();
+        return;
+    }
     layout_load();
     int id=s_selected>=0&&s_selected<NCTRL?s_selected:LSTICK;
     if(item==17){s_selected=id;touch_pick_skin();}
