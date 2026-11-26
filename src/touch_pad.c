@@ -36,8 +36,10 @@
 #include <string.h>
 
 #include <SDL.h>
+#if defined(__ANDROID__)
 #include <SDL_system.h>
 #include <jni.h>
+#endif
 
 #include "platform/xbox_winnt.h"
 #include "input/xinput_xbox.h"
