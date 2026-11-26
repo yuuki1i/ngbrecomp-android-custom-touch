@@ -188,7 +188,7 @@ static void add_custom_combo(void) {
     }
 }
 static void delete_selected_combo(void) {
-    if(s_selected<CUSTOM1||s_selected>CUSTOM4)return;
+    if(s_selected<0||s_selected>=NCTRL||s_selected==SWAP)return;
     s_layout_enabled[s_selected]=false; s_down[s_selected]=false; s_selected=-1;
     s_layout_revision++; layout_save(); s_serial++;
 }
