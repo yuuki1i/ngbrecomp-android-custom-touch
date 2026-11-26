@@ -140,6 +140,9 @@ static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
 static float s_aspect = 16.0f / 9;
 static float s_layout_x[NCTRL], s_layout_y[NCTRL], s_layout_r[NCTRL], s_layout_alpha[NCTRL];
 static float d_layout_x[NCTRL], d_layout_y[NCTRL], d_layout_r[NCTRL], d_layout_alpha[NCTRL];
+/* Renderer-side eased positions: touch edits update targets immediately, while the picture follows smoothly. */
+static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
+static bool d_anim_ready;
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 static Uint32 s_combo_started[NCTRL];
@@ -948,7 +951,7 @@ static void draw_idle(void)
         if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
-        if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
+        if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i]; at.y=d_anim_y[i]; at.r=d_anim_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         if (c->kind == STICK)
             draw_piece("pad", cx, cy, 2 * r, 2 * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
@@ -1106,7 +1109,7 @@ static void draw_all(void)
         if (!d_layout_enabled[i]) continue;
         const Ctrl *c = &s_ctrl[i];
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
-        if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i]; at.y=d_layout_y[i]; at.r=d_layout_r[i]; }
+        if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i]; at.y=d_anim_y[i]; at.r=d_anim_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         bool on = d_down[i];
         if (c->kind == STICK) {
@@ -1139,7 +1142,7 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_layout_x[i]:c->edge?d_aspect-d_layout_x[i]:d_layout_x[i];p.y=d_layout_y[i];p.r=d_layout_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
     draw_editor_badge();
     s_rec = NULL;
     s_px = out;
@@ -1249,8 +1252,35 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         d_edit_mode=s_edit_mode; d_haptics=s_haptics; memcpy(d_skin_path,s_skin_path,sizeof d_skin_path); d_selected=s_selected; d_preset=s_preset; d_layout_revision=s_layout_revision;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
+        if (!d_anim_ready) {
+            memcpy(d_anim_x, d_layout_x, sizeof d_anim_x);
+            memcpy(d_anim_y, d_layout_y, sizeof d_anim_y);
+            memcpy(d_anim_r, d_layout_r, sizeof d_anim_r);
+            d_anim_ready = true;
+        }
     }
     pthread_mutex_unlock(&s_lock);
+    /* Ease each edited control toward its new target over several presented frames. */
+    bool animating = false;
+    for (int i = 0; i < NCTRL; i++) {
+        float dx = d_layout_x[i] - d_anim_x[i];
+        float dy = d_layout_y[i] - d_anim_y[i];
+        float dr = d_layout_r[i] - d_anim_r[i];
+        if (fabsf(dx) + fabsf(dy) + fabsf(dr) > 0.0008f) {
+            d_anim_x[i] += dx * 0.34f;
+            d_anim_y[i] += dy * 0.34f;
+            d_anim_r[i] += dr * 0.34f;
+            animating = true;
+        } else {
+            d_anim_x[i] = d_layout_x[i];
+            d_anim_y[i] = d_layout_y[i];
+            d_anim_r[i] = d_layout_r[i];
+        }
+    }
+    if (animating) {
+        d_layout_revision++;
+        changed = true;
+    }
     *ow = (uint32_t)w;
     *oh = (uint32_t)h;
     if (changed) {
