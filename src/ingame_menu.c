@@ -1507,7 +1507,8 @@ static int s_w, s_h;
 /* Scroll state is owned by the renderer thread. Values are logical menu pixels. */
 static float s_list_scroll, s_list_velocity;
 static float s_drag_last_y;
-static bool s_list_dragging;
+static bool s_list_dragging, s_click_pending;
+static float s_down_x, s_down_y;
 static uint64_t s_scroll_tick;
 
 static void menu_test_poll(void)
@@ -1882,6 +1883,7 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
         s_cfg = s_running;
         s_list_scroll = s_list_velocity = 0;
         s_list_dragging = false;
+        s_click_pending = false;
         s_scroll_tick = mono_ms();
         s_sel = ROW_RESUME;
         s_quit_armed = false;
@@ -1906,9 +1908,12 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
             float lx = ((key >> 14 & 0x3FFF) - s_ox) / s_k;
             float ly = ((key & 0x3FFF) - s_oy) / s_k;
             if (key & MOUSE_CLICK) {
+                s_click_pending = true;
+                s_down_x = lx; s_down_y = ly;
                 s_list_dragging = ly >= LIST_TOP && ly < LIST_BOTTOM;
                 s_drag_last_y = ly;
                 s_list_velocity = 0;
+                continue;
             } else if ((key & MOUSE_DRAG) && s_list_dragging) {
                 float dy = s_drag_last_y - ly;
                 s_list_scroll += dy;
@@ -1918,7 +1923,16 @@ bool nv2a_overlay_frame(uint32_t *px, int w, int h, const uint32_t *backdrop)
                 if (s_list_scroll > LIST_MAX_SCROLL) { s_list_scroll = LIST_MAX_SCROLL; s_list_velocity = 0; }
                 continue;
             } else if (key & MOUSE_UP) {
+                bool tap = s_click_pending && fabsf(lx - s_down_x) < 14.0f && fabsf(ly - s_down_y) < 14.0f;
                 s_list_dragging = false;
+                s_click_pending = false;
+                if (tap) {
+                    int zone, row = row_hit(lx, ly, &zone);
+                    if (row >= 0) {
+                        s_sel = row;
+                        activate(row >= ROW_RESUME ? KEY_OK : zone < 0 ? KEY_LEFT : zone > 0 ? KEY_RIGHT : KEY_OK);
+                    }
+                }
                 continue;
             } else if (key & MOUSE_MOVE) {
                 if (s_list_dragging) continue;
