@@ -19,6 +19,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Locale;
 
 /* The touch layout editor on the phone: every virtual control of the pad laid over the screen, where the
@@ -71,6 +74,14 @@ public class TouchLayoutEditor extends FrameLayout {
     private TextView mCurrent, mSizeValue, mAlphaValue, mColourValue, mShapeValue, mActionValue, mComboValue,
             mShowValue, mSkinValue, mHint, mXValue, mYValue;
     private Button mDelete, mComboRow;
+    private LinearLayout mPanel;
+    private ScrollView mPanelScroll;
+
+    /* The controls the + adds, in the pad's own names. */
+    private static final String[] LONG_NAMES = {
+        "左摇杆", "右摇杆", "十字键", "A 键", "B 键", "X 键", "Y 键", "LB", "RB", "LT", "RT",
+        "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
+    };
     private int mSelected = 0;
 
     public TouchLayoutEditor(NgbActivity activity) {
@@ -234,6 +245,27 @@ public class TouchLayoutEditor extends FrameLayout {
         return view;
     }
 
+    /* A square icon button of the top card. */
+    private interface Pick { void at(int index); }
+
+    /* A row of choices, the Winlator way: tap the value, a list comes up, tap the one wanted. */
+    private void choose(String title, String[] items, int selected, Pick pick) {
+        new AlertDialog.Builder(mActivity)
+            .setTitle(title)
+            .setSingleChoiceItems(items, selected, (d, which) -> { pick.at(which); d.dismiss(); })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private Button tool(String text, Runnable action) {
+        Button b = button(text, 16, 0x1FFFFFFF);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(40), dp(40));
+        p.setMargins(dp(3), 0, dp(3), 0);
+        b.setLayoutParams(p);
+        b.setOnClickListener(v -> action.run());
+        return b;
+    }
+
     private Button step(String text, Runnable action) {
         Button view = button(text, 14, 0x1FFFFFFF);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(38), dp(36));
@@ -259,8 +291,14 @@ public class TouchLayoutEditor extends FrameLayout {
         top.setLayoutParams(topParams);
         TextView title = label("触控布局\n模板 · 本机", 17, 0xFFFFFFFF, true);
         top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        mHint = label("拖动移动 · 双指缩放", 12, 0xFF8492A6, false);
+        mHint = label("拖动 · 双指缩放", 12, 0xFF8492A6, false);
         top.addView(mHint);
+        /* as Winlator's top card: add a key, take one away, the sheet of properties, centre it, its picture */
+        top.addView(tool("＋", this::addControl));
+        top.addView(tool("－", this::deleteControl));
+        top.addView(tool("☰", this::togglePanel));
+        top.addView(tool("◎", this::centreControl));
+        top.addView(tool("🖼", this::pickBuiltinSkin));
         Button cancel = button("取消", 14, 0x1FFFFFFF);
         LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(dp(76), dp(40));
         cancelParams.setMargins(dp(6), 0, dp(6), 0);
@@ -283,12 +321,14 @@ public class TouchLayoutEditor extends FrameLayout {
         body.addView(mPreview, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
 
         /* the side panel: which control, and how it looks and what it presses */
-        ScrollView scroll = new ScrollView(mActivity);
+        mPanelScroll = new ScrollView(mActivity);
+        ScrollView scroll = mPanelScroll;
         scroll.setBackground(glass(0, 0x00000000, 0, 0));
         LinearLayout panel = new LinearLayout(mActivity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
         panel.setBackground(glass(18, 0x14FFFFFF, 0x2EFFFFFF, 1));
+        mPanel = panel;
 
         LinearLayout pick = new LinearLayout(mActivity);
         pick.setOrientation(LinearLayout.HORIZONTAL);
@@ -339,20 +379,23 @@ public class TouchLayoutEditor extends FrameLayout {
         panel.addView(row("纵向位置", mYValue));
 
         mColourValue = valueView(110);
-        mColourValue.setOnClickListener(v -> { mColour[mSelected] = (mColour[mSelected] + 1) % COLOURS.length; refresh(); });
+        mColourValue.setOnClickListener(v -> choose("颜色", COLOURS, mColour[mSelected], i -> { mColour[mSelected] = i; refresh(); }));
         panel.addView(row("颜色", mColourValue));
 
         mShapeValue = valueView(110);
-        mShapeValue.setOnClickListener(v -> { mShape[mSelected] = (mShape[mSelected] + 1) % SHAPES.length; refresh(); });
+        mShapeValue.setOnClickListener(v -> choose("形状", SHAPES, mShape[mSelected], i -> { mShape[mSelected] = i; refresh(); }));
         panel.addView(row("形状", mShapeValue));
 
         mActionValue = valueView(130);
         mActionValue.setOnClickListener(v -> {
             if (!mButton[mSelected]) return;
-            int n = ACTIONS.length;
-            mAction[mSelected] = (mAction[mSelected] + 2) % n - 1;   /* (the list ends with "不绑定": -1) */
-            if (mAction[mSelected] < -1) mAction[mSelected] = -1;
-            refresh();
+            String[] items = new String[ACTIONS.length];
+            for (int i = 0; i < ACTIONS.length; i++) items[i] = ACTIONS[i];
+            int at = mAction[mSelected] < 0 ? ACTIONS.length - 1 : mAction[mSelected];
+            choose("按键动作", items, at, i -> {
+                mAction[mSelected] = i == ACTIONS.length - 1 ? -1 : i;
+                refresh();
+            });
         });
         panel.addView(row("按键动作", mActionValue));
 
@@ -473,6 +516,135 @@ public class TouchLayoutEditor extends FrameLayout {
                 return mSelected;
         }
         return mSelected;
+    }
+
+    /* + : a control that is not on the pad yet comes back, and is selected. */
+    private void addControl() {
+        String[] items = new String[N];
+        int count = 0;
+        final int[] ids = new int[N];
+        for (int i = 0; i < N; i++) {
+            if (mShown[i]) continue;
+            ids[count] = i;
+            items[count++] = NAMES[i];
+        }
+        if (count == 0) {
+            mHint.setText("所有按键都在画布上了");
+            return;
+        }
+        String[] shown = new String[count];
+        System.arraycopy(items, 0, shown, 0, count);
+        new AlertDialog.Builder(mActivity)
+            .setTitle("加一个按键")
+            .setItems(shown, (d, which) -> {
+                int id = ids[which];
+                mShown[id] = true;
+                mX[id] = 0.5f;
+                mY[id] = 0.5f;
+                mSelected = id;
+                refresh();
+                mHint.setText("已加 " + NAMES[id] + "，拖到想放的位置");
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    /* - : the selected key leaves the pad (it can be added back with +). */
+    private void deleteControl() {
+        if (mSelected == SWAP) {
+            mHint.setText("布局按钮不能删");
+            return;
+        }
+        mShown[mSelected] = false;
+        mHint.setText("已从画布去掉 " + NAMES[mSelected] + "，保存后生效");
+        refresh();
+    }
+
+    /* ☰ : the properties sheet of the right side, on and off, so the canvas gets the whole screen. */
+    private void togglePanel() {
+        boolean hide = mPanelScroll.getVisibility() == View.VISIBLE;
+        mPanelScroll.setVisibility(hide ? View.GONE : View.VISIBLE);
+        mHint.setText(hide ? "属性面板已收起，再点 ☰ 打开" : "属性面板已打开");
+    }
+
+    /* ◎ : the selected key goes to the middle of the screen. */
+    private void centreControl() {
+        mX[mSelected] = 0.5f;
+        mY[mSelected] = 0.5f;
+        refresh();
+        mHint.setText(NAMES[mSelected] + " 已放到画面正中");
+    }
+
+    /* 🖼 : a picture for the selected key, either one of the built-in sheets or from the album. */
+    private void pickBuiltinSkin() {
+        String[] found;
+        try {
+            found = mActivity.getAssets().list("skins");
+        } catch (Throwable e) {
+            found = null;
+        }
+        final String[] files = found;
+        if (files == null || files.length == 0) {
+            mHint.setText("这一版没有内置贴图，用相册导入吧");
+            return;
+        }
+        String[] labels = new String[files.length + 2];
+        labels[0] = "不用图片（回到画出来的键）";
+        labels[1] = "从相册选一张…";
+        for (int i = 0; i < files.length; i++) labels[i + 2] = builtinName(files[i]);
+        new AlertDialog.Builder(mActivity)
+            .setTitle("给 " + NAMES[mSelected] + " 换图片")
+            .setItems(labels, (d, which) -> {
+                if (which == 0) {
+                    mSkin[mSelected] = false;
+                    try { mActivity.setTouchSkinPath(mSelected, ""); } catch (Throwable e) { }
+                    refresh();
+                    mHint.setText(NAMES[mSelected] + " 已去掉图片");
+                } else if (which == 1) {
+                    mSkin[mSelected] = true;
+                    try { mActivity.pickTouchSkinFor(mSelected); } catch (Throwable e) { }
+                    refresh();
+                    mHint.setText("已打开相册，选好的图片会用到这个按键");
+                } else {
+                    String file = files[which - 2];
+                    String path = installBuiltinSkin(file);
+                    if (path != null) {
+                        mSkin[mSelected] = true;
+                        try { mActivity.setTouchSkinPath(mSelected, path); } catch (Throwable e) { }
+                        refresh();
+                        mHint.setText(NAMES[mSelected] + " 换上了「" + builtinName(file) + "」");
+                    }
+                }
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private String builtinName(String file) {
+        String base = file;
+        int dot = base.lastIndexOf('.');
+        if (dot > 0) base = base.substring(0, dot);
+        String[] known = {"glass", "neon", "steel", "gold", "hex", "pill"};
+        String[] words = {"玻璃", "霓虹", "钢灰", "金边", "六边", "胶囊"};
+        for (int i = 0; i < known.length; i++)
+            if (known[i].equals(base)) return words[i];
+        return base;
+    }
+
+    /* Copy a built-in sheet out of the APK, once, into the app's own files. */
+    private String installBuiltinSkin(String file) {
+        File out = new File(mActivity.getFilesDir(), "ngb-skin-" + file);
+        if (out.exists() && out.length() > 0) return out.getAbsolutePath();
+        try (InputStream in = mActivity.getAssets().open("skins/" + file);
+             FileOutputStream os = new FileOutputStream(out)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+            return out.getAbsolutePath();
+        } catch (Throwable e) {
+            mHint.setText("内置贴图读不出来：" + e.getMessage());
+            return null;
+        }
     }
 
     private void select(int id) {

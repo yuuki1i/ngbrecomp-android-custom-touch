@@ -166,7 +166,7 @@ static bool s_combo_active[NCTRL];
 static bool s_haptics = true;
 static bool d_haptics = true;
 static bool s_camera_swipe = true;
-static char s_skin_path[512], d_skin_path[512];
+static char s_skin_path[NCTRL][256], d_skin_path[NCTRL][256];   /* one picture per control */
 static int s_selected = -1, d_selected = -1;
 static int s_preset, d_preset;
 static unsigned s_layout_revision, d_layout_revision;
@@ -193,7 +193,7 @@ static void layout_defaults(void) {
     s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
-    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; s_skin_path[0]=0; ngb_video_brightness=1.f; ngb_video_gamma=1.f; ngb_video_tint=0;
+    if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_camera_swipe=true; memset(s_skin_path, 0, sizeof s_skin_path); ngb_video_brightness=1.f; ngb_video_gamma=1.f; ngb_video_tint=0;
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls"); if(!dir)return;
     char active[512]; snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);
     FILE *af=fopen(active,"r"); if(af){int p;if(fscanf(af,"%d",&p)==1&&p>=0&&p<=2)s_preset=p;fclose(af);}
@@ -204,7 +204,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0;if(sscanf(line,"# VIDEO %d %d %d",&b,&g,&t)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -214,7 +214,7 @@ static void layout_save(void) {
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
-    if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
+    for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     fprintf(fp,"# VIDEO %d %d %d\n",(int)lroundf(ngb_video_brightness*100.f),(int)lroundf(ngb_video_gamma*100.f),ngb_video_tint);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i]);
     fclose(fp);
@@ -427,9 +427,12 @@ static void finger_off(int ctrl)
         s_dpad = 0;
 }
 
+static int s_skin_want = -1;   /* the control the album was opened for */
+
 static void touch_pick_skin(void) {
     if (s_selected < 0 || s_selected >= NCTRL) return;
     s_layout_skin[s_selected] = true;
+    s_skin_want = s_selected;
     s_layout_revision++; layout_save(); s_serial++;
 #if defined(__ANDROID__)
     JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
@@ -462,7 +465,13 @@ static void touch_poll_skin(void) {
     if (cls) (*env)->DeleteLocalRef(env, cls);
     if (path[0]) {
         pthread_mutex_lock(&s_lock);
-        if (strcmp(path, s_skin_path)) { snprintf(s_skin_path, sizeof s_skin_path, "%s", path); s_layout_revision++; layout_save(); s_serial++; }
+        int id = s_skin_want >= 0 && s_skin_want < NCTRL ? s_skin_want : (s_selected >= 0 ? s_selected : 0);
+        if (strcmp(path, s_skin_path[id])) {
+            snprintf(s_skin_path[id], sizeof s_skin_path[id], "%s", path);
+            s_layout_skin[id] = 1;
+            s_layout_revision++; layout_save(); s_serial++;
+        }
+        s_skin_want = -1;
         pthread_mutex_unlock(&s_lock);
     }
 #endif
@@ -599,37 +608,38 @@ static int d_layout;
 static int d_dpad;
 
 typedef struct { uint8_t *px; int w, h; unsigned generation; } Sprite;   /* straight-alpha RGBA */
-static const Sprite *user_skin(void) {
-    static Sprite image;
-    static char loaded[512];
-    if (!d_skin_path[0]) return NULL;
-    if (strcmp(loaded, d_skin_path)) {
-        unsigned generation = image.generation + 1;
-        if (image.px) stbi_image_free(image.px);
-        memset(&image, 0, sizeof image);
-        image.generation = generation;
-        snprintf(loaded, sizeof loaded, "%s", d_skin_path);
+static Sprite s_skin_image[NCTRL];
+static char s_skin_loaded[NCTRL][256];
+
+static const Sprite *user_skin(int id) {
+    if (id < 0 || id >= NCTRL || !d_skin_path[id][0]) return NULL;
+    Sprite *slot = &s_skin_image[id];
+    if (strcmp(s_skin_loaded[id], d_skin_path[id])) {
+        if (slot->px) { stbi_image_free(slot->px); slot->px = NULL; }
+        slot->w = slot->h = 0;
+        slot->generation++;
+        snprintf(s_skin_loaded[id], sizeof s_skin_loaded[id], "%s", d_skin_path[id]);
         int channels = 0;
-        FILE *file = fopen(loaded, "rb");
+        FILE *file = fopen(s_skin_loaded[id], "rb");
         if (file && !fseek(file, 0, SEEK_END)) {
             long size = ftell(file);
             if (size >= 8 && size <= 16 * 1024 * 1024 && !fseek(file, 0, SEEK_SET)) {
                 unsigned char *bytes = malloc((size_t)size);
                 if (bytes) {
                     if (fread(bytes, 1, (size_t)size, file) == (size_t)size)
-                        image.px = stbi_load_from_memory(bytes, (int)size, &image.w, &image.h, &channels, 4);
+                        slot->px = stbi_load_from_memory(bytes, (int)size, &slot->w, &slot->h, &channels, 4);
                     free(bytes);
                 }
             }
         }
         if (file) fclose(file);
-        if (image.px && (image.w > 2048 || image.h > 2048 || image.w < 8 || image.h < 8)) {
-            stbi_image_free(image.px);
-            image.px = NULL;
-            image.w = image.h = 0;
+        if (slot->px && (slot->w > 2048 || slot->h > 2048 || slot->w < 8 || slot->h < 8)) {
+            stbi_image_free(slot->px);
+            slot->px = NULL;
+            slot->w = slot->h = 0;
         }
     }
-    return image.px ? &image : NULL;
+    return slot->px ? slot : NULL;
 }
 
 
@@ -1047,11 +1057,13 @@ static const char *combo_second(int id) {
 }
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a) {
     (void)c;
-    if (d_layout_combo[id] == 6) { const Sprite *skin=d_layout_skin[id]?user_skin():NULL; if(skin) draw_sprite(skin,cx,cy,2.5f*r,2.5f*r,a); else if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
+    if (d_layout_combo[id] == 6) { const Sprite *skin=d_layout_skin[id]?user_skin(id):NULL; if(skin) draw_sprite(skin,cx,cy,2.5f*r,2.5f*r,a); else if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
     if (s_art == ART_GAME && !d_layout_skin[id]) {
         draw_piece(combo_first(id), cx - 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
         draw_piece(combo_second(id), cx + 0.38f*r, cy, 1.65f*r, 1.65f*r, a);
-    } else if (d_layout_skin[id] && user_skin()) draw_sprite(user_skin(), cx, cy, 2.5f*r, 2.5f*r, a);
+    } else if (d_layout_skin[id] && user_skin(id)) { draw_sprite(user_skin(id), cx, cy, 2.5f*r, 2.5f*r, a);
+        if (c->label && c->label[0] && strlen(c->label) <= 4)
+            plain_letter(c->label, cx, cy, 2.75f*r, 1.9f*r, 255, 255, 255, fminf(1.f, a * 0.9f)); }
     else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
 }
 
@@ -1063,9 +1075,14 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
         draw_piece(n, cx, cy, 2.5f * r, 2.5f * r, a);
     } else {   /* (the disc about the button's size) */
         int id = (int)(c - s_ctrl);
-        const Sprite *skin = d_layout_skin[id] ? user_skin() : NULL;
-        if (skin) draw_sprite(skin, cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
-        else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
+        const Sprite *skin = d_layout_skin[id] ? user_skin(id) : NULL;
+        if (skin) {
+            float w = (lit ? 2.6f : 2.5f) * r;
+            draw_sprite(skin, cx, cy, w, w, a);
+            /* (the name stays readable on the picture, faint) */
+            if (c->label && c->label[0] && strlen(c->label) <= 4)
+                plain_letter(c->label, cx, cy, w * 1.1f, w * 0.75f, 255, 255, 255, fminf(1.f, a * 0.9f));
+        } else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r, (lit ? 2.6f : 2.5f) * r, a);
         if (lit)
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
     }
@@ -1570,6 +1587,24 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTou
     if (id >= 0 && id < NCTRL) {
         s_selected = id;
         touch_pick_skin();
+    }
+    pthread_mutex_unlock(&s_lock);
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTouchSkinSetPath(
+    JNIEnv *env, jobject activity, jint id, jstring path) {
+    (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    if (id >= 0 && id < NCTRL && path) {
+        const char *utf = (*env)->GetStringUTFChars(env, path, NULL);
+        if (utf) {
+            snprintf(s_skin_path[id], sizeof s_skin_path[id], "%s", utf);   /* (empty: no picture) */
+            s_layout_skin[id] = utf[0] != 0;
+            (*env)->ReleaseStringUTFChars(env, path, utf);
+        }
+        layout_save();
+        s_layout_revision++;
+        s_serial++;
     }
     pthread_mutex_unlock(&s_lock);
 }

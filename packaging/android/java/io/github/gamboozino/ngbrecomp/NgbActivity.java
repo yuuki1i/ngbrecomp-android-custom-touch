@@ -45,6 +45,7 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchLayoutApply(String text);
     private native void nativeTouchLayoutDefaults();
     private native void nativeTouchSkinPick(int id);
+    private native void nativeTouchSkinSetPath(int id, String path);
     private native int nativeVideoGet(int which);
     private native void nativeVideoSet(int which, int value);
     private native void nativeTouchChange(int item, int direction);
@@ -370,6 +371,9 @@ public class NgbActivity extends SDLActivity {
     public void applyTouchLayout(String text) { nativeTouchLayoutApply(text); }
     public void resetTouchLayout() { nativeTouchLayoutDefaults(); }
     public void pickTouchSkinFor(int id) { nativeTouchSkinPick(id); }
+
+    /* A picture already on the phone (one of the built-in sheets), straight to the control. */
+    public void setTouchSkinPath(int id, String path) { nativeTouchSkinSetPath(id, path); }
 
     /* Import a player-supplied PNG/JPEG button texture without broad storage permissions. */
     public void pickTouchSkin() {
