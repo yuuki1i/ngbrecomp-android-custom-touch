@@ -7,6 +7,8 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
+import android.app.AlertDialog;
+import android.widget.EditText;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -48,7 +50,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private static final int[] COLOUR_RGB = {
         0xFFFFFFFF, 0xFF4C9BEA, 0xFFE05A5A, 0xFF57C77A, 0xFFE3B341, 0xFF8E6FD8,
     };
-    private static final String[] SHAPES = {"圆形", "方形", "菱形"};
+    private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形"};
     private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆转圈+Y"};
 
     private final NgbActivity mActivity;
@@ -63,7 +65,7 @@ public class TouchLayoutEditor extends FrameLayout {
 
     private Preview mPreview;
     private TextView mCurrent, mSizeValue, mAlphaValue, mColourValue, mShapeValue, mActionValue, mComboValue,
-            mShowValue, mSkinValue, mHint;
+            mShowValue, mSkinValue, mHint, mXValue, mYValue;
     private Button mDelete, mComboRow;
     private int mSelected = 0;
 
@@ -126,7 +128,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 mR[id] = Float.parseFloat(parts[3]);
                 mAlpha[id] = Float.parseFloat(parts[4]);
                 mColour[id] = clamp(Integer.parseInt(parts[5]), 0, 5);
-                mShape[id] = clamp(Integer.parseInt(parts[6]), 0, 2);
+                mShape[id] = clamp(Integer.parseInt(parts[6]), 0, 5);
                 mAction[id] = clamp(Integer.parseInt(parts[7]), -1, ACTIONS.length - 1);
                 mCombo[id] = clamp(Integer.parseInt(parts[8]), 0, COMBOS.length - 1);
                 mShown[id] = Integer.parseInt(parts[9]) != 0;
@@ -297,10 +299,12 @@ public class TouchLayoutEditor extends FrameLayout {
         sizeRow.setGravity(Gravity.CENTER_VERTICAL);
         TextView sizeTitle = label("大小", 13, 0xC7B9C2D2, false);
         sizeRow.addView(sizeTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        sizeRow.addView(step("−", () -> scale(-0.08f)));
+        sizeRow.addView(step("−", () -> scale(-0.02f)));
         mSizeValue = valueView(64);
+        mSizeValue.setOnClickListener(v -> askNumber("按键大小（%，100% 为默认）", sizePercent(), 20, 500,
+                                                   pct -> { mR[mSelected] = pct / 100f * 0.055f; refresh(); }));
         sizeRow.addView(mSizeValue);
-        sizeRow.addView(step("+", () -> scale(0.08f)));
+        sizeRow.addView(step("+", () -> scale(0.02f)));
         panel.addView(sizeRow);
 
         LinearLayout alphaRow = new LinearLayout(mActivity);
@@ -308,11 +312,23 @@ public class TouchLayoutEditor extends FrameLayout {
         alphaRow.setGravity(Gravity.CENTER_VERTICAL);
         TextView alphaTitle = label("透明度", 13, 0xC7B9C2D2, false);
         alphaRow.addView(alphaTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        alphaRow.addView(step("−", () -> fade(-0.08f)));
+        alphaRow.addView(step("−", () -> fade(-0.02f)));
         mAlphaValue = valueView(64);
+        mAlphaValue.setOnClickListener(v -> askNumber("透明度（%）", mAlpha[mSelected] * 100f, 10, 100,
+                                                    pct -> { mAlpha[mSelected] = pct / 100f; refresh(); }));
         alphaRow.addView(mAlphaValue);
-        alphaRow.addView(step("+", () -> fade(0.08f)));
+        alphaRow.addView(step("+", () -> fade(0.02f)));
         panel.addView(alphaRow);
+
+        mXValue = valueView(90);
+        mXValue.setOnClickListener(v -> askNumber("横向位置（%，屏幕宽度）", mX[mSelected] * 100f, 0, 100,
+                                                pct -> { mX[mSelected] = pct / 100f; refresh(); }));
+        panel.addView(row("横向位置", mXValue));
+
+        mYValue = valueView(90);
+        mYValue.setOnClickListener(v -> askNumber("纵向位置（%，屏幕高度）", mY[mSelected] * 100f, 0, 100,
+                                                pct -> { mY[mSelected] = pct / 100f; refresh(); }));
+        panel.addView(row("纵向位置", mYValue));
 
         mColourValue = valueView(110);
         mColourValue.setOnClickListener(v -> { mColour[mSelected] = (mColour[mSelected] + 1) % COLOURS.length; refresh(); });
@@ -411,6 +427,37 @@ public class TouchLayoutEditor extends FrameLayout {
         refresh();
     }
 
+    private interface FloatSink { void set(float value); }
+
+    /* Winlator's sheets let the finger drag, but a size is a number: typing it beats nudging a circle a
+     * pixel at a time. Every size and place here can be typed as well as dragged. */
+    private void askNumber(String title, float initial, float min, float max, FloatSink sink) {
+        EditText input = new EditText(mActivity);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setText(String.format(Locale.US, "%.1f", initial));
+        input.setSelectAllOnFocus(true);
+        input.setTextColor(0xFFEDF2FA);
+        input.setTextSize(16);
+        new AlertDialog.Builder(mActivity)
+            .setTitle(title)
+            .setView(input)
+            .setPositiveButton("确定", (d, w) -> {
+                float v;
+                try {
+                    v = Float.parseFloat(input.getText().toString().trim());
+                } catch (Exception e) {
+                    return;
+                }
+                sink.set(Math.max(min, Math.min(max, v)));
+            })
+            .setNegativeButton("取消", null)
+            .show();
+    }
+
+    private float sizePercent() {
+        return mR[mSelected] / 0.055f * 100f;
+    }
+
     private int stepShown(int dir) {
         for (int n = 0; n < N; n++) {
             mSelected = (mSelected + dir + N) % N;
@@ -457,7 +504,9 @@ public class TouchLayoutEditor extends FrameLayout {
         if (mCurrent == null)
             return;
         mCurrent.setText(NAMES[mSelected]);
-        mSizeValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mR[mSelected] / 0.055f * 100)));
+        mSizeValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(sizePercent())));
+        mXValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mX[mSelected] * 100)));
+        mYValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mY[mSelected] * 100)));
         mAlphaValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAlpha[mSelected] * 100)));
         mColourValue.setText(COLOURS[mColour[mSelected]]);
         mShapeValue.setText(SHAPES[mShape[mSelected]]);
@@ -537,33 +586,14 @@ public class TouchLayoutEditor extends FrameLayout {
                 float cy = mTop + mEditor.mY[id] * mHeight;
                 float radius = mEditor.mR[id] * mHeight;
                 int rgb = COLOUR_RGB[mEditor.mColour[id]];
+                outline(mPath, cx, cy, radius, mEditor.mShape[id]);
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor((rgb & 0x00FFFFFF) | 0x4D000000);
-                if (mEditor.mShape[id] == 1) {
-                    mRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
-                    canvas.drawRoundRect(mRect, radius * 0.22f, radius * 0.22f, mPaint);
-                } else if (mEditor.mShape[id] == 2) {
-                    mPath.reset();
-                    mPath.moveTo(cx, cy - radius);
-                    mPath.lineTo(cx + radius, cy);
-                    mPath.lineTo(cx, cy + radius);
-                    mPath.lineTo(cx - radius, cy);
-                    mPath.close();
-                    canvas.drawPath(mPath, mPaint);
-                } else {
-                    canvas.drawCircle(cx, cy, radius, mPaint);
-                }
+                canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
                 mPaint.setStrokeWidth(id == mEditor.mSelected ? 2.5f : 1f);
                 mPaint.setColor(id == mEditor.mSelected ? 0xFFFFD86B : ((rgb & 0x00FFFFFF) | 0xCC000000));
-                if (mEditor.mShape[id] == 1) {
-                    mRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
-                    canvas.drawRoundRect(mRect, radius * 0.22f, radius * 0.22f, mPaint);
-                } else if (mEditor.mShape[id] == 2) {
-                    canvas.drawPath(mPath, mPaint);
-                } else {
-                    canvas.drawCircle(cx, cy, radius, mPaint);
-                }
+                canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor(0xFFFFFFFF);
                 mPaint.setTextAlign(Paint.Align.CENTER);
@@ -634,6 +664,46 @@ public class TouchLayoutEditor extends FrameLayout {
                 break;
             }
             return true;
+        }
+
+        /* The sixth shapes a control can take, drawn as paths so the pad's own drawing (src/touch_pad.c,
+         * draw_style_outline) and this sheet look like the same button. */
+        private void outline(Path path, float cx, float cy, float r, int shape) {
+            path.reset();
+            switch (shape) {
+            case 1:                                   /* square */
+                path.addRect(cx - r, cy - r, cx + r, cy + r, Path.Direction.CW);
+                break;
+            case 2:                                   /* diamond */
+                path.moveTo(cx, cy - r);
+                path.lineTo(cx + r, cy);
+                path.lineTo(cx, cy + r);
+                path.lineTo(cx - r, cy);
+                path.close();
+                break;
+            case 4:                                   /* hexagon, flat top */
+                for (int i = 0; i < 6; i++) {
+                    double a = Math.toRadians(60 * i);
+                    float px = cx + (float) (r * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
+                    if (i == 0) path.moveTo(px, py); else path.lineTo(px, py);
+                }
+                path.close();
+                break;
+            case 5:                                   /* octagon */
+                for (int i = 0; i < 8; i++) {
+                    double a = Math.toRadians(45 * i + 22.5);
+                    float px = cx + (float) (r * Math.sin(a)), py = cy - (float) (r * Math.cos(a));
+                    if (i == 0) path.moveTo(px, py); else path.lineTo(px, py);
+                }
+                path.close();
+                break;
+            case 3:                                   /* rounded square */
+                mRect.set(cx - r, cy - r, cx + r, cy + r);
+                path.addRoundRect(mRect, r * 0.32f, r * 0.32f, Path.Direction.CW);
+                break;
+            default:
+                path.addCircle(cx, cy, r, Path.Direction.CW);
+            }
         }
 
         private float spread(MotionEvent ev) {

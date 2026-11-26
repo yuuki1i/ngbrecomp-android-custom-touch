@@ -194,7 +194,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V4")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V4")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V4 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>2?2:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V4")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V4 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>5?5:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -1020,8 +1020,11 @@ static void draw_style_outline(float cx, float cy, float r, int color, int shape
     for (int y = y0; y <= y1; y++)
         for (int x = x0; x <= x1; x++) {
             float dx = fabsf(x + 0.5f - cx), dy = fabsf(y + 0.5f - cy), d;
-            if (shape == 1) d = fmaxf(dx, dy);
-            else if (shape == 2) d = (dx + dy) * 0.70710678f;
+            if (shape == 1) d = fmaxf(dx, dy);                                   /* square */
+            else if (shape == 2) d = (dx + dy) * 0.70710678f;                    /* diamond */
+            else if (shape == 3) d = powf(dx * dx * dx * dx + dy * dy * dy * dy, 0.25f);   /* rounded square */
+            else if (shape == 4) d = fmaxf(dx * 0.866025f + dy * 0.5f, dy);       /* hexagon */
+            else if (shape == 5) d = fmaxf(fmaxf(dx, dy), (dx + dy) * 0.70710678f);/* octagon */
             else d = hypotf(dx, dy);
             if (d >= inner && d <= outer)
                 badge_pixel(x, y, cr, cg, cb, 230);
@@ -1266,7 +1269,7 @@ void ngb_touch_menu_change(int item,int dir)
     case 6: s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,s_layout_r[id]/s_ctrl[id].r+(dir<0?-.1f:.1f)));s_layout_custom[id]=true;break;
     case 7: s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,s_layout_alpha[id]+(dir<0?-.05f:.05f)));break;
     case 8: s_layout_color[id]=(uint8_t)((s_layout_color[id]+(dir<0?5:1))%6);break;
-    case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?2:1))%3);break;
+    case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?5:1))%6);break;
     case 10: s_layout_skin[id]^=1;break;
     case 11:s_layout_combo[NINPO]=(uint8_t)((s_layout_combo[NINPO]+(dir<0?6:1))%7);break;
     case 12:s_layout_combo[WINDRUN]=(uint8_t)((s_layout_combo[WINDRUN]+(dir<0?6:1))%7);break;
@@ -1291,7 +1294,7 @@ void ngb_touch_menu_set(int item,int value)
     else if(item==6){s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,(float)value/100.f));s_layout_custom[id]=true;}
     else if(item==7)s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,(float)value/100.f));
     else if(item==8)s_layout_color[id]=(uint8_t)((value%6+6)%6);
-    else if(item==9)s_layout_shape[id]=(uint8_t)((value%3+3)%3);
+    else if(item==9)s_layout_shape[id]=(uint8_t)((value%6+6)%6);
     else if(item==10)s_layout_skin[id]=value!=0;
     else if(item>=11&&item<=16){int ci=item==11?NINPO:item==12?WINDRUN:CUSTOM1+item-13;s_layout_combo[ci]=(uint8_t)((value%7+7)%7);}
     layout_save();s_layout_revision++;s_serial++;
@@ -1374,7 +1377,7 @@ void ngb_touch_layout_apply(const char *text)
                 s_layout_r[id] = fminf(.25f, fmaxf(.035f, r));
                 s_layout_alpha[id] = fminf(1.f, fmaxf(.15f, alpha));
                 s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
-                s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 2 ? 2 : shape);
+                s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 5 ? 5 : shape);
                 s_layout_action[id] = action >= 0 && action < PA_COUNT ? action : PA_NONE;
                 s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 6 ? 6 : combo);
                 s_layout_enabled[id] = shown != 0;
