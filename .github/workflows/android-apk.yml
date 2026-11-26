@@ -65,6 +65,12 @@ jobs:
           sparse-checkout: default.xbe
           sparse-checkout-cone-mode: false
 
+      - name: Ensure XBE input is present
+        run: |
+          mkdir -p game-xbe
+          git -C game-xbe show master:default.xbe > game-xbe/default.xbe
+          test -s game-xbe/default.xbe
+
       - name: Generate recompiled game sources from XBE
         run: |
           tools/pipeline.sh game-xbe/default.xbe
