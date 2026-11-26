@@ -1768,8 +1768,8 @@ static int row_hit(float lx, float ly, int *zone)
         int y=ROW_Y0+i*ROW_H-(int)lroundf(s_list_scroll);
         if(ly>=y+2 && ly<y+ROW_H-4) {
             int row=category_row(i);
-            if(lx>=LW-150) *zone=1;
-            else if(lx>=LW-230) *zone=-1;
+            if(lx>=LW-390) *zone=1;
+            else if(lx>=LW-490) *zone=-1;
             return row;
         }
     }
@@ -1809,14 +1809,14 @@ static void draw(const uint32_t *backdrop)
         else if(i&1) fill(252,y+2,LW-604,ROW_H-6,0x54708D,22);
         if(row==ROW_TOUCH) {
             text("Open touch layout editor",272,y+9,20,sel?white:grey,255,0);
-            text("OPEN",LW-284,y+9,17,accent,255,1);
+            text("OPEN",LW-370,y+9,17,accent,255,1);
         } else {
             const char *label; char val[96];
             ngb_settings_row_text(&s_cfg,row,&label,val,sizeof val);
             text(label,272,y+9,19,sel?white:grey,255,0);
-            text(val,LW-280,y+9,19,white,255,1);
-            text("<",LW-196,y+9,18,sel?white:grey,255,1);
-            text(">",LW-270,y+9,18,sel?white:grey,255,1);
+            text(val,LW-420,y+9,19,white,255,1);
+            text("<",LW-480,y+9,18,sel?white:grey,255,1);
+            text(">",LW-365,y+9,18,sel?white:grey,255,1);
         }
     }
     fill(LW-72,LIST_TOP,5,LIST_VIEW_H,0x34465B,170);
