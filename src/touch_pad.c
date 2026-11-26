@@ -160,7 +160,7 @@ static int s_art_shown;                       /* the controls drawn (the last pi
 #define MAX_FINGERS 10
 static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 static void layout_defaults(void) {
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.72f:0.55f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]=i<CUSTOM1; } s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
     if(s_layout_loaded)return; s_layout_loaded=true; layout_defaults(); s_haptics=true; s_skin_path[0]=0;
@@ -449,7 +449,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     if(ev->type==SDL_FINGERDOWN&&x>s_aspect-.045f&&y>.44f&&y<.56f){if(s_edit_mode)touch_pick_skin();else toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&s_edit_mode&&y>.02f&&y<.045f&&x>s_aspect*.40f&&x<s_aspect*.60f){layout_switch_preset();pthread_mutex_unlock(&s_lock);return 0;}
     if(ev->type==SDL_FINGERDOWN&&y<.105f){if(s_edit_mode)editor_toolbar_action(x);else if(x>s_aspect*.455f&&x<s_aspect*.545f)toggle_editor();pthread_mutex_unlock(&s_lock);return 0;}
-    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();s_layout=s_layout!=1;s_layout_save=1;s_serial++;pthread_mutex_unlock(&s_lock);return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();extern void ngb_menu_open(void);ngb_menu_open();pthread_mutex_unlock(&s_lock);return 0;}
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
