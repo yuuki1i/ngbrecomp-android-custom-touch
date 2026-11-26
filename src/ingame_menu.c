@@ -1763,6 +1763,7 @@ static int row_hit(float lx, float ly, int *zone)
     if(ly>=112 && ly<LIST_BOTTOM && lx>=24 && lx<226) {
         int tab=(int)((ly-112)/66.0f); return tab<4 ? -100-tab : -1;
     }
+    if(ly>=LH-78 && ly<LH-24 && lx>LW/2-180 && lx<LW/2+180) return ROW_RESUME;
     if(lx<242 || lx>=LW-340 || ly<LIST_TOP || ly>=LIST_BOTTOM) return -1;
     for(int i=0;i<category_count();i++) {
         int y=ROW_Y0+i*ROW_H-(int)lroundf(s_list_scroll);
@@ -1773,7 +1774,6 @@ static int row_hit(float lx, float ly, int *zone)
             return row;
         }
     }
-    if(ly>=LH-78 && ly<LH-24 && lx>LW/2-140 && lx<LW/2+140) return ROW_RESUME;
     return -1;
 }
 
