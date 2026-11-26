@@ -71,29 +71,32 @@ typedef struct {
 
 static const Ctrl s_ctrl[NCTRL] = {
     [LSTICK]  = { STICK,  0, 0.27f,  0.56f,  0.14f,  "left stick", NULL, 0, NULL },
-    [RSTICK]  = { STICK,  1, 0.66f,  0.68f,  0.12f,  "right stick", NULL, 0, NULL },   /* (below and inside the
+    [RSTICK]  = { STICK,  1, 0.720f, 0.780f, 0.100f,  "right stick", NULL, 0, NULL },   /* (below and inside the
                                                        face buttons, clear of the game's prompts) */
     [DPAD_ID] = { DPAD,   0, 0.37f,  0.84f,  0.12f,  "d-pad", NULL, 0, NULL },   /* (0.09 was small: #284) */
-    [BA]      = { BUTTON, 1, 0.193f, 0.675f, 0.075f, "A", "A", 0xD8DDE4, "button_a" },
-    [BB]      = { BUTTON, 1, 0.193f, 0.51f,  0.07f,  "B", "B", 0xD8DDE4, "button_b" },
-    [BX]      = { BUTTON, 1, 0.347f, 0.59f,  0.075f, "X", "X", 0xD8DDE4, "button_x" },
-    [BY]      = { BUTTON, 1, 0.347f, 0.43f,  0.075f, "Y", "Y", 0xD8DDE4, "button_y" },
-    [LB]      = { BUTTON, 1, 0.123f, 0.35f,  0.042f, "LB", "LB", 0xE6E6E6, "button_black" },
-    [RB]      = { BUTTON, 1, 0.278f, 0.28f,  0.042f, "RB", "RB", 0xE6E6E6, "button_white" },
-    [LT]      = { BUTTON, 1, 0.52f,  0.40f,  0.08f,  "LT", "LT", 0xE6E6E6, "trigger_l" },   /* (guard: by the face
+    [BA]      = { BUTTON, 1, 0.315f, 0.715f, 0.072f, "A", "A", 0xD8DDE4, "button_a" },   /* (the face buttons one
+                                                       diamond, one size: Y high, B out, A low, X in -- the
+                                                       plates of Winlator's pad) */
+    [BB]      = { BUTTON, 1, 0.175f, 0.585f, 0.072f, "B", "B", 0xD8DDE4, "button_b" },
+    [BX]      = { BUTTON, 1, 0.455f, 0.585f, 0.072f, "X", "X", 0xD8DDE4, "button_x" },
+    [BY]      = { BUTTON, 1, 0.315f, 0.455f, 0.072f, "Y", "Y", 0xD8DDE4, "button_y" },
+    [LB]      = { BUTTON, 1, 0.440f, 0.300f, 0.045f, "LB", "LB", 0xE6E6E6, "button_black" },
+    [RB]      = { BUTTON, 1, 0.190f, 0.300f, 0.045f, "RB", "RB", 0xE6E6E6, "button_white" },
+    [LT]      = { BUTTON, 1, 0.560f, 0.190f, 0.055f, "LT", "LT", 0xE6E6E6, "trigger_l" },   /* (guard: by the face
                                                        buttons) */
     [RT]      = { BUTTON, 0, 0.060f, 0.088f, 0.047f, "RT", "RT", 0xE6E6E6, "trigger_r" },   /* (the camera: small,
                                                        in the corner clear of the health emblem:
                                                        place_at) */
-    [BACK]    = { BUTTON, 2, -0.085f, 0.89f, 0.055f, "BACK", "BACK", 0xE6E6E6, "back" },   /* (Back and Start off the */
-    [START]   = { BUTTON, 2, 0.085f, 0.89f,  0.055f, "START", "START", 0xE6E6E6, "start" },   /* gesture bar; larger and
+    [BACK]    = { BUTTON, 2, -0.075f, 0.925f, 0.050f, "BACK", "BACK", 0xE6E6E6, "back" },   /* (Back and Start off the */
+    [START]   = { BUTTON, 2, 0.075f, 0.925f,  0.050f, "START", "START", 0xE6E6E6, "start" },   /* gesture bar; larger and
                                                        nearer each other, both pressed at once for a reset: #284) */
     [LS]      = { BUTTON, 0, 0.09f,  0.90f,  0.04f,  "LS", "LS", 0xE6E6E6, "click_l" },
     [RS]      = { BUTTON, 1, 0.09f,  0.90f,  0.045f, "RS", "RS", 0xE6E6E6, "click_r" },
     [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.035f, "layout", "<>", 0xE6E6E6, "swap" },
     [NINPO]   = { COMBO, 1, 0.52f, 0.46f, 0.060f, "NINPO", "N", 0xD8DDE4, "button_y" },
     [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0xD8DDE4, "button_x" },
-    [CUSTOM1] = { COMBO, 1, 0.135f, 0.63f, 0.052f, "C1", "360", 0xD8DDE4, "button_a" },
+    [CUSTOM1] = { COMBO, 1, 0.300f, 0.865f, 0.055f, "C1", "360", 0xD8DDE4, "button_a" },   /* (under the face
+                                                       buttons: where the thumb already is) */
     [CUSTOM2] = { COMBO, 1, 0.52f, 0.44f, 0.055f, "C2", "C2", 0xD8DDE4, "button_b" },
     [CUSTOM3] = { COMBO, 1, 0.52f, 0.56f, 0.055f, "C3", "C3", 0x4C9BEA, "button_x" },
     [CUSTOM4] = { COMBO, 1, 0.52f, 0.68f, 0.055f, "C4", "C4", 0x4C9BEA, "button_y" },
@@ -176,7 +179,7 @@ static void layout_defaults(void) {
         [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
         [SWAP]=PA_NONE,
     };
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=(i>=BA&&i<=BY)?0.68f:0.52f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_shape[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
     /* The 360 charge, one tap: the stick sweeps a full turn and Y follows (combo 6), beside the face buttons
      * where the right thumb already is. It starts out on the pad -- it is a move, not a setting. */
     s_layout_enabled[CUSTOM1]=true; s_layout_combo[CUSTOM1]=6; s_layout_alpha[CUSTOM1]=0.6f;
@@ -192,9 +195,9 @@ static void layout_load(void) {
     FILE *fp=fopen(s_layout_path,"r");
     if(!fp&&s_preset==0){char *legacy=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(legacy){snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-v1.cfg",legacy);SDL_free(legacy);fp=fopen(s_layout_path,"r");}}
     if(!fp)return; char line[192]; bool legacy_ids=true;
-    if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V4")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
+    if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V4")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V4 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>5?5:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN "))sscanf(line,"# SKIN %511s",s_skin_path);continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;}
     fclose(fp);
     for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
 }
@@ -203,7 +206,7 @@ static void layout_save(void) {
     char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
-    fprintf(fp,"# NGB_TOUCH_LAYOUT_V4 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
+    fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     if(s_skin_path[0])fprintf(fp,"# SKIN %s\n",s_skin_path);
     for(int i=0;i<NCTRL;i++)fprintf(fp,"%d %.5f %.5f %.5f %.5f %d %u %u %u %u %u %d\n",i,s_layout_x[i],s_layout_y[i],s_layout_r[i],s_layout_alpha[i],s_layout_custom[i]?1:0,s_layout_color[i],s_layout_shape[i],s_layout_skin[i],s_layout_enabled[i]?1:0,s_layout_combo[i],s_layout_action[i]);
     fclose(fp);
@@ -921,6 +924,110 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
 }
 
 /* A button's picture, idle or held */
+/* ---------- the plain pad: plates and letters, as Winlator's ----------
+ * Shapes 6 and up are not outlines over the game's art: the control is a plate of its own -- a dark see-through
+ * fill, a hairline in the button's colour, its name inside. 6 a wide rectangle, 7 a circle, 8 a rounded square.
+ * The default layout uses 6 on every button and combo: one plate, one size, aligned, nothing behind them. */
+static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);   /* (drawn further down) */
+
+static bool plain_shape(int shape) { return shape >= 6; }
+
+/* Its half size: the wide rectangle is the one the thumb wants, 1.55 as wide as it is tall. */
+static void plain_size(int shape, float r, float *hw, float *hh)
+{
+    *hh = r;
+    *hw = shape == 6 ? r * 1.55f : r;
+}
+
+/* palette as the editor's (TouchLayoutEditor.java COLOUR_RGB): white, blue, red, green, gold, violet */
+static void plain_tint(int colour, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    static const uint8_t tint[6][3] = {
+        {255, 255, 255}, {76, 155, 234}, {224, 90, 90}, {87, 199, 122}, {227, 179, 65}, {142, 111, 216},
+    };
+    int ci = colour < 0 || colour > 5 ? 0 : colour;
+    *r = tint[ci][0];
+    *g = tint[ci][1];
+    *b = tint[ci][2];
+}
+
+/* The name inside the plate, from the stand-in buttons' letters (launcher_font.h), scaled to fit. */
+static void plain_letter(const char *t, float cx, float cy, float maxw, float maxh, uint8_t cr, uint8_t cg,
+                         uint8_t cb, float a)
+{
+    if (!t || !*t || a <= 0.02f)
+        return;
+    int n = (int)strlen(t), total = 0;
+    for (int i = 0; i < n; i++) {
+        int g = t[i] - 32;
+        if (g >= 0 && g < 95)
+            total += launcher_font_w[g];
+    }
+    if (!total)
+        return;
+    float k = maxh / LAUNCHER_FONT_H_PX;
+    if (total * k > maxw)
+        k = maxw / total;
+    float gh = LAUNCHER_FONT_H_PX * k, pen = cx - total * k / 2, top = cy - gh / 2;
+    for (int i = 0; i < n; i++) {
+        int g = t[i] - 32;
+        if (g < 0 || g >= 95) {
+            pen += 2 * k;
+            continue;
+        }
+        int gw = launcher_font_w[g];
+        const uint8_t *src = launcher_font_px + launcher_font_off[g];
+        for (int Y = 0; Y < (int)ceilf(gh); Y++)
+            for (int X = (int)floorf(pen); X < (int)ceilf(pen + gw * k); X++) {
+                float u = (X + 0.5f - pen) / k - 0.5f, v = (Y + 0.5f) / k - 0.5f;    /* (bilinear) */
+                int iu = (int)floorf(u), iv = (int)floorf(v);
+                float fu = u - iu, fv = v - iv, in = 0;
+                for (int q = 0; q < 4; q++) {
+                    int su = iu + (q & 1), sv = iv + (q >> 1);
+                    if (su < 0 || sv < 0 || su >= gw || sv >= LAUNCHER_FONT_H_PX)
+                        continue;
+                    in += src[sv * gw + su] / 255.0f * ((q & 1) ? fu : 1 - fu) * ((q >> 1) ? fv : 1 - fv);
+                }
+                if (in > 0.02f)
+                    badge_pixel(X, (int)floorf(top) + Y, cr, cg, cb,
+                                (uint8_t)lroundf(fminf(1.f, in * a) * 255));
+            }
+        pen += gw * k;
+    }
+}
+
+static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
+{
+    const Ctrl *c = &s_ctrl[id];
+    int shape = plain_shape(d_layout_shape[id]) ? d_layout_shape[id] : 6;
+    float hw, hh;
+    plain_size(shape, r, &hw, &hh);
+    float rad = shape == 6 || shape == 8 ? fminf(hw, hh) * 0.22f : hw;
+    float edge = fmaxf(2.f, r * 0.06f);
+    uint8_t cr, cg, cb;
+    plain_tint(d_layout_color[id], &cr, &cg, &cb);
+    int x0 = (int)floorf(cx - hw - 2), x1 = (int)ceilf(cx + hw + 2);
+    int y0 = (int)floorf(cy - hh - 2), y1 = (int)ceilf(cy + hh + 2);
+    over_box(x0, y0, x1 + 1, y1 + 1);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            float dx = x + 0.5f - cx, dy = y + 0.5f - cy, d;
+            if (shape == 7) {
+                d = hypotf(dx, dy) - hw;
+            } else {
+                float qx = fabsf(dx) - hw + rad, qy = fabsf(dy) - hh + rad;
+                d = hypotf(fmaxf(qx, 0.f), fmaxf(qy, 0.f)) + fminf(fmaxf(qx, qy), 0.f) - rad;
+            }
+            if (d > 0)
+                continue;
+            badge_pixel(x, y, 8, 10, 14, (uint8_t)lroundf((lit ? 0.60f : 0.36f) * a * 255));   /* the plate */
+            if (d > -edge)                                                                    /* its hairline */
+                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 1.f : 0.80f) * a * 255));
+        }
+    if (c->label)
+        plain_letter(c->label, cx, cy, hw * 1.6f, hh * 0.90f, cr, cg, cb, fminf(1.f, a + 0.2f));
+}
+
 static void draw_badge_text(const char *label, int centre, int y0, int bw);
 static const char *combo_first(int id) {
     static const char *v[6] = {"button_a","button_a","button_a","button_b","button_b","button_x"};
@@ -977,7 +1084,9 @@ static void draw_idle(void)
         Place at = place_at(c, d_aspect, s_art == ART_STANDIN, d_layout);
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i]; at.y=d_anim_y[i]; at.r=d_anim_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
-        if (c->kind == STICK)
+        if (plain_shape(d_layout_shape[i]) && (c->kind == BUTTON || c->kind == COMBO))
+            draw_plain(i, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i], false);
+        else if (c->kind == STICK)
             draw_piece("pad", cx, cy, 2 * r, 2 * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
         else if (c->kind == DPAD)
             draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
@@ -1025,6 +1134,8 @@ static void draw_style_outline(float cx, float cy, float r, int color, int shape
             else if (shape == 3) d = powf(dx * dx * dx * dx + dy * dy * dy * dy, 0.25f);   /* rounded square */
             else if (shape == 4) d = fmaxf(dx * 0.866025f + dy * 0.5f, dy);       /* hexagon */
             else if (shape == 5) d = fmaxf(fmaxf(dx, dy), (dx + dy) * 0.70710678f);/* octagon */
+            else if (shape == 6) d = fmaxf(dx / 1.55f, dy);                      /* wide rectangle */
+            else if (shape == 8) d = powf(dx * dx * dx * dx + dy * dy * dy * dy, 0.25f);   /* rounded square */
             else d = hypotf(dx, dy);
             if (d >= inner && d <= outer)
                 badge_pixel(x, y, cr, cg, cb, 230);
@@ -1122,7 +1233,9 @@ static void draw_all(void)
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i]; at.y=d_anim_y[i]; at.r=d_anim_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         bool on = d_down[i];
-        if (c->kind == STICK) {
+        if (on && plain_shape(d_layout_shape[i]) && (c->kind == BUTTON || c->kind == COMBO)) {
+            draw_plain(i, cx, cy, r, fmaxf(d_layout_alpha[i], 0.78f), true);   /* (the plate lit under the thumb) */
+        } else if (c->kind == STICK) {
             int s = i == RSTICK;
             float nx = cx + d_stick[s][0] * r * 0.55f, ny = cy + d_stick[s][1] * r * 0.55f;
             nx = roundf(nx - r / 2) + r / 2;   /* (moved by whole pixels: its picture at this size made once) */
@@ -1152,7 +1265,7 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
@@ -1243,7 +1356,7 @@ void ngb_touch_menu_change(int item,int dir)
     case 6: s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,s_layout_r[id]/s_ctrl[id].r+(dir<0?-.1f:.1f)));s_layout_custom[id]=true;break;
     case 7: s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,s_layout_alpha[id]+(dir<0?-.05f:.05f)));break;
     case 8: s_layout_color[id]=(uint8_t)((s_layout_color[id]+(dir<0?5:1))%6);break;
-    case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?5:1))%6);break;
+    case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?8:1))%9);break;
     case 10: s_layout_skin[id]^=1;break;
     case 11:s_layout_combo[NINPO]=(uint8_t)((s_layout_combo[NINPO]+(dir<0?6:1))%7);break;
     case 12:s_layout_combo[WINDRUN]=(uint8_t)((s_layout_combo[WINDRUN]+(dir<0?6:1))%7);break;
@@ -1268,7 +1381,7 @@ void ngb_touch_menu_set(int item,int value)
     else if(item==6){s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,(float)value/100.f));s_layout_custom[id]=true;}
     else if(item==7)s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,(float)value/100.f));
     else if(item==8)s_layout_color[id]=(uint8_t)((value%6+6)%6);
-    else if(item==9)s_layout_shape[id]=(uint8_t)((value%6+6)%6);
+    else if(item==9)s_layout_shape[id]=(uint8_t)((value%9+9)%9);
     else if(item==10)s_layout_skin[id]=value!=0;
     else if(item>=11&&item<=16){int ci=item==11?NINPO:item==12?WINDRUN:CUSTOM1+item-13;s_layout_combo[ci]=(uint8_t)((value%7+7)%7);}
     layout_save();s_layout_revision++;s_serial++;

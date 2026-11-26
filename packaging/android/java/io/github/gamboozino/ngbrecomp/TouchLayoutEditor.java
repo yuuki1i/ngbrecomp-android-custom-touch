@@ -50,7 +50,9 @@ public class TouchLayoutEditor extends FrameLayout {
     private static final int[] COLOUR_RGB = {
         0xFFFFFFFF, 0xFF4C9BEA, 0xFFE05A5A, 0xFF57C77A, 0xFFE3B341, 0xFF8E6FD8,
     };
-    private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形"};
+    /* 0-5 draw a ring over the pad's own art; 6-8 replace it with a plate of the control's own (src/touch_pad.c,
+     * draw_plain): a wide rectangle, a circle, a rounded square -- the plain pad the default layout uses. */
+    private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形", "长方形", "圆盘", "圆角方框"};
     private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆转圈+Y"};
 
     private final NgbActivity mActivity;
@@ -597,7 +599,7 @@ public class TouchLayoutEditor extends FrameLayout {
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor(0xFFFFFFFF);
                 mPaint.setTextAlign(Paint.Align.CENTER);
-                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.7f));
+                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.62f));
                 String text = SHORT[id];
                 if (mEditor.mButton[id] && mEditor.mAction[id] >= 0 && mEditor.mAction[id] < 12)
                     text = ACTIONS[mEditor.mAction[id]].replace(" 键", "");
@@ -703,6 +705,14 @@ public class TouchLayoutEditor extends FrameLayout {
                     if (i == 0) path.moveTo(px, py); else path.lineTo(px, py);
                 }
                 path.close();
+                break;
+            case 6:                                   /* wide rectangle, as the plain pad's */
+                mRect.set(cx - r * 1.55f, cy - r, cx + r * 1.55f, cy + r);
+                path.addRoundRect(mRect, r * 0.22f, r * 0.22f, Path.Direction.CW);
+                break;
+            case 8:                                   /* rounded square plate */
+                mRect.set(cx - r, cy - r, cx + r, cy + r);
+                path.addRoundRect(mRect, r * 0.22f, r * 0.22f, Path.Direction.CW);
                 break;
             case 3:                                   /* rounded square */
                 mRect.set(cx - r, cy - r, cx + r, cy + r);

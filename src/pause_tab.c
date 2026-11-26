@@ -447,7 +447,7 @@ void ngb_menu_row_value(int row, char *out, size_t n) {
         else if (item == 4) { static const char *const controls[] = { "Left Stick", "Right Stick", "D-Pad", "A", "B", "X", "Y", "LB", "RB", "LT", "RT", "Back", "Start", "LS", "RS", "Layout", "Ninpo", "Wind Run", "Custom 1", "Custom 2", "Custom 3", "Custom 4" }; snprintf(out,n,"%s",v>=0&&v<22?controls[v]:"Left Stick"); }
         else if (item == 6 || item == 7) snprintf(out,n,"%d%%",v);
         else if (item == 8) { static const char *const colors[]={"White","Blue","Red","Green","Gold","Violet"}; snprintf(out,n,"%s",v>=0&&v<6?colors[v]:"White"); }
-        else if (item == 9) { static const char *const shapes[]={"Round","Square","Diamond"}; snprintf(out,n,"%s",v>=0&&v<3?shapes[v]:"Round"); }
+        else if (item == 9) { static const char *const shapes[]={"Round","Square","Diamond","RoundCorner","Hexagon","Octagon","Rectangle","Disc","Bracket"}; snprintf(out,n,"%s",v>=0&&v<9?shapes[v]:"Rectangle"); }
         else snprintf(out, n, "%s", combos[v >= 0 && v < 7 ? v : 0]);
         return;
     }

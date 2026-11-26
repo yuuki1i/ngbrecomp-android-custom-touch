@@ -1045,21 +1045,17 @@ static void menu_sound(uint32_t which)
 int ngb_cheats_unlocked(void);    /* src/ingame_menu.c */
 int ngb_cheats_ask_open(void);    /* src/pause_tab.c */
 int ngb_cheats_ask_tick(void);
-static int s_cheat_asking, s_cheat_back;
 
 void sub_0017F4E0(void)
 {
     RECOMP_ENTRY(0x0017F4E0u);
     /* (as the page opens -- sub_00184AE0 sets +0x18 to 2 and +0x11 to 1 -- not while it closes: the page stays 14) */
     if (s_recomp && page_now() == PAGE_CHEAT && (MEM32(MENU_STATE + 0x18) & 2) && MEM8(MENU_STATE + 0x11) == 1 &&
-        !s_cheat_asking && !s_cheat_back && !ngb_cheats_unlocked() && ngb_cheats_ask_open())
-        s_cheat_asking = 1;
-    if (s_cheat_asking) {
-        int r = ngb_cheats_ask_tick();
-        if (r >= 0) {
-            s_cheat_asking = 0;
-            s_cheat_back = r == 0;
-        }
+        !ngb_cheats_unlocked()) {
+        /* No "Do you want to use cheats?" any more: its box took the pad while the game's own page was drawing
+         * over it, so the pad was gone and nothing on screen said why (the page froze). Cheats just open. */
+        ngb_pc_set_setting(46, 1);
+        fprintf(stderr, "[MENU] cheats unlocked on opening the page\n");
     }
     uint32_t ebp = 0;
     ebp = g_ebp;  /* frameless: caller's frame */

@@ -116,6 +116,8 @@ void ngb_menu_request_touch_editor(void)
     __atomic_store_n(&s_touch_editor_request, 1, __ATOMIC_RELEASE);
 }
 
+void ngb_touch_editor_open(void);     /* src/touch_pad.c: the phone's own Chinese editor */
+
 void ngb_menu_set_running(const NgbSettings *s)
 {
     s_running = *s;
@@ -1668,9 +1670,14 @@ bool nv2a_overlay_wanted(void)
         }
     }
     to_menu_tick();
-    if (f1_menu() && !s_wait_release && (b & XBOX_GAMEPAD_BACK) && (b & XBOX_GAMEPAD_START) &&
-        !((s_prev_pad & XBOX_GAMEPAD_BACK) && (s_prev_pad & XBOX_GAMEPAD_START)))
-        s_want = 1;
+    /* Back+Start on the phone opens the Chinese touch editor (src/touch_pad.c) instead of the old English
+     * settings menu: that menu is left to F1, and the editor keeps a row of its own that opens it. */
+    if (!s_wait_release && (b & XBOX_GAMEPAD_BACK) && (b & XBOX_GAMEPAD_START) &&
+        !((s_prev_pad & XBOX_GAMEPAD_BACK) && (s_prev_pad & XBOX_GAMEPAD_START))) {
+        usb_gamepad_block = 1;    /* (the game must not see Start+Back: that is its own reset to the title) */
+        s_wait_release = true;
+        ngb_touch_editor_open();
+    }
     s_prev_pad = b;
     return s_want && !s_open;
 }
