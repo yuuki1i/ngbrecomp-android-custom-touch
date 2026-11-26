@@ -333,6 +333,13 @@ extern "C" unsigned char *stbi_load_from_memory(const unsigned char *buffer, int
                                                 int req_comp);
 extern "C" void stbi_image_free(void *retval_from_stbi_load);
 
+#if defined(__ANDROID__)
+extern "C" int ngb_texture_dump_on;   /* src/touch_pad.c: the player's switch. Off, a texture never seen here is
+                                       * only looked for in the pack -- the PNG writes made the opening CG crawl */
+#else
+static int ngb_texture_dump_on;
+#endif
+
 namespace {
 std::mutex s_pack_lock;
 std::unordered_map<uint64_t, int8_t> s_pack_seen;   /* hash: 1 packed, 0 dumped, -1 not to be packed */
@@ -366,12 +373,6 @@ bool ReadFile(const char* path, std::vector<uint8_t>& out) {
     return ok;
 }
 
-#if defined(__ANDROID__)
-extern int ngb_texture_dump_on;   /* src/touch_pad.c: the player's switch. Off, a texture never seen here is only
-                                   * looked for in the pack -- the PNG writes are what made the opening CG crawl */
-#else
-static int ngb_texture_dump_on;
-#endif
 
 void PackLevel(const TextureDesc& d, uint32_t level, uint32_t face, std::vector<uint8_t>& out, uint32_t row_pitch) {
     if (!ngb_texture_dir) return;
