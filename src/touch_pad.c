@@ -238,7 +238,8 @@ static int editor_toolbar_action(float x, float y)
     else if (q > 0.355f && q < 0.445f) edit_control(s_selected, 1);
     else if (q > 0.555f && q < 0.645f) edit_control(s_selected, 2);
     else if (q > 0.665f && q < 0.755f) edit_control(s_selected, 3);
-    else if (q > 0.775f && q < 0.865f) edit_control(s_selected, 4);
+    else if (q > 0.775f && q < 0.865f)
+        edit_control(s_selected, s_ctrl[s_selected].kind == COMBO ? 5 : 4);
     else return 0;
     return 1;
 }
@@ -974,7 +975,8 @@ static void draw_editor_badge(void)
         draw_badge_text("ALPHA", (int)(s_w * 0.40f), 2, 52);
         draw_badge_text("COLOR", (int)(s_w * 0.60f), 2, 52);
         draw_badge_text("SHAPE", (int)(s_w * 0.71f), 2, 52);
-        draw_badge_text("ART", (int)(s_w * 0.82f), 2, 42);
+        draw_badge_text(d_selected >= 0 && d_selected < NCTRL && s_ctrl[d_selected].kind == COMBO
+                            ? "MAP" : "ART", (int)(s_w * 0.82f), 2, 42);
     }
 }
 
