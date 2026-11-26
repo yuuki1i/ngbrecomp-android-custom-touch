@@ -13,7 +13,7 @@
  *
  * The main menu's RECOMP SETTINGS (src/main_menu.c) opens this menu as
  * OPTIONS does, but on pages of ours: page 0's categories become
- * Graphics, Display and Startup Settings, Gameplay, Cheats and Controls,
+ * Graphics, Display and Startup Settings, Gameplay and Cheats,
  * opening pages 10-15 (no Exit row: the column has six, and B leaves) --
  * the recomp's settings as rows with values, like Video Settings'; Cheats'
  * row Unlocks puts the unlocks' rows in its page's place (unl_show) -- and
@@ -50,7 +50,7 @@ int ngb_settings_size_count(int aspect);   /* src/launcher.c */
 void ngb_settings_size_at(int aspect, int i, int *w, int *h);
 
 #define MENU_STATE 0xDA41D0       /* the Options menu: page, row, ... */
-#define PAGE_GFX   10             /* ours: Graphics, Display, Sound, Gameplay, Cheats, Controls */
+#define PAGE_GFX   10             /* ours: Graphics, Display, Sound, Gameplay and Cheats */
 #define PAGE_DISP  11
 #define PAGE_SOUND 12
 #define PAGE_GAME  13             /* Gameplay: the optional changes to play (the Quick Menu) */
@@ -86,7 +86,6 @@ static const uint8_t s_rows_game[] = { ROW_QUICKSCALE, ROW_QUICKFREEZE, ROW_INTE
                                       ROW_SHURIKEN };   /* (Talisman of Rebirth: equipped from the item page, src/talisman.c) */
 static const uint8_t s_rows_cheat[] = { ROW_HEALTH, ROW_NINPO, ROW_ESSENCE, ROW_SCARABS, ROW_INFITEMS, ROW_INFAMMO,
                                         ROW_ONEHIT, ROW_UNLOCKS };
-static const uint8_t s_rows_ctrl[] = { ROW_BACK };   /* (under the Controls panel, src/pause_tab.c: a page has a row) */
 static const uint8_t s_rows_unl[] = { ROW_ALLDIFF, ROW_ALLCOST, ROW_MISSIONS, ROW_ARCADE, ROW_MOVIES, ROW_ALLWEAP,
                                       ROW_ALLARM, ROW_ALLSCROLL };
 static const struct { const uint8_t *kinds; int n; } s_ours[N_OURS] = {
