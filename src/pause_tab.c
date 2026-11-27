@@ -1317,8 +1317,8 @@ static void draw_page(int focused, int cat, int row)
             break;
         fs -= 1;
     }
-    if (gap > STRIP_GAP)
-        gap = STRIP_GAP;
+    if (gap > 56)          /* (the Chinese words are short: spread them, not clumped at the left) */
+        gap = 56;
     for (int c = 0; c < CATS; c++) {
         if (!cat_shown(c)) {
             s_cat_x[c][0] = s_cat_x[c][1] = -1;     /* (no place for the mouse either) */
