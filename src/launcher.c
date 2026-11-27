@@ -251,8 +251,6 @@ void ngb_settings_load(NgbSettings *s)
             defaults = atoi(val);
         } else if (!strcmp(key, "render_thread")) {
             s->render_thread = atoi(val) != 0;
-        } else if (!strcmp(key, "intercept")) {
-            s->intercept = atoi(val) < 0 ? 0 : atoi(val) > 2 ? 2 : atoi(val);
         } else if (!strcmp(key, "essence_only_charging")) {
             s->essence_charging = atoi(val) != 0;
         } else if (!strcmp(key, "skip_any_cutscene")) {
@@ -330,7 +328,6 @@ void ngb_settings_save(const NgbSettings *s)
     fprintf(f, "bloom = %d\n", s->smooth_glow);   /* 2 On, 3 Off */
     fprintf(f, "detail_under_load = %d\n", s->detail_under_load);
     fprintf(f, "render_thread = %d\n", s->render_thread);
-    fprintf(f, "intercept = %d\n", s->intercept);
     fprintf(f, "essence_only_charging = %d\n", s->essence_charging);
     fprintf(f, "skip_any_cutscene = %d\n", s->skip_cutscenes);
     fprintf(f, "responsive_menus = %d\n", s->responsive_menus);
