@@ -28,8 +28,9 @@ struct, `xboxrecomp/templates/runtime/recomp_regs.h`, which the pipeline copies 
 members.
 
 The arcade Ninja Gaiden (#18) is another program on the disc that the Xbox reboots into
-(`XLaunchNewImage`): `NinjaTrilogy.xbe`, or `NinjaTomoe.xbe` (the Japanese build, chosen by the game's
-region flag 0xDB9890). Each is lifted the same way (`tools/pipeline_trilogy.sh [tomoe]`, into
+(`XLaunchNewImage`): `NinjaTrilogy.xbe`, or `NinjaTomoe.xbe` (the Japanese build, chosen when the text is
+Japanese: the game's flag 0xDB9890, from the system language or `text_language`). Each is lifted the same
+way (`tools/pipeline_trilogy.sh [tomoe]`, into
 `src/recomp/gen_trilogy` / `gen_tomoe`) and built as its own program from `src/trilogy/main.c`, drawn by
 the GPU model's own NV2A renderer. `src/launch.c` is the reboot: the runtime hands it the launch data
 page, which it saves and passes on (`RECOMP_LAUNCH_PAGE`), then it starts the other program in place
@@ -225,6 +226,12 @@ level (script opcode 0x83 in sub_00016300; for the Dragon Sword actions 0x20A, 0
 absorbed while charging (sub_001E2EB0) raises the level itself and sets the count just past that level's
 mark (0x65, 0xDD). With the option on, the count's steps of a few frames are taken back each frame, so only
 essence raises the level.
+
+D-Pad Camera While Charging (Controls, `dpad_camera_charging` in `controls.ini`; `src/bindings.c`, `src/ut_charge.c`, #150): while that charging action
+(kind 0xB9) is on, the option gives the d-pad to the camera's right stick on the host side, before inversion
+and Camera Sensitivity; it clears the d-pad buttons so no bound action or pair fires, and leaves the left stick
+alone for the release's direction. The keyboard's bound d-pad keys and the Android touch pad go through the same
+test. Off unless chosen.
 
 Skip Any Cutscene (Gameplay; `src/cutscene_skip.c`, #139): sub_001DBEE0 runs the events, the in-game
 cutscenes among them, once a frame, and Start skips the one playing when Start is down (bit 0x10 of the player's

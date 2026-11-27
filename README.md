@@ -149,6 +149,7 @@ packages are signed ad hoc, without Developer ID signing or notarization.
 
 **Text language:** the game's text follows the system's language, Japanese on a Japanese system and English
 otherwise (the disc has only these two). `text_language = japanese` or `english` in `settings.ini` overrides it.
+The voices (English or Japanese) are the game's own choice in OPTIONS, with either text language. The arcade Ninja Gaiden starts its Japanese version when the text is Japanese.
 
 **Options (`env.txt`):** a text file named `env.txt` beside the saves (the first row above), or next to the
 program, with one option a line (`NAME=value`), for the options that have no menu, like `NV2A_TEX_DUMP` for
@@ -220,7 +221,9 @@ of the pause menu. Changes apply at once and are saved.
   is on keeps what it gave
 - **Controls**: rebind every action (two keys or mouse buttons and a controller button each; Ninpo
   and Wind Run can take two controller buttons pressed together); camera inversion; start in third
-  person; Camera Sensitivity; Button Prompts; Toggle HUD (not bound unless chosen). The page shows
+  person; D-Pad Camera While Charging; Camera Sensitivity; Start+Back Reset; Button Prompts; Button
+  Resolution (High: the prompts drawn sharper above 1x, in the game's style); Toggle HUD (not bound unless
+  chosen). The page shows
   each binding as its key or button picture. A key or button bound to an action is taken from the
   one that had it (Pause always keeps a controller button). The bindings follow the game's own
   Button Settings: an action keeps its key or button whatever the game's Options assign
@@ -263,6 +266,8 @@ Control. **Camera Sensitivity** (25%–300%) sets how fast the mouse, the right 
 turn it; over 100% the camera turns faster than the game's own top speed (the third-person camera's
 left and right; its up and down stays the game's). Holding Start and Back (Select) is the game's own reset to
 the title screen; turn off **Start+Back Reset** (Controls) if another program uses that combination.
+**D-Pad Camera While Charging** (Controls, off by default) gives the d-pad to the camera while an Ultimate
+Technique charges, the left stick still aiming the release (#150).
 
 With the **Quick Menu** on (RECOMP SETTINGS → Gameplay), Up and Down on the d-pad (or the Up / Down
 arrows, 1 / 2) open it on the melee weapons or the items, and Left and Right on the previous or next

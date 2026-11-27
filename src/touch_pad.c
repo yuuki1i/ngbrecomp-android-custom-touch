@@ -60,7 +60,7 @@ extern const int ngb_touch_png_count;   /* (CMakeLists.txt: the stand-in pieces 
 __attribute__((weak)) const NgbPic *ngb_gp_touch(const char *piece);
 
 enum Kind { BUTTON, COMBO, STICK, DPAD };
-enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, SWAP, NINPO, WINDRUN, CUSTOM1, CUSTOM2, CUSTOM3, CUSTOM4, NCTRL };
+enum Id { LSTICK, RSTICK, DPAD_ID, BA, BB, BX, BY, LB, RB, LT, RT, BACK, START, LS, RS, SWAP, NINPO, WINDRUN, CUSTOM1, CUSTOM2, CUSTOM3, CUSTOM4, OPACITY, NCTRL };
 
 typedef struct {
     enum Kind kind;
@@ -103,29 +103,37 @@ static const Ctrl s_ctrl[NCTRL] = {
     [CUSTOM2] = { COMBO, 1, 0.52f, 0.44f, 0.055f, "C2", "C2", 0xD8DDE4, "button_b" },
     [CUSTOM3] = { COMBO, 1, 0.52f, 0.56f, 0.055f, "C3", "C3", 0x4C9BEA, "button_x" },
     [CUSTOM4] = { COMBO, 1, 0.52f, 0.68f, 0.055f, "C4", "C4", 0x4C9BEA, "button_y" },
+    [OPACITY] = { BUTTON, 0, 0.05f,  0.46f,  0.035f, "opacity", "%", 0xE6E6E6, "opacity" },   /* (upstream 1.0.3:
+                                                       a step less solid each tap, under the switch) */
 };
 
 /* Classic: the places of 0.9.x's controls, in the same pictures (#285: Block held by a left finger at the top
  * left, the camera's RT at the top right with the camera toggle (RS) under it, the left stick low and large where
  * the thumb rests, the face buttons lower). Start and Back stay in the middle (#284). The switch beside the left
- * stick, at the left edge, changes between this and the default, kept in settings.ini (touch_layout). */
+ * stick, at the left edge, changes between this and the default, kept in settings.ini (touch_layout). After 1.0.2
+ * (#285 again): the left stick further in from the left edge (a roll left while blocking; the d-pad stays as near
+ * Back as it can), the face buttons lower within the thumb's reach, Block larger and further in (the health bar
+ * shows through it: the opacity button), the Black button beside it moved out of its way. Classic is the default
+ * from then on. */
 static const struct { int edge; float x, y, r; } s_classic[NCTRL] = {
-    [LSTICK]  = { 0, 0.30f, 0.70f, 0.17f },
+    [LSTICK]  = { 0, 0.34f, 0.70f, 0.17f },
     [RSTICK]  = { 1, 0.72f, 0.66f, 0.12f },
     [DPAD_ID] = { 0, 0.74f, 0.84f, 0.12f },
-    [BA]      = { 1, 0.28f, 0.70f, 0.075f },
-    [BB]      = { 1, 0.16f, 0.58f, 0.07f },
-    [BX]      = { 1, 0.40f, 0.58f, 0.075f },
-    [BY]      = { 1, 0.28f, 0.46f, 0.075f },
-    [LB]      = { 0, 0.30f, 0.28f, 0.05f },
+    [BA]      = { 1, 0.28f, 0.78f, 0.075f },
+    [BB]      = { 1, 0.16f, 0.66f, 0.07f },
+    [BX]      = { 1, 0.40f, 0.66f, 0.075f },
+    [BY]      = { 1, 0.28f, 0.54f, 0.075f },
+    [LB]      = { 0, 0.33f, 0.30f, 0.05f },
     [RB]      = { 1, 0.30f, 0.28f, 0.05f },
-    [LT]      = { 0, 0.13f, 0.14f, 0.085f },
+    [LT]      = { 0, 0.19f, 0.15f, 0.10f },
     [RT]      = { 1, 0.13f, 0.14f, 0.085f },
     [BACK]    = { 2, -0.085f, 0.89f, 0.055f },
     [START]   = { 2, 0.085f, 0.89f, 0.055f },
     [LS]      = { 0, 0.09f, 0.90f, 0.04f },
     [RS]      = { 1, 0.09f, 0.30f, 0.045f },
-    [SWAP]    = { 0, 0.05f, 0.40f, 0.035f },
+    [SWAP]    = { 0, 0.05f, 0.41f, 0.035f },
+    [OPACITY] = { 0, 0.05f, 0.52f, 0.035f },   /* (under the switch, clear of Block; a near miss of it not the
+                                                 * switch, which lets go of all) */
 };
 /* Where a texture pack goes: <sd card>/NGB/textures when the phone has a card the app can write, else the
  * app's own files (src/d3d/gpu/texture.cpp dumps a texture there the first time it is drawn, and paints with
@@ -181,13 +189,20 @@ void ngb_pc_set_setting(int which, int value);
 #pragma weak ngb_pc_setting
 #pragma weak ngb_pc_set_setting
 static int s_layout = -1, s_layout_save;          /* 0 the default, 1 Classic (under s_lock); to be saved */
+static int s_opacity = -1, s_opacity_save;        /* the controls' opacity, percent (setting 49: under s_lock);
+                                                     * to be saved */
 static unsigned s_serial = 1;
 /* (under s_lock, on the game's side: touch_init) the layout, read from the settings; the controls are drawn only
  * once it is known, so never in one layout and found in the other */
 static void layout_known(void)
 {
     if (s_layout < 0) {
-        s_layout = ngb_pc_setting && ngb_pc_setting(48) == 1;
+        s_layout = !ngb_pc_setting || ngb_pc_setting(48) == 1;   /* (the arcade, no settings: Classic, the default) */
+        s_serial++;
+    }
+    if (s_opacity < 0) {
+        int v = ngb_pc_setting ? ngb_pc_setting(49) : 100;
+        s_opacity = v >= 30 && v <= 100 ? v : 100;
         s_serial++;
     }
 }
@@ -329,7 +344,7 @@ static void layout_defaults(void) {
         [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
         [SWAP]=PA_NONE,
     };
-    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_asp[i]=1.f; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP;   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
+    for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_asp[i]=1.f; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP || i==OPACITY;   /* (1.0.3: the opacity button shows by default) */   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
     /* The 360 charge, one tap: the stick sweeps a full turn and Y follows (combo 6), beside the face buttons
      * where the right thumb already is. It starts out on the pad -- it is a move, not a setting. */
     s_layout_enabled[CUSTOM1]=true; s_layout_combo[CUSTOM1]=6; s_layout_alpha[CUSTOM1]=0.6f;
@@ -434,9 +449,12 @@ static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
         } else if (c == &s_ctrl[RS]) {
             p.x = 0.06f;
             p.y = 0.79f;
+        } else if (c >= &s_ctrl[BA] && c <= &s_ctrl[BY]) {
+            p.y -= 0.08f;   /* (the face buttons where they were before #285: lower, X met the right stick here) */
         }
     }
-    if (!custom && layout == 1 && aspect < 1.7f && (c == &s_ctrl[LSTICK] || c == &s_ctrl[DPAD_ID])) {
+    if (!custom && layout == 1 && aspect < 1.75f && (c == &s_ctrl[LSTICK] || c == &s_ctrl[DPAD_ID])) {   /* (1.75:
+                                    * below it the left stick, further in since #285, met the d-pad) */
         /* Classic on a less wide screen (16:10, 4:3): the left stick a little smaller and further out, the d-pad
          * between it and Back, as large as fits there */
         float room0 = 0.25f + 0.14f, room1 = aspect / 2 - 0.14f, r = (room1 - room0) / 2.2f;
@@ -641,6 +659,12 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     SDL_Window *w=SDL_GetWindowFromID(ev->tfinger.windowID);int ww=0,wh=0;if(w)SDL_GetWindowSize(w,&ww,&wh);if(ww>0&&wh>0)s_aspect=(float)ww/(float)wh;
     float x=ev->tfinger.x*s_aspect,y=ev->tfinger.y;
     if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==SWAP){clear_touch_state();pthread_mutex_unlock(&s_lock);ngb_settings_open();return 0;}
+    if(ev->type==SDL_FINGERDOWN&&hit(x,y,false)==OPACITY){   /* (upstream 1.0.3: how solid the pad is drawn) */
+        s_opacity = s_opacity <= 40 ? 100 : s_opacity - 20;
+        s_opacity_save = 1;
+        pthread_mutex_unlock(&s_lock);
+        return 0;
+    }
     int f;for(f=0;f<MAX_FINGERS&&!(s_finger[f].used&&s_finger[f].id==ev->tfinger.fingerId);f++);
     if(ev->type==SDL_FINGERDOWN&&f==MAX_FINGERS){
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
@@ -690,12 +714,20 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
 {
     touch_init();
     let_go();
+    /* the layout and the opacity written here, on the game's side, not on Android's UI thread; one caller at a time
+     * (play and the quick menu both come here), each writing what is current, so a later tap is never overwritten
+     * by an earlier one */
+    static pthread_mutex_t save_lock = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_lock(&save_lock);
     pthread_mutex_lock(&s_lock);
-    int save = s_layout_save ? s_layout : -1;   /* (written here, on the game's side, not on Android's UI thread) */
-    s_layout_save = 0;
+    int save = s_layout_save ? s_layout : -1, opacity = s_opacity_save ? s_opacity : -1;
+    s_layout_save = s_opacity_save = 0;
     pthread_mutex_unlock(&s_lock);
     if (save >= 0 && ngb_pc_set_setting)
         ngb_pc_set_setting(48, save);
+    if (opacity >= 0 && ngb_pc_set_setting)
+        ngb_pc_set_setting(49, opacity);
+    pthread_mutex_unlock(&save_lock);
     pthread_mutex_lock(&s_lock);
     WORD b = st->Gamepad.wButtons | (WORD)s_dpad;
     /* Each button pressed as the layout has it bound: its own place on the pad unless the player moved the action
@@ -812,6 +844,7 @@ static int s_w, s_h;
 static bool d_down[NCTRL];
 static float d_stick[2][2], d_aspect;
 static int d_layout;
+static float d_opacity = 1;       /* Touch Opacity: every piece's opacity times this */
 static int d_dpad;
 
 typedef struct { uint8_t *px; int w, h; unsigned generation; } Sprite;   /* straight-alpha RGBA */
@@ -1122,6 +1155,7 @@ static void draw_sprite(const Sprite *sp, float cx, float cy, float bw, float bh
     if (!sc)
         return;
     over_box(x0, y0, x1, y1);
+    a *= d_opacity;
     uint32_t A = (uint32_t)((a < 0 ? 0 : a > 1 ? 1 : a) * 256 + 0.5f);
     for (int y = y0 < 0 ? 0 : y0; y < y1 && y < s_h; y++) {
         const uint32_t *q = sc->px + (size_t)(y - y0) * sc->w - x0;
@@ -1306,6 +1340,7 @@ static unsigned s_bg_layout_revision;
 static float s_bg_aspect;
 static enum Art s_bg_art;
 static int s_bg_layout = -1;
+static float s_bg_opacity = -1;
 
 static void draw_idle(void)
 {
@@ -1424,7 +1459,7 @@ static void draw_all(void)
     bool fresh = false;
     uint32_t *out = s_px;
     if (!s_bg || !s_cv || s_bg_w != s_w || s_bg_h != s_h || s_bg_aspect != d_aspect || s_bg_art != s_art ||
-        s_bg_layout != d_layout || s_bg_layout_revision != d_layout_revision) {
+        s_bg_layout != d_layout || s_bg_layout_revision != d_layout_revision || s_bg_opacity != d_opacity) {
         free(s_bg);
         free(s_cv);
         s_bg = malloc(sizeof(uint32_t) * px);
@@ -1447,6 +1482,7 @@ static void draw_all(void)
         s_bg_art = s_art;
         s_bg_layout = d_layout;
         s_bg_layout_revision = d_layout_revision;
+        s_bg_opacity = d_opacity;
         s_bg_gen++;
         fresh = true;
     } else if (s_cvrec.n >= 0) {
@@ -2116,6 +2152,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
             memcpy(d_anim_r, d_layout_r, sizeof d_anim_r);
             d_anim_ready = true;
         }
+        d_opacity = (s_opacity < 0 ? 100 : s_opacity) / 100.0f;
     }
     pthread_mutex_unlock(&s_lock);
     /* Ease each edited control toward its new target over several presented frames. */

@@ -26,6 +26,7 @@ int ngb_quick_controls_active(void);
 int ngb_quick_frozen(void);
 int ngb_menu_up(void);   /* src/menu_mouse.c */
 int ngb_menu_up_controls(void);
+int ngb_ut_charging(void);       /* src/ut_charge.c: Ryu's charging action now */
 
 /* What an action presses on the game's pad. */
 enum { T_BTN, T_AN, T_AN2, T_AXIS, T_HOST };
@@ -250,10 +251,12 @@ static void identity_check(void)
 static int s_invert[2][2];
 static int s_third_start;
 static int s_soft_reset = 1;   /* Start+Back Reset: the game's own reset to the title (#195) */
+static int s_dpad_camera;      /* D-Pad Camera While Charging (#150) */
 static int s_mouse_pct = 100;   /* Camera Sensitivity, percent: the right stick, mouse and keys (#67) */
 static int s_prompts;           /* Button Prompts: 0 Auto (the device in use), 1 Xbox, 2 PlayStation, 3 Nintendo, 4 PC */
 #define PROMPTS_N 5
 static const char *const s_prompts_ini[PROMPTS_N] = { "auto", "xbox", "playstation", "nintendo", "pc" };
+static int s_prompt_high;       /* Button Resolution: 0 Original (the game's), 1 High (src/game_prompts.c) */
 
 static void soft_reset_apply(void);
 
@@ -263,8 +266,10 @@ void ngb_bind_defaults(void)
     s_third_start = 1;   /* (on from 0.9.45) */
     s_soft_reset = 1;
     soft_reset_apply();
+    s_dpad_camera = 0;
     s_mouse_pct = 100;
     s_prompts = 0;
+    s_prompt_high = 0;
     for (int a = 0; a < A_COUNT; a++) {
         s_bind[a][0] = s_act[a].key0;
         s_bind[a][1] = s_act[a].key1;
@@ -301,6 +306,22 @@ const char *ngb_bind_prompts_name(int v)
 {
     static const char *const name[PROMPTS_N] = { "Auto", "Xbox", "Playstation", "Nintendo", "PC" };
     return v >= 0 && v < PROMPTS_N ? name[v] : "";
+}
+
+/* Button Resolution (the Controls page): Original, the prompts as sharp as the game's own (its 21 x 23 buttons,
+ * enlarged), or High, drawn at four times that, the Xbox's too (src/game_prompts.c, src/pause_tab.c) */
+int ngb_bind_prompt_high(void)
+{
+    ensure();
+    return s_prompt_high;
+}
+
+void ngb_bind_step_prompt_high(void)
+{
+    ensure();
+    s_prompt_high = !s_prompt_high;
+    s_gen++;                    /* (the prompts' textures made again) */
+    save();
 }
 
 static int prompts_forced(void)   /* NGB_PAD_PROMPTS: 2 PlayStation, 3 Nintendo, 1 Xbox, 0 not set */
@@ -353,21 +374,24 @@ int ngb_bind_nintendo_position(void)
 }
 
 /* The prompt picture's name (src/game_prompts.c makes it) for the game's button b -- XBOX_BUTTON_A..RTRIGGER, Black for the left bumper,
- * White for the right -- on the pad the prompts show: set 1 PlayStation, 2 Nintendo (with its layout); NULL for
- * the Xbox's own (the game's). */
+ * White for the right -- on the pad the prompts show: set 1 PlayStation, 2 Nintendo (with its layout), 3 the Xbox's
+ * as Button Resolution High draws them; NULL for any other (the game's own). */
 const char *ngb_pad_picture(int set, int b)
 {
     static const char *const ps[8] = { "PS3_Cross", "PS3_Circle", "PS3_Square", "PS3_Triangle",
                                        "PS3_L1", "PS3_R1", "PS3_L2", "PS3_R2" };
     static const char *const ns[8] = { "Switch_A", "Switch_B", "Switch_X", "Switch_Y",
                                        "Switch_LB", "Switch_RB", "Switch_LT", "Switch_RT" };
+    static const char *const xs[8] = { "360_A", "360_B", "360_X", "360_Y", "360_LB", "360_RB", "360_LT", "360_RT" };
     int i = b == XBOX_BUTTON_A ? 0 : b == XBOX_BUTTON_B ? 1 : b == XBOX_BUTTON_X ? 2 : b == XBOX_BUTTON_Y ? 3
           : b == XBOX_BUTTON_BLACK ? 4 : b == XBOX_BUTTON_WHITE ? 5 : b == XBOX_BUTTON_LTRIGGER ? 6
           : b == XBOX_BUTTON_RTRIGGER ? 7 : -1;
-    if (i < 0 || set < 1 || set > 2)
+    if (i < 0 || set < 1 || set > 3)
         return NULL;
     if (set == 1)
         return ps[i];
+    if (set == 3)
+        return xs[i];
     if (ngb_bind_nintendo_position() && i < 4)
         i ^= 1;                                    /* the face buttons by place: A <-> B, X <-> Y */
     return ns[i];
@@ -551,8 +575,10 @@ static void save(void)
     fprintf(f, "invert_first_person_x = %d\n", s_invert[1][0]);
     fprintf(f, "third_person_on_load = %d\n", s_third_start);
     fprintf(f, "start_back_reset = %d\n", s_soft_reset);
+    fprintf(f, "dpad_camera_charging = %d\n", s_dpad_camera);
     fprintf(f, "mouse_sensitivity = %d\n", s_mouse_pct);
     fprintf(f, "button_prompts = %s\n", s_prompts_ini[s_prompts]);
+    fprintf(f, "button_resolution = %s\n", s_prompt_high ? "high" : "original");
     fclose(f);
 }
 
@@ -603,6 +629,10 @@ void ngb_bind_load(void)
             s_soft_reset = atoi(val) != 0;
             continue;
         }
+        if (!strcmp(key, "dpad_camera_charging")) {
+            s_dpad_camera = atoi(val) != 0;
+            continue;
+        }
         if (!strcmp(key, "defaults")) {
             defaults = atoi(val);
             continue;
@@ -611,6 +641,10 @@ void ngb_bind_load(void)
             for (int i = 0; i < PROMPTS_N; i++)
                 if (!SDL_strcasecmp(val, s_prompts_ini[i]))
                     s_prompts = i;
+            continue;
+        }
+        if (!strcmp(key, "button_resolution")) {
+            s_prompt_high = !SDL_strcasecmp(val, "high");
             continue;
         }
         if (!strcmp(key, "nintendo_layout"))   /* (a choice in the 0.9.56 test builds) */
@@ -815,6 +849,20 @@ void ngb_bind_set_soft_reset(int on)
     save();
 }
 
+int ngb_bind_dpad_camera(void)
+{
+    ensure();
+    return s_dpad_camera;
+}
+
+void ngb_bind_set_dpad_camera(int on)
+{
+    ensure();
+    s_dpad_camera = on != 0;
+    s_gen++;
+    save();
+}
+
 /* Camera Sensitivity: 25 to 300 percent in quarters; a step up or down (round) */
 int ngb_bind_mouse_sensitivity(void)
 {
@@ -857,6 +905,15 @@ static int camera_scale(int v)
     return v < 0 ? -m : m;
 }
 
+/* D-pad camera while charging an Ultimate Technique (Controls, #150): the charge holds Attack down and the left
+ * stick aims the release, so the D-pad, otherwise idle, turns the camera. Off unless chosen, and only in play --
+ * a menu (or a quick menu taking the controls) keeps its own D-pad. The stick is filled in before inversion and
+ * Camera Sensitivity, so it is turned just as the right stick is, in either view. */
+static int ut_camera_wanted(void)
+{
+    return s_dpad_camera && ngb_ut_charging() && !ngb_quick_frozen() && !ngb_quick_controls_active();
+}
+
 /* The right stick as the player wants the camera turned (in play only), for the view it turns now:
  * inverted, and at the Camera Sensitivity -- the controller's, the mouse's and the keys' alike. */
 static void apply_invert(XBOX_INPUT_STATE *st)
@@ -891,10 +948,29 @@ void ngb_bind_play_state(const Uint8 *k, Uint32 mouse, XBOX_INPUT_STATE *st, int
     st->Gamepad.wButtons = 0;
     memset(st->Gamepad.bAnalogButtons, 0, sizeof st->Gamepad.bAnalogButtons);
     int quick = ngb_quick_controls_active();
-    for (int a = 0; a < A_QUICK_WEAPONS; a++)
+    int utcam = ut_camera_wanted();   /* (quick excluded there: its D-pad is its own) */
+    static unsigned eaten;   /* D-pad keys the camera had: no press from them until let go (#150) */
+    for (int a = 0; a < A_QUICK_WEAPONS; a++) {
+        if (a >= A_DPAD_UP && a <= A_DPAD_RIGHT) {
+            unsigned bit = 1u << (a - A_DPAD_UP);
+            int down = input_down(s_bind[a][0], k, mouse) || input_down(s_bind[a][1], k, mouse);
+            eaten = utcam && down ? eaten | bit : down ? eaten : eaten & ~bit;
+            if (utcam || (eaten & bit))
+                continue;
+        }
         if (((!quick || !quick_input(s_bind[a][0])) && input_down(s_bind[a][0], k, mouse)) ||
             ((!quick || !quick_input(s_bind[a][1])) && input_down(s_bind[a][1], k, mouse)))
             press(st, &s_act[a], 255, axes);
+    }
+    if (utcam) {
+        for (int a = A_DPAD_UP; a <= A_DPAD_RIGHT; a++)
+            if (input_down(s_bind[a][0], k, mouse) || input_down(s_bind[a][1], k, mouse)) {
+                if (a == A_DPAD_UP) axes[3] += 32767;
+                else if (a == A_DPAD_DOWN) axes[3] -= 32767;
+                else if (a == A_DPAD_LEFT) axes[2] -= 32767;
+                else axes[2] += 32767;
+            }
+    }
     st->Gamepad.sThumbLX = clamp_axis(axes[0]);
     st->Gamepad.sThumbLY = clamp_axis(axes[1]);
     st->Gamepad.sThumbRX = clamp_axis(axes[2]);
@@ -1002,6 +1078,25 @@ void xbox_pad_remap(XBOX_INPUT_STATE *st, DWORD port)
         hold_back_reset(port);
         menu_held_note(st, port);
         return;
+    }
+    static WORD dp_eaten[5];   /* a port's D-pad buttons the camera had: kept from the game until let go (4: the
+                                * keyboard's and touch pad's, src/keyboard.c) */
+    WORD dp = st->Gamepad.wButtons &
+              (XBOX_GAMEPAD_DPAD_UP | XBOX_GAMEPAD_DPAD_DOWN | XBOX_GAMEPAD_DPAD_LEFT | XBOX_GAMEPAD_DPAD_RIGHT);
+    WORD *eaten = &dp_eaten[port < 5 ? port : 4];
+    *eaten &= dp;   /* (one let go is free again) */
+    st->Gamepad.wButtons &= (WORD)~*eaten;
+    if (ut_camera_wanted()) {
+        /* The D-pad is taken for the camera before the pad's buttons are rebuilt: no D-pad action or pair
+         * fires from it while charging (nor as the charge ends, still held), and the game's camera sees the stick. */
+        *eaten = dp;
+        if (dp) {
+            int rx = (dp & XBOX_GAMEPAD_DPAD_RIGHT ? 32767 : 0) - (dp & XBOX_GAMEPAD_DPAD_LEFT ? 32767 : 0);
+            int ry = (dp & XBOX_GAMEPAD_DPAD_UP ? 32767 : 0) - (dp & XBOX_GAMEPAD_DPAD_DOWN ? 32767 : 0);
+            st->Gamepad.sThumbRX = clamp_axis((int)st->Gamepad.sThumbRX + rx);
+            st->Gamepad.sThumbRY = clamp_axis((int)st->Gamepad.sThumbRY + ry);
+            st->Gamepad.wButtons &= (WORD)~dp;
+        }
     }
     apply_invert(st);
     int quick = ngb_quick_controls_active();

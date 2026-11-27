@@ -58,6 +58,10 @@ void ngb_bind_set_third_person_start(int on);
  * Start while Back is held (#195). On by default. */
 int ngb_bind_soft_reset(void);
 void ngb_bind_set_soft_reset(int on);
+/* D-Pad Camera While Charging (Controls, #150): while an Ultimate Technique charges, the d-pad turns the camera
+ * as the right stick does. Off by default. */
+int ngb_bind_dpad_camera(void);
+void ngb_bind_set_dpad_camera(int on);
 /* Camera Sensitivity (Controls): the camera's camera speed in percent; a step either way */
 int ngb_bind_mouse_sensitivity(void);
 float ngb_bind_camera_boost(void);   /* the cameras' turn: Camera Sensitivity over 100% (src/camera.c) */
@@ -73,11 +77,13 @@ int ngb_bind_prompts(void);              /* Button Prompts: 0 Auto, 1 Xbox, 2 Pl
 int ngb_pad_set(void);                   /* the prompts' pad: 0 Xbox, 1 PlayStation, 2 Nintendo; -1 the keys */
 int ngb_pad_set_pad(void);               /* the same, the controller's whatever is in use */
 const char *ngb_pad_picture_p(int set, int p);   /* the picture of P_ button p (P_COUNT, +1: the sticks) */
-const char *ngb_pad_picture(int set, int xbox_button);   /* its picture for the game's button; NULL the Xbox's */
+const char *ngb_pad_picture(int set, int xbox_button);   /* its picture for the game's button (set 3: the Xbox's drawn) */
 int ngb_bind_nintendo_position(void);    /* Nintendo pads' face buttons: 1 by position, 0 by label (Android) */
 int ngb_bind_pad_pair(int a);            /* the action takes two controller buttons held together (Ninpo, Wind Run) */
 int ngb_bind_pad_combo_slot(int a);      /* the game's two-button slot of the action: 8 X + A, 9 Y + B; -1 */
 void ngb_bind_step_prompts(int dir);
+int ngb_bind_prompt_high(void);           /* Button Resolution: 0 Original, 1 High */
+void ngb_bind_step_prompt_high(void);
 const char *ngb_bind_prompts_name(int v);
 const char *ngb_bind_pad_combo(int a);   /* "X + A" for Wind Run, "Y + B" for Ninpo; else NULL */
 void ngb_bind_input_short(int input, char *out, int n);
