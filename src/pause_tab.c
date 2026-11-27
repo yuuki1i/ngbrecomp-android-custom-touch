@@ -1398,8 +1398,10 @@ static uint32_t sprite_def(uint32_t id);
 #define RP_LABEL0 0x248
 #define RP_LABELS 6
 #define RP_WORDS 6
-static const char *const s_rp_word[RP_WORDS] = { "GRAPHICS SETTINGS", "DISPLAY SETTINGS", "SOUND SETTINGS",
-                                                 "GAMEPLAY", "CHEATS", "CONTROLS" };
+static const char *const s_rp_word[RP_WORDS] = { "画面设置", "显示设置", "声音设置", "玩法设置", "作弊设置",
+                                                 "操作设置" };
+/* The same, short: taken when six four-character words do not fit the plate's texture. */
+static const char *const s_rp_word_short[RP_WORDS] = { "画面", "显示", "声音", "玩法", "作弊", "操作" };
 
 static struct {
     GuestTex t;
@@ -1451,6 +1453,8 @@ static int styled_word(uint32_t *px, int w, int h, const stbtt_fontinfo *f, cons
                        float sx, int x, const Style *st, int shadow)
 {
     float cap = (float)(st->bot - st->top + 1), size = cap_px(f, cap);
+    if (ngb_ui_wide(word))
+        sx = 1.0f;              /* (hanzi stand upright: no filing them down to the Latin word's width) */
     int game = s_game_font;
     s_game_font = 0;
     int ww = (int)ceilf(text_width(f, word, size, sx)) + 2;
@@ -1504,16 +1508,19 @@ static int rp_make_header(uint32_t hdr, uint32_t pal)
         return free(ref), 0;
     float sx = squeeze(&s_font_bold, "OPTIONS", &st);
     float size = cap_px(&s_font_bold, (float)(st.bot - st.top + 1));
+    const char *head = ngb_ui_zh("Settings");
+    if (ngb_ui_wide(head))          /* (the plate is ours: the ISO's Chinese cannot reach a picture) */
+        sx = 1.0f;
     int game = s_game_font;
     s_game_font = 0;
-    float tw = text_width(&s_font_bold, "SETTINGS", size, sx);
+    float tw = text_width(&s_font_bold, head, size, sx);
     s_game_font = game;
     float room = (st.right - st.left + 1) * 1.04f;    /* OPTIONS' width: clear of the ornaments */
     if (tw > room)
         sx *= room / tw, tw = room;
     int x = (int)lroundf((st.left + st.right) / 2.0f - tw / 2);
     uint32_t *px = calloc((size_t)w * h, sizeof *px);
-    styled_word(px, w, h, &s_font_bold, "SETTINGS", sx, x, &st, 2);
+    styled_word(px, w, h, &s_font_bold, head, sx, x, &st, 2);
     int ok = make_texture(&s_rp[0].t, w, h, MEM32(hdr + 0xC) & 0xFF);
     if (ok)
         upload(&s_rp[0].t, px);
@@ -1535,12 +1542,23 @@ static int rp_make_words(uint32_t hdr, uint32_t pal)
         return free(ref), 0;
     float sx = squeeze(&s_font_body, "EXIT", &st);
     uint32_t *px = calloc((size_t)w * h, sizeof *px);
-    int x = 4;
-    for (int i = 0; i < RP_WORDS; i++) {
-        int ww = styled_word(px, w, h, &s_font_body, s_rp_word[i], sx, x, &st, 1);
-        s_rp_uv[i][0] = (float)x / w;
-        s_rp_uv[i][1] = (float)(x + ww + 2) / w;
-        x += ww + 12;
+    const char *const *words = s_rp_word;
+    int x = 4, over = 0;
+    for (int pass = 0;; pass++) {
+        memset(px, 0, sizeof(uint32_t) * (size_t)w * h);
+        x = 4;
+        over = 0;
+        for (int i = 0; i < RP_WORDS; i++) {
+            int ww = styled_word(px, w, h, &s_font_body, words[i], sx, x, &st, 1);
+            s_rp_uv[i][0] = (float)x / w;
+            s_rp_uv[i][1] = (float)(x + ww + 2) / w;
+            x += ww + 12;
+            if (x > w - 8)
+                over = 1;
+        }
+        if (!over || pass || words == s_rp_word_short)
+            break;
+        words = s_rp_word_short;   /* (six four-character words did not fit: two each) */
     }
     for (int i = RP_WORDS; i < RP_LABELS; i++) {       /* the game's other: nothing */
         s_rp_uv[i][0] = (float)(w - 6) / w;
