@@ -387,7 +387,7 @@ static void layout_save(void) {
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
-    fprintf(fp,"# STYLE %d\n",s_pad_style?1:0);
+    fprintf(fp,"# STYLE %d\n",(int)s_pad_style);   /* (it was written as 1 for any of them: bold and solid came back as glass) */
     fprintf(fp,"# THEME %d\n",s_pad_theme);
     for (int i = 0; i < NCTRL; i++)
         if (s_turbo[i])
