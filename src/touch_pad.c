@@ -1821,6 +1821,8 @@ void ngb_touch_layout_get(char *out, size_t n)
     layout_known();
     float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
     int k = snprintf(out, n, "V4 %.4f %u\n", aspect, s_pad_style);
+    if (k >= 0 && k < (int)n)
+        k += snprintf(out + k, n - (size_t)k, "# THEME %d\n", s_pad_theme);   /* (the editor draws what the game does) */
     for (int i = 0; i < NCTRL; i++)
         if (s_turbo[i] && k >= 0 && k < (int)n)
             k += snprintf(out + k, n - (size_t)k, "# TURBO %d %d\n", i, s_turbo[i]);
@@ -2052,7 +2054,11 @@ JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativePad
     JNIEnv *env, jobject activity) {
     (void)env;
     (void)activity;
-    return (jint)s_pad_theme;
+    pthread_mutex_lock(&s_lock);
+    layout_load();   /* (the page asked before the pad was ever drawn: read what was saved) */
+    int theme = s_pad_theme;
+    pthread_mutex_unlock(&s_lock);
+    return (jint)theme;
 }
 
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativePadThemeSet(

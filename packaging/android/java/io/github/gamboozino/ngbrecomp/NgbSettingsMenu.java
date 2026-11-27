@@ -33,11 +33,12 @@ import java.util.Locale;
 
 public class NgbSettingsMenu extends FrameLayout {
 
-    private static final int N = 22;
+    private static final int N = 23;   /* (LSTICK..OPACITY, as src/touch_pad.c) */
 
     private static final String[] NAMES = {
         "左摇杆", "右摇杆", "十字键", "A 键", "B 键", "X 键", "Y 键", "LB", "RB", "LT", "RT",
         "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
+        "不透明度",
     };
     private static final String[] SHAPES = {
         "圆形", "方形", "菱形", "圆角方", "六边形", "八角形", "长方形", "圆盘", "圆角方框",

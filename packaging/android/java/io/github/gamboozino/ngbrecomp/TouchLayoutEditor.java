@@ -100,6 +100,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private int mSelected = 0;
     int mTheme;                  /* the menu's own look: 0 graphite, 1 dark teal */
     int mStyle;                  /* 0 the hairline, 1 the glass: one look for every key (held in the layout) */
+    int mPadTheme;               /* 0 Xbox, 1 Switch, 2 PlayStation: what the keys are named (held in the layout) */
     boolean mGrid = true;        /* (the ruled sheet: the player may want a clean picture behind the keys) */
 
     public TouchLayoutEditor(NgbActivity activity) {
@@ -154,6 +155,13 @@ public class TouchLayoutEditor extends FrameLayout {
                 }
                 continue;
             }
+            if (line.startsWith("# THEME ")) {
+                String[] parts = line.split("\\s+");
+                if (parts.length >= 2) {
+                    try { mPadTheme = clamp(Integer.parseInt(parts[1]), 0, 2); } catch (Exception e) { }
+                }
+                continue;
+            }
             if (line.startsWith("# TURBO ")) {       /* auto-fire, one line a key */
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 4) {
@@ -186,6 +194,34 @@ public class TouchLayoutEditor extends FrameLayout {
         }
         if (mAspect < 1.0f || mAspect > 4.0f)
             mAspect = 2.0f;
+    }
+
+    /* The word a key wears, as src/touch_pad.c's theme_label has it. */
+    private String shortFor(int id) {
+        if (mPadTheme == 1) {
+            switch (id) {
+            case 3: return "B";
+            case 4: return "A";
+            case 5: return "Y";
+            case 6: return "X";
+            case 7: return "L";
+            case 8: return "R";
+            case 9: return "ZL";
+            case 10: return "ZR";
+            case 11: return "-";
+            case 12: return "+";
+            }
+        } else if (mPadTheme == 2) {
+            switch (id) {
+            case 7: return "L1";
+            case 8: return "R1";
+            case 9: return "L2";
+            case 10: return "R2";
+            case 11: return "SHARE";
+            case 12: return "OPT";
+            }
+        }
+        return SHORT[id];
     }
 
     private void save() {
@@ -1149,14 +1185,16 @@ public class TouchLayoutEditor extends FrameLayout {
                 mPaint.setColor(rgb);      /* (the name in the key's own colour, as the game's plate has it) */
                 mPaint.setTextAlign(Paint.Align.CENTER);
                 mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.62f));
-                String text = SHORT[id];
-                if (mEditor.mButton[id] && mEditor.mAction[id] >= 0 && mEditor.mAction[id] < 12)
-                    text = ACTIONS[mEditor.mAction[id]].replace(" 键", "");
-                else if (mEditor.mButton[id])
-                    text = "NONE";                    /* Winlator's word for a button with no key on it */
-                else if (mEditor.mComboKind[id])
+                /* (the game writes the key's own name, not the name of the action it was bound to -- a rebind
+                 * kept showing the old word here and the pad did not) */
+                String text = mEditor.shortFor(id);
+                if (mEditor.mComboKind[id])
                     text = COMBO_SHORT[mEditor.mCombo[id]];
-                canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
+                if (mEditor.mPadTheme == 2 && id >= 3 && id <= 6) {
+                    psMark(canvas, id, cx, cy, Math.min(radius * 0.55f, radius), mPaint);
+                } else {
+                    canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
+                }
                 if (id == mEditor.mSelected) {
                     /* (no grip on the canvas: the width is a bar at the drawer's foot -- user 2026-11-27) */
                     mHandleX = cx + radius * asp;
@@ -1170,6 +1208,34 @@ public class TouchLayoutEditor extends FrameLayout {
             mPaint.setTextAlign(Paint.Align.LEFT);
             mPaint.setTextSize(11 * mEditor.mDp);
             canvas.drawText("拖动移动 · 双指缩放 · 点选后右侧可改动作", mLeft + 10, mTop + mHeight - 10, mPaint);
+        }
+
+        /* (the cross, the circle, the square, the triangle -- Canvas shapes, since the pad's font is letters) */
+        private void psMark(Canvas canvas, int id, float cx, float cy, float r, Paint p) {
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2f, r * 0.26f));
+            p.setStrokeJoin(Paint.Join.ROUND);
+            switch (id) {
+            case 3:
+                canvas.drawLine(cx - r * 0.70f, cy - r * 0.70f, cx + r * 0.70f, cy + r * 0.70f, p);
+                canvas.drawLine(cx + r * 0.70f, cy - r * 0.70f, cx - r * 0.70f, cy + r * 0.70f, p);
+                break;
+            case 4:
+                canvas.drawCircle(cx, cy, r * 0.78f, p);
+                break;
+            case 5:
+                canvas.drawRect(cx - r * 0.70f, cy - r * 0.70f, cx + r * 0.70f, cy + r * 0.70f, p);
+                break;
+            default: {
+                Path t = new Path();
+                t.moveTo(cx, cy - r * 0.82f);
+                t.lineTo(cx + r * 0.86f, cy + r * 0.58f);
+                t.lineTo(cx - r * 0.86f, cy + r * 0.58f);
+                t.close();
+                canvas.drawPath(t, p);
+            }
+            }
+            p.setStyle(Paint.Style.FILL);
         }
 
         @Override
