@@ -20,6 +20,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.io.File;
@@ -77,6 +78,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private Preview mPreview;
     private TextView mCurrent, mSizeValue, mStyleValue, mAlphaValue, mColourValue, mShapeValue, mActionValue,
             mComboValue, mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
+    private SeekBar mStretchBar;
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
     private DrawerScroll mPanelScroll;
@@ -91,6 +93,7 @@ public class TouchLayoutEditor extends FrameLayout {
         "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
     };
     private int mSelected = 0;
+    int mTheme;                  /* the menu's own look: 0 graphite, 1 dark teal */
     int mStyle;                  /* 0 the hairline, 1 the glass: one look for every key (held in the layout) */
     boolean mGrid = true;        /* (the ruled sheet: the player may want a clean picture behind the keys) */
 
@@ -197,6 +200,11 @@ public class TouchLayoutEditor extends FrameLayout {
 
     /* ---- the page ---- */
 
+    private void applyThemeTo(View v) {
+        if (v != null)
+            v.setBackground(glass(18, mTheme == 0 ? 0xE80E1014 : 0xE60A1A1E, 0x26FFFFFF, 1));
+    }
+
     private int dp(float v) {
         return (int) (v * mDp);
     }
@@ -243,7 +251,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout row = new LinearLayout(mActivity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(2), dp(3), dp(2), dp(3));
+        row.setPadding(dp(2), dp(2), dp(2), dp(2));
         TextView name = label(title, 13, 0xC7B9C2D2, false);
         name.setSingleLine(true);
         row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -352,8 +360,8 @@ public class TouchLayoutEditor extends FrameLayout {
     }
 
     private void build() {
-        LinearLayout column = new LinearLayout(mActivity);
-        column.setOrientation(LinearLayout.VERTICAL);
+        mTheme = mActivity.getSharedPreferences("ngb_touch_editor", 0).getInt("menu_theme", 0);
+        FrameLayout column = new FrameLayout(mActivity);
 
         /* top: cancel on the left, one master menu in the middle, save on the right */
         LinearLayout top = new LinearLayout(mActivity);
@@ -361,9 +369,10 @@ public class TouchLayoutEditor extends FrameLayout {
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setBackground(glass(18, 0xE80E1014, 0x26FFFFFF, 1));
         top.setPadding(dp(10), dp(8), dp(10), dp(8));
-        LinearLayout.LayoutParams topParams =
-            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        topParams.setMargins(dp(10), dp(8), dp(10), dp(4));
+        FrameLayout.LayoutParams topParams =
+            new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        topParams.gravity = Gravity.TOP;
+        topParams.setMargins(dp(8), dp(6), dp(8), 0);
         top.setLayoutParams(topParams);
         Button cancel = button("取消", 14, 0x1FFFFFFF);
         top.addView(cancel, new LinearLayout.LayoutParams(dp(64), dp(40)));
@@ -382,26 +391,33 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(0, dp(40), 1f);
         menuParams.setMargins(dp(10), 0, dp(10), 0);
         top.addView(mMenu, menuParams);
+        Button theme = button("主题", 12, 0x26FFFFFF);
+        LinearLayout.LayoutParams themeParams = new LinearLayout.LayoutParams(dp(52), dp(40));
+        themeParams.setMargins(dp(6), 0, dp(6), 0);
+        top.addView(theme, themeParams);
+        theme.setOnClickListener(v -> {
+            mTheme = 1 - mTheme;
+            theme.setText(mTheme == 0 ? "主题·石墨" : "主题·暗青");
+            applyThemeTo(top);
+            if (mPanel != null)
+                mPanel.setBackground(glass(18, mTheme == 0 ? 0xF00D1014 : 0xF00A1A1E, 0x2EFFFFFF, 1));
+            mActivity.getSharedPreferences("ngb_touch_editor", 0).edit().putInt("menu_theme", mTheme).apply();
+        });
+        theme.setText(mTheme == 0 ? "主题·石墨" : "主题·暗青");
         Button save = button("保存", 14, 0x26FFFFFF);
         top.addView(save, new LinearLayout.LayoutParams(dp(72), dp(40)));
-        column.addView(top);
 
-        /* ＋ 添加按键, on its own bar above the canvas: every control the pad can carry, the combos included. */
-        Button add = button("＋ 添加按键（组合键也在里面）", 13, 0x26FFFFFF);
-        LinearLayout.LayoutParams addParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38));
-        addParams.setMargins(dp(10), 0, dp(10), dp(6));
+        /* ＋ 添加按键: one round button over the page, its list of controls a waterfall under it (no banner) */
+        Button add = button("＋", 20, 0x33FFFFFF);
+        FrameLayout.LayoutParams addParams = new FrameLayout.LayoutParams(dp(46), dp(46));
+        addParams.gravity = Gravity.TOP | Gravity.RIGHT;
+        addParams.setMargins(0, dp(58), dp(10), 0);
         add.setLayoutParams(addParams);
         add.setOnClickListener(v -> addControl());
-        column.addView(add);
-
-        View hairline = new View(mActivity);       /* a single line under the title, as the open-source sheets have */
-        hairline.setBackgroundColor(0x1FFFFFFF);
-        column.addView(hairline, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
 
         FrameLayout body = new FrameLayout(mActivity);
-        LinearLayout.LayoutParams bodyParams =
-            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        body.setLayoutParams(bodyParams);
+        body.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                          ViewGroup.LayoutParams.MATCH_PARENT));
 
         mPreview = new Preview(this);
         body.addView(mPreview, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -510,10 +526,11 @@ public class TouchLayoutEditor extends FrameLayout {
 
         mStyleValue = valueView(120);
         mStyleValue.setOnClickListener(v -> {
-            mStyle = 1 - mStyle;
+            mStyle = (mStyle + 1) % 4;
             refresh();
-            mHint.setText(mStyle == 0 ? "全部按键·细线：只有一圈线，画面最干净"
-                                      : "全部按键·玻璃：键底有一层深色，字看得清");
+            String[] looks = {"全部按键·细线：只有一圈线，画面最干净", "全部按键·玻璃：键底压一层深色，暗处也看得清",
+                              "全部按键·粗边：无底色，边加粗", "全部按键·实心：深色实心键，最醒目"};
+            mHint.setText(looks[mStyle]);
         });
         panel.addView(row("外观（全部按键）", mStyleValue));
         mShapeValue = valueView(110);
@@ -597,6 +614,26 @@ public class TouchLayoutEditor extends FrameLayout {
             refresh();
             mHint.setText("已恢复默认，保存后写回游戏");
         });
+        LinearLayout stretch = new LinearLayout(mActivity);
+        stretch.setOrientation(LinearLayout.VERTICAL);
+        TextView stretchTitle = label("拉长 / 宽度", 12, 0xC7B9C2D2, false);
+        stretch.addView(stretchTitle);
+        SeekBar bar = new SeekBar(mActivity);
+        bar.setMax(360);                 /* (40% .. 400%, the editor's own limits) */
+        bar.setProgress(Math.max(0, Math.min(360, Math.round((mAsp[mSelected] - 0.4f) * 100))));
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
+                if (!fromUser) return;
+                mAsp[mSelected] = 0.4f + progress / 100f;
+                refresh();
+            }
+            @Override public void onStartTrackingTouch(SeekBar sb) { }
+            @Override public void onStopTrackingTouch(SeekBar sb) { }
+        });
+        stretch.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
+        panel.addView(stretch);
+        mStretchBar = bar;
+
         panel.addView(defaults);
 
         scrub_stairs(panel);
@@ -640,12 +677,14 @@ public class TouchLayoutEditor extends FrameLayout {
         FrameLayout.LayoutParams panelParams =
             new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT);
         panelParams.gravity = Gravity.RIGHT;
-        panelParams.setMargins(0, dp(6), dp(6), dp(6));
+        panelParams.setMargins(0, dp(54), dp(6), dp(6));
         body.addView(scroll, panelParams);
         scroll.setTranslationX(dp(340));
         scroll.setVisibility(View.GONE);
 
-        column.addView(body);
+        column.addView(body);      /* (the page first: the bars float over it, they do not shorten it) */
+        column.addView(top);
+        column.addView(add);
         addView(column, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                          ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -823,8 +862,8 @@ public class TouchLayoutEditor extends FrameLayout {
             View child = panel.getChildAt(i);
             if (!(child.getLayoutParams() instanceof LinearLayout.LayoutParams)) continue;
             LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) child.getLayoutParams();
-            int step = Math.min(i, 5);
-            p.setMarginEnd(dp(step * 13));
+            int step = Math.min(i, 3);       /* (a light stair: the drawer read as a heap of boxes) */
+            p.setMarginEnd(dp(step * 6));
             p.setMarginStart(dp(step * 2));
             child.setLayoutParams(p);
         }
@@ -961,7 +1000,12 @@ public class TouchLayoutEditor extends FrameLayout {
         mAlphaValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAlpha[mSelected] * 100)));
         mColourValue.setText(COLOURS[mColour[mSelected]]);
         mShapeValue.setText(SHAPES[mShape[mSelected]]);
-        if (mStyleValue != null) mStyleValue.setText(mStyle == 0 ? "细线" : "玻璃");
+        String[] looks = {"细线", "玻璃", "粗边", "实心"};
+        if (mStyleValue != null) mStyleValue.setText(looks[Math.max(0, Math.min(3, mStyle))]);
+        if (mStretchBar != null) {
+            mStretchBar.setProgress(Math.max(0, Math.min(360, Math.round((mAsp[mSelected] - 0.4f) * 100))));
+            mWidthValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAsp[mSelected] * 100)));
+        }
         mActionValue.setText(mButton[mSelected] ? ACTIONS[mAction[mSelected] + 1] : "—");
         mActionValue.setAlpha(mButton[mSelected] ? 1f : 0.35f);
         mComboValue.setText(mComboKind[mSelected] ? COMBOS[mCombo[mSelected]] : "—");
@@ -1067,12 +1111,14 @@ public class TouchLayoutEditor extends FrameLayout {
                 /* (the same wash the game puts under a key: src/touch_pad.c draw_plain's 8,10,14 plate -- the
                  * editor showed a white one, and the pad changed colour on the way into the game) */
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(mEditor.mStyle == 1 ? 0x7A080A0E : 0x12080A0E);   /* (glass / hairline: the
-                        game's draw_plain puts the same two plates under a key) */
+                mPaint.setColor(mEditor.mStyle == 3 ? 0xE0080A0E
+                               : mEditor.mStyle == 1 ? 0x7A080A0E
+                               : mEditor.mStyle == 2 ? 0x00080A0E
+                               : 0x12080A0E);   /* (solid / glass / ring / hairline: the game's draw_plain) */
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
                 mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f
-                                     : (mEditor.mStyle == 1 ? 2f : 1.2f));
+                                     : (mEditor.mStyle == 2 ? 3f : mEditor.mStyle == 3 || mEditor.mStyle == 1 ? 2f : 1.2f));
                 mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xCC000000));
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.FILL);
@@ -1088,15 +1134,10 @@ public class TouchLayoutEditor extends FrameLayout {
                     text = COMBO_SHORT[mEditor.mCombo[id]];
                 canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
                 if (id == mEditor.mSelected) {
-                    /* the grip at the right edge: drag it to stretch the key as long as wanted */
+                    /* (no grip on the canvas: the width is a bar at the drawer's foot -- user 2026-11-27) */
                     mHandleX = cx + radius * asp;
                     mHandleY = cy;
-                    mHandleR = Math.max(12 * mEditor.mDp, radius * 0.22f);
-                    mPaint.setStyle(Paint.Style.FILL);
-                    mPaint.setColor(0xFFFFFFFF);
-                    canvas.drawCircle(mHandleX, mHandleY, mHandleR, mPaint);
-                    mPaint.setColor(0xFF0D1014);
-                    canvas.drawCircle(mHandleX, mHandleY, mHandleR * 0.55f, mPaint);
+                    mHandleR = 0f;
                 }
             }
 
@@ -1134,15 +1175,6 @@ public class TouchLayoutEditor extends FrameLayout {
                     break;
                 }
                 float px = ev.getX(), py = ev.getY();
-                if (mEditor.mShown[mEditor.mSelected] &&
-                    Math.abs(px - mHandleX) < Math.max(mHandleR * 2.2f, 26 * mEditor.mDp) &&
-                    Math.abs(py - mHandleY) < Math.max(mHandleR * 2.2f, 26 * mEditor.mDp)) {
-                    mResize = true;       /* (the grip: stretch the key, do not move it) */
-                    mDrag = mEditor.mSelected;
-                    mLastX = px;
-                    mLastY = py;
-                    break;
-                }
                 id = nearest(px, py);
                 if (id >= 0) {
                     mEditor.select(id);
