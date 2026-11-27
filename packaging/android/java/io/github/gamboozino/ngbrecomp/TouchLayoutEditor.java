@@ -64,6 +64,7 @@ public class TouchLayoutEditor extends FrameLayout {
      * draw_plain): a wide rectangle, a circle, a rounded square -- the plain pad the default layout uses. */
     private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形", "长方形", "圆盘", "圆角方框"};
     private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
+    private static final String[] PAD_THEMES = {"Xbox", "Switch", "PlayStation"};
     /* What a combo control shows on its plate: the short name. */
     private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
 
@@ -80,7 +81,8 @@ public class TouchLayoutEditor extends FrameLayout {
     private final boolean[] mComboKind = new boolean[N];
 
     private Preview mPreview;
-    private TextView mCurrent, mSizeValue, mStyleValue, mAlphaValue, mColourValue, mShapeValue, mActionValue,
+    private TextView mCurrent, mSizeValue, mStyleValue, mThemeValue, mAlphaValue, mColourValue, mShapeValue,
+            mActionValue,
             mComboValue, mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue, mTurboValue;
     private SeekBar mStretchBar;
     private Button mDelete, mComboRow;
@@ -588,6 +590,17 @@ public class TouchLayoutEditor extends FrameLayout {
             mHint.setText(looks[mStyle]);
         });
         panel.addView(row("外观（全部按键）", mStyleValue));
+        mThemeValue = valueView(130);
+        mThemeValue.setOnClickListener(v -> {
+            mPadTheme = (mPadTheme + 1) % 3;
+            mActivity.setPadTheme(mPadTheme);      /* (the game's pad follows at once: nativePadThemeSet saves it) */
+            refresh();
+            mHint.setText(new String[] {
+                "按键主题 Xbox：A 在下、B 在右，标签同手柄",
+                "按键主题 Switch：标签与键位按 Switch 排（B 在下、A 在右）",
+                "按键主题 PlayStation：✕ ○ □ △，肩键 L1 R1 L2 R2"}[mPadTheme]);
+        });
+        panel.addView(row("按键主题", mThemeValue));
         mShapeValue = valueView(110);
         mShapeValue.setOnClickListener(v -> choose("形状", SHAPES, mShape[mSelected], i -> { mShape[mSelected] = i; refresh(); }));
         panel.addView(row("形状", mShapeValue));
@@ -1062,6 +1075,7 @@ public class TouchLayoutEditor extends FrameLayout {
         mShapeValue.setText(SHAPES[mShape[mSelected]]);
         String[] looks = {"细线", "玻璃", "粗边", "实心"};
         if (mStyleValue != null) mStyleValue.setText(looks[Math.max(0, Math.min(3, mStyle))]);
+        if (mThemeValue != null) mThemeValue.setText(PAD_THEMES[Math.max(0, Math.min(2, mPadTheme))]);
         if (mStretchBar != null) {
             mStretchBar.setProgress(Math.max(0, Math.min(360, Math.round((mAsp[mSelected] - 0.4f) * 100))));
             mWidthValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAsp[mSelected] * 100)));
