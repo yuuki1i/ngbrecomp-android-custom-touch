@@ -73,6 +73,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private float mAspect = 2.0f;
     private final float[] mX = new float[N], mY = new float[N], mR = new float[N], mAlpha = new float[N];
     private final int[] mColour = new int[N], mShape = new int[N], mAction = new int[N], mCombo = new int[N];
+    private final int[] mTurbo = new int[N];            /* auto-fire: presses a second while held, 0 off */
     private final boolean[] mShown = new boolean[N], mSkin = new boolean[N];
     private final float[] mAsp = new float[N];          /* how much wider than tall a key is drawn */
     private final boolean[] mButton = new boolean[N];   /* (has an action to bind) */
@@ -80,7 +81,7 @@ public class TouchLayoutEditor extends FrameLayout {
 
     private Preview mPreview;
     private TextView mCurrent, mSizeValue, mStyleValue, mAlphaValue, mColourValue, mShapeValue, mActionValue,
-            mComboValue, mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
+            mComboValue, mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue, mTurboValue;
     private SeekBar mStretchBar;
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
@@ -128,6 +129,7 @@ public class TouchLayoutEditor extends FrameLayout {
             mAction[i] = 12;
             mCombo[i] = 0;
             mShown[i] = i < 18 || i == OPACITY;   /* (the layout and the opacity buttons are on every pad) */
+            mTurbo[i] = 0;
             mAsp[i] = 1f;
         }
         String text = null;
@@ -149,6 +151,16 @@ public class TouchLayoutEditor extends FrameLayout {
                 }
                 if (parts.length >= 3) {
                     try { mStyle = clamp(Integer.parseInt(parts[2]), 0, 1); } catch (Exception e) { }
+                }
+                continue;
+            }
+            if (line.startsWith("# TURBO ")) {       /* auto-fire, one line a key */
+                String[] parts = line.split("\\s+");
+                if (parts.length >= 4) {
+                    try {
+                        int id = Integer.parseInt(parts[2]);
+                        if (id >= 0 && id < N) mTurbo[id] = clamp(Integer.parseInt(parts[3]), 0, 20);
+                    } catch (Exception e) { }
                 }
                 continue;
             }
@@ -179,6 +191,10 @@ public class TouchLayoutEditor extends FrameLayout {
     private void save() {
         StringBuilder text = new StringBuilder();
         text.append(String.format(Locale.US, "V4 %.4f %d\n", mAspect, mStyle));
+        text.append("# TURBO-ALL\n");           /* (the marker: anything not listed below is off) */
+        for (int i = 0; i < N; i++)
+            if (mTurbo[i] > 0)
+                text.append(String.format(Locale.US, "# TURBO %d %d\n", i, mTurbo[i]));
         for (int i = 0; i < N; i++) {
             int action = mButton[i] ? mAction[i] : -1;
             text.append(String.format(Locale.US,
@@ -488,6 +504,17 @@ public class TouchLayoutEditor extends FrameLayout {
         widthRow.addView(mWidthValue);
         widthRow.addView(step("+", () -> stretch(0.10f)));
         panel.addView(widthRow);
+
+        LinearLayout turboRow = new LinearLayout(mActivity);
+        turboRow.setOrientation(LinearLayout.HORIZONTAL);
+        turboRow.setGravity(Gravity.CENTER_VERTICAL);
+        turboRow.addView(label("连发", 13, 0xC7B9C2D2, false),
+                         new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        mTurboValue = valueView(70);
+        mTurboValue.setOnClickListener(v -> askNumber("按住这个键时每秒按几次（0 关掉）", mTurbo[mSelected], 0, 20,
+                                                     hz -> { mTurbo[mSelected] = Math.round(hz); refresh(); }));
+        turboRow.addView(mTurboValue);
+        panel.addView(turboRow);
 
         LinearLayout alphaRow = new LinearLayout(mActivity);
         alphaRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -994,6 +1021,7 @@ public class TouchLayoutEditor extends FrameLayout {
         mXValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mX[mSelected] * 100)));
         mYValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mY[mSelected] * 100)));
         mAlphaValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAlpha[mSelected] * 100)));
+        mTurboValue.setText(mTurbo[mSelected] > 0 ? (mTurbo[mSelected] + "次/秒") : "关");
         mColourValue.setText(COLOURS[mColour[mSelected]]);
         mShapeValue.setText(SHAPES[mShape[mSelected]]);
         String[] looks = {"细线", "玻璃", "粗边", "实心"};

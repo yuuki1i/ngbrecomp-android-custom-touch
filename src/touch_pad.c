@@ -320,6 +320,9 @@ static uint8_t s_pad_style;
  * the bottom, L / R / ZL / ZR, - and +), 2 PlayStation (its four marks, L1 / R1 / L2 / R2, SHARE / OPT).
  * Held in the layout, like the style (user 2026-11-27: three glass themes, every key replaced). */
 static int s_pad_theme;
+/* Auto-fire: a key held repeats by itself, this many presses a second (0: held, as usual). In the layout as
+ * "# TURBO <id> <hz>" lines, so the file still reads as V5 rows to everything else. */
+static uint8_t s_turbo[NCTRL];
 static int theme_action(int id, int act);   /* (drawn and sent further down) */
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 /* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
@@ -371,7 +374,8 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"STYLE ")){int st=0;if(sscanf(line,"# STYLE %d",&st)==1)s_pad_style=(uint8_t)(st<0?0:st>3?3:st);}else if(strstr(line,"THEME ")){int th=0;if(sscanf(line,"# THEME %d",&th)==1)s_pad_theme=th<0?0:th>2?2:th;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
+    memset(s_turbo, 0, sizeof s_turbo);
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"STYLE ")){int st=0;if(sscanf(line,"# STYLE %d",&st)==1)s_pad_style=(uint8_t)(st<0?0:st>3?3:st);}else if(strstr(line,"TURBO ")){int id=-1,hz=0;if(sscanf(line,"# TURBO %d %d",&id,&hz)==2&&id>=0&&id<NCTRL)s_turbo[id]=(uint8_t)(hz<0?0:hz>20?20:hz);}else if(strstr(line,"THEME ")){int th=0;if(sscanf(line,"# THEME %d",&th)==1)s_pad_theme=th<0?0:th>2?2:th;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
@@ -385,6 +389,9 @@ static void layout_save(void) {
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     fprintf(fp,"# STYLE %d\n",s_pad_style?1:0);
     fprintf(fp,"# THEME %d\n",s_pad_theme);
+    for (int i = 0; i < NCTRL; i++)
+        if (s_turbo[i])
+            fprintf(fp,"# TURBO %d %d\n", i, s_turbo[i]);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
     fprintf(fp,"# TEXDUMP %d\n", ngb_texture_dump_on);
@@ -769,6 +776,8 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
     };
     for (int i = 0; i < NCTRL; i++) {
         if (!s_down[i] || s_layout_action[i] == PA_NONE)
+            continue;
+        if (s_turbo[i] && (((Uint64)SDL_GetTicks64() * s_turbo[i] / 1000) & 1))   /* (its off half) */
             continue;
         int act = theme_action(i, s_layout_action[i]);
         if (act < 8)
@@ -1789,6 +1798,9 @@ void ngb_touch_layout_get(char *out, size_t n)
     layout_known();
     float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
     int k = snprintf(out, n, "V4 %.4f %u\n", aspect, s_pad_style);
+    for (int i = 0; i < NCTRL; i++)
+        if (s_turbo[i] && k >= 0 && k < (int)n)
+            k += snprintf(out + k, n - (size_t)k, "# TURBO %d %d\n", i, s_turbo[i]);
     for (int i = 0; i < NCTRL && k > 0; i++) {
         if ((size_t)k >= n)
             break;
@@ -1813,6 +1825,9 @@ void ngb_touch_layout_apply(const char *text)
     pthread_mutex_lock(&s_lock);
     layout_load();
     layout_known();
+    /* (the editor sends the whole auto-fire picture under one marker: a key it no longer lists is off) */
+    if (strstr(text, "# TURBO-ALL"))
+        memset(s_turbo, 0, sizeof s_turbo);
     float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
     const char *line = text;
     while (line && *line) {
@@ -1822,6 +1837,11 @@ void ngb_touch_layout_apply(const char *text)
             int sk; char sp[300];
             if (sscanf(line, "# SKIN %d %299s", &sk, &sp[0]) == 2 && sk >= 0 && sk < NCTRL)
                 snprintf(s_skin_path[sk], sizeof s_skin_path[sk], "%s", sp);
+            {   /* auto-fire: a key held repeats by itself */
+                int tid = -1, hz = 0;
+                if (sscanf(line, "# TURBO %d %d", &tid, &hz) == 2 && tid >= 0 && tid < NCTRL)
+                    s_turbo[tid] = (uint8_t)(hz < 0 ? 0 : hz > 20 ? 20 : hz);
+            }
             line = end ? end + 1 : NULL;
             continue;
         }
