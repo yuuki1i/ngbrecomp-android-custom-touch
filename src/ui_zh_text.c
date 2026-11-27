@@ -20,6 +20,7 @@ static const UiZh s_tab[] = {
     { "cat", "Cheats", "作弊" },
     { "cat", "Controls", "操作" },
     { "cat", "Menu Options", "菜单" },
+    { "cat", "Effects", "特效" },
 
     /* ---- the settings' rows (s_label) ---- */
     { "", "Render Resolution", "渲染分辨率" },
@@ -68,6 +69,12 @@ static const UiZh s_tab[] = {
     { "", "Bow Crosshair", "弓箭准星" },
     { "", "Frame Interpolation", "插帧" },
     { "", "Shuriken Icon", "手里剑图标" },
+    { "", "Trail Density", "残影浓度" },
+    { "", "Effect Capture", "特效抓取" },
+    { "", "The afterimages and the weapon's trails, as a share of their strength. 100% is the game's; 0 leaves none.",
+      "残像与武器拖影的强弱，按比例缩放。100% 为游戏原本，0 则完全消失。" },
+    { "", "Records the effect draws to fx-dump.txt in the save folder, for one press of left or right: the trails' tuning.",
+      "把特效的绘制批次记录到存档目录的 fx-dump.txt，按一次左右键开始一次记录，用于调残影。" },
 
     /* ---- their help (s_help): two lines where the English has a \n ---- */
     { "", "Draws the game at a multiple of the console's resolution.", "以主机分辨率的倍数绘制画面。" },

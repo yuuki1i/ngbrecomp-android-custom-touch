@@ -35,6 +35,8 @@ typedef struct NgbSettings {
     int bow_crosshair;      /* Gameplay > Bow Crosshair: a dot in the middle while aiming a bow in first person (src/camera.c, #228) */
     int touch_layout;       /* Android: the touch controls' layout, 0 the other one, 1 Classic, the default (src/touch_pad.c, #285) */
     int touch_opacity;      /* Android: the touch controls' opacity, percent, 30..100 (their button, #285) */
+    int fx_trail;           /* Effects > Trail Density: the afterimages' and weapon trails' share of their strength, percent, 0..200 (100 the game's) */
+    int fx_dump;            /* Effects > Effect Capture: record the effect draws to fx-dump.txt, once per press (the tuning of the trails) */
     int shuriken_icon;      /* Gameplay > Shuriken Icon: the HUD's projectile box for the Shuriken and Windmill Shuriken too (src/hud.c, #276) */
     int cheats_unlocked;    /* the Cheats asked for once ("Use cheats?" Yes): until then they stay locked (src/pause_tab.c) */
     int hud_aspect;         /* Display > HUD Aspect: 0 stretched as the game's widescreen mode draws it, 1 its own shape (the renderer narrows only the HUD's elements: src/d3d/vk/backend.cpp, #220 #219) */

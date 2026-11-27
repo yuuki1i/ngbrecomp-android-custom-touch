@@ -161,6 +161,8 @@ void ngb_settings_load(NgbSettings *s)
     s->talisman = 1;
     s->quick_menu_scale = 0;    /* the quick menu off unless chosen (Gameplay) */
     s->touch_opacity = 100;     /* (the touch controls as 1.0.2 drew them) */
+    s->fx_trail = 100;          /* the effects as the game has them */
+    s->fx_dump = 0;
     s->touch_layout = 1;        /* Classic (#285) */
     s->skip_intro = 0;
     s->show_launcher = 1;
@@ -231,6 +233,10 @@ void ngb_settings_load(NgbSettings *s)
             s->touch_layout = atoi(val) == 1;
         } else if (!strcmp(key, "touch_opacity")) {
             s->touch_opacity = ngb_touch_opacity_value(atoi(val));
+        } else if (!strcmp(key, "fx_trail")) {
+            s->fx_trail = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
+        } else if (!strcmp(key, "fx_dump")) {
+            s->fx_dump = atoi(val) != 0;
         } else if (!strcmp(key, "shuriken_icon")) {
             s->shuriken_icon = atoi(val) != 0;
         } else if (!strcmp(key, "hud_aspect")) {
@@ -339,6 +345,8 @@ void ngb_settings_save(const NgbSettings *s)
     fprintf(f, "talisman_of_rebirth = %d\n", s->talisman);
     fprintf(f, "bow_crosshair = %d\n", s->bow_crosshair);
     fprintf(f, "shuriken_icon = %d\n", s->shuriken_icon);
+    fprintf(f, "fx_trail = %d\n", s->fx_trail);
+    fprintf(f, "fx_dump = %d\n", s->fx_dump);
     fprintf(f, "touch_layout = %d\n", s->touch_layout);
     fprintf(f, "touch_opacity = %d\n", ngb_touch_opacity_value(s->touch_opacity));
     fprintf(f, "text_language = %s\n", s->text_language == 2 ? "japanese" : s->text_language == 1 ? "english" : "auto");

@@ -270,6 +270,17 @@ bool Before(int fn, Call c) {
             if (gpu::g_draw_node && n >= 8) break;
         }
         gpu::g_draw_stack_n = n;
+        /* Effects > Effect Capture (src/fx_dump.c): one scene of draws to fx-dump.txt, for the trails' tuning */
+        extern "C" void ngb_fx_note(unsigned code, unsigned tex, unsigned blend, unsigned src, unsigned dst,
+                                    unsigned count, unsigned vs, unsigned node);
+        extern "C" volatile int ngb_fx_dump_on;
+        if (ngb_fx_dump_on) {
+            const unsigned count = fn == D3DF_D3DDevice_DrawVertices ? c.r[EAX] : c.a(1);
+            ngb_fx_note(fn, g_state.textures[0],
+                        g_state.simple[gpu::kMBlendEnable >> 2], g_state.simple[gpu::kMSrcBlend >> 2],
+                        g_state.simple[gpu::kMDestBlend >> 2], count,
+                        g_state.vs ? static_cast<unsigned>(g_state.vs->hash) : 0u, gpu::g_draw_node);
+        }
     }
     switch (fn) {
     // render states

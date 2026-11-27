@@ -175,6 +175,8 @@ add_library(ngb_gen OBJECT ${RECOMP_GEN_SOURCES}
     # The recomp's own pages in Chinese (src/pause_tab.c): the words and the face.
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui_zh.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui_zh_text.c
+    # Effects: the trails' capture (src/fx_dump.c, called from src/d3d/hle.cpp at each draw)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fx_dump.c
     # The Direct3D hooks (docs/renderer.md, tools/take_d3d.py).
     ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d/d3d.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cheats.c

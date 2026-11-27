@@ -168,6 +168,12 @@ int ngb_glow_step(int v, int step)
     return v == 3 ? 2 : 3;
 }
 
+/* Effects: read at every draw, so a flag rather than a setting lookup (src/fx_dump.c, src/d3d/hle.cpp) */
+volatile int ngb_fx_dump_on;
+int ngb_fx_trail(void) { return ngb_pc_setting(50); }
+int ngb_fx_dump(void) { return ngb_pc_setting(51); }
+void ngb_fx_dump_done(void) { ngb_pc_set_setting(51, 0); }
+
 int ngb_pc_setting(int which)
 {
     if (which >= 11 && which <= 13)
@@ -189,6 +195,7 @@ int ngb_pc_setting(int which)
     if (!s_have_running) {
         ngb_settings_load(&s_running);
         s_have_running = true;
+        ngb_fx_dump_on = s_running.fx_dump ? 1 : 0;
     }
     switch (which) {
     case 0:  return s_running.scale;
@@ -219,6 +226,8 @@ int ngb_pc_setting(int which)
     case 45: return s_running.frame_interp;
     case 46: return s_running.cheats_unlocked;
     case 47: return s_running.shuriken_icon;
+    case 50: return s_running.fx_trail;          /* Effects: the trails' strength, percent */
+    case 51: return s_running.fx_dump;           /* and the capture, one scene a press */
     case 48: return s_running.touch_layout;
     case 49: return ngb_touch_opacity_value(s_running.touch_opacity);
     case 29: return s_running.detail_under_load;
@@ -269,6 +278,8 @@ void ngb_pc_set_setting(int which, int value)
     case 45: s_running.frame_interp = value < 0 ? 0 : value > 3 ? 3 : value; break;   /* at the next frame (src/d3d/hle.cpp) */
     case 46: s_running.cheats_unlocked = !!value; break;
     case 47: s_running.shuriken_icon = !!value; break;
+    case 50: s_running.fx_trail = value < 0 ? 0 : value > 200 ? 200 : value; break;
+    case 51: s_running.fx_dump = !!value; ngb_fx_dump_on = s_running.fx_dump ? 1 : 0; break;
     case 48: s_running.touch_layout = value == 1; break;   /* (src/touch_pad.c's switch) */
     case 49: s_running.touch_opacity = ngb_touch_opacity_value(value); break;   /* (src/touch_pad.c, at once) */
     case 29: s_running.detail_under_load = !!value; break;

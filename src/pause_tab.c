@@ -86,6 +86,8 @@ enum { S_RENDER, S_TEXTURE, S_SHADOW, S_DISPLAY, S_VSYNC, S_FPS, S_WINDOW, S_ASP
        S_ONEHIT, S_UNLOCKS,                 /* not a setting: Cheats' row opening the Unlocks page */
        S_HUDSTYLE, S_HUDASPECT, S_TALISMAN, S_CROSSHAIR, S_INTERP,
        S_UNUSED46 /* (taken, with no row: cheats_unlocked, src/ingame_menu.c) */, S_SHURIKEN,
+       S_UNUSED48, S_UNUSED49,   /* (the touch layout's two, src/touch_pad.c: rows of their own) */
+       S_FXTRAIL, S_FXDUMP,      /* Effects: the afterimages and the capture */
        S_COUNT };
 
 static const char *const s_label[S_COUNT] = {
@@ -100,6 +102,8 @@ static const char *const s_label[S_COUNT] = {
     "Responsive Menus", "All Armlets", "All Scrolls",
     "One Hit Kill", "Unlocks", "HUD Style", "HUD Aspect", "Talisman of Rebirth",
     "Bow Crosshair", "Frame Interpolation", "", "Shuriken Icon",
+    "", "", "",
+    "Trail Density", "Effect Capture",
 };
 static const char *const s_help[S_COUNT] = {
     "Draws the game at a multiple of the console's resolution.",
@@ -150,16 +154,20 @@ static const char *const s_help[S_COUNT] = {
     "Experimental. Pictures between the game's frames, on a 120 Hz or faster display.",
     "",
     "On: the HUD shows the Shuriken or Windmill Shuriken when one is equipped.",
+    "", "", "",
+    "The afterimages and the weapon's trails, as a share of their strength. 100% is the game's; 0 leaves none.",
+    "Records the effect draws to fx-dump.txt in the save folder, for one press of left or right: the trails' tuning.",
 };
 
 /* The categories: the strip's words, their rows. */
-#define CATS 7
+#define CATS 8
 #define CAT_ROWS 9
 #define CAT_CTL 5                 /* Controls: the bindings' list (src/bindings.c), not settings */
 #define CAT_CHEAT 4
 #define CAT_UNL CATS              /* Unlocks: a page of Cheats' (its row S_UNLOCKS), not on the strip */
 /* Gameplay: optional changes to how the game plays (off unless chosen; docs/quick-menu.md) */
-static const char *const s_cat_name[CATS] = { "Graphics", "Display", "Sound", "Gameplay", "Cheats", "Controls", "Menu Options" };
+static const char *const s_cat_name[CATS] = { "Graphics", "Display", "Sound", "Gameplay", "Cheats", "Controls",
+                                               "Menu Options", "Effects" };
 static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
     { S_RENDER, S_TEXTURE, S_MSAA, S_SHADOW, S_GLOW, S_LOADDETAIL, S_RTHREAD, S_INTERP, -1 },
     { S_ASPECT, S_WINDOW, S_DISPLAY, S_VSYNC, S_FPS, S_HUD, S_HUDSTYLE, S_HUDASPECT, S_SKIP },
@@ -169,6 +177,7 @@ static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
     { -1 },
     { S_LAUNCHER, -1 },
     { S_ALLDIFF, S_ALLCOST, S_MISSIONS, S_ARCADE, S_MOVIES, S_ALLWEAP, S_ALLARM, S_ALLSCROLL, -1 },
+    { S_FXTRAIL, S_FXDUMP, -1 },
 };
 
 #include "bindings.h"
@@ -257,6 +266,8 @@ static void value_text(int row, char *out, size_t n)
     case S_HUDSTYLE: snprintf(out, n, "%s", v ? "Compact" : "Original"); break;
     case S_GLOW: snprintf(out, n, "%s", v == 3 ? "Off" : "On"); break;
     case S_INTERP: snprintf(out, n, "%s", v == 3 ? "2x" : v == 2 ? "Half Rate" : v ? "Full Rate" : "Off"); break;
+    case S_FXTRAIL: snprintf(out, n, "%d%%", v); break;
+    case S_FXDUMP: snprintf(out, n, "%s", v ? "On" : "Off"); break;
     case S_HUDASPECT: snprintf(out, n, "%s", v ? "Corrected" : "Stretched"); break;
     case S_ALLWEAP: snprintf(out, n, "%s", v == 2 ? "Max Level" : v ? "Level 1" : "Off"); break;
     case S_UNLOCKS: snprintf(out, n, "%s", ""); break;
@@ -325,6 +336,15 @@ static void change(int row, int step)
         break;
     case S_INTERP:
         ngb_pc_set_setting(row, (v + (step > 0 ? 1 : 3)) % 4);
+        break;
+    case S_FXTRAIL: {   /* 0..200 in 25s: 9 stops, 100 the game's */
+        int i = v / 25;
+        i = (i + step + 9) % 9;
+        ngb_pc_set_setting(row, i * 25);
+        break;
+    }
+    case S_FXDUMP:
+        ngb_pc_set_setting(row, !v);
         break;
     case S_ASPECT:
         ngb_pc_set_setting(row, (v + (step > 0 ? 1 : ASPECT_COUNT - 1)) % ASPECT_COUNT);
