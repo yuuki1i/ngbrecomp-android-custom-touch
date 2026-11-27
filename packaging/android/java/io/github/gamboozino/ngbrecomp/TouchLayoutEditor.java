@@ -15,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -170,9 +171,9 @@ public class TouchLayoutEditor extends FrameLayout {
         for (int i = 0; i < N; i++) {
             int action = mButton[i] ? mAction[i] : -1;
             text.append(String.format(Locale.US,
-                                      "%d %.5f %.5f %.5f %.5f %d %d %d %d %d %d\n",
+                                      "%d %.5f %.5f %.5f %.5f %d %d %d %d %d %d %.3f\n",
                                       i, mX[i], mY[i], mR[i], mAlpha[i], mColour[i], mShape[i],
-                                      action, mCombo[i], mShown[i] ? 1 : 0, mSkin[i] ? 1 : 0));
+                                      action, mCombo[i], mShown[i] ? 1 : 0, mSkin[i] ? 1 : 0, mAsp[i]));
         }
         try {
             mActivity.applyTouchLayout(text.toString());
@@ -401,6 +402,10 @@ public class TouchLayoutEditor extends FrameLayout {
         mPreview = new Preview(this);
         body.addView(mPreview, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                                                            ViewGroup.LayoutParams.MATCH_PARENT));
+        body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orw, ob) -> {
+            if (mDrawer == null || r - l == orw - ol) return;
+            placeDrawer();      /* (the keypad resized the page: the drawer stays where the hand left it) */
+        });
         mScrim = new View(mActivity);
         mScrim.setBackgroundColor(0x66000000);
         mScrim.setVisibility(View.GONE);
@@ -649,7 +654,7 @@ public class TouchLayoutEditor extends FrameLayout {
         input.setSelectAllOnFocus(true);
         input.setTextColor(0xFFEDF2FA);
         input.setTextSize(16);
-        new AlertDialog.Builder(mActivity)
+        AlertDialog dialog = new AlertDialog.Builder(mActivity)
             .setTitle(title)
             .setView(input)
             .setPositiveButton("确定", (d, w) -> {
@@ -660,9 +665,16 @@ public class TouchLayoutEditor extends FrameLayout {
                     return;
                 }
                 sink.set(Math.max(min, Math.min(max, v)));
+                if (!drawerOpen()) openDrawer();   /* (a size typed keeps the drawer where it was) */
             })
             .setNegativeButton("取消", null)
-            .show();
+            .create();
+        /* (adjustNothing: the keypad slides over the page instead of squeezing it, so the drawer does not
+         * move -- and the key being sized does not vanish from under the dialog) */
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+        dialog.show();
+        dialog.getWindow().setLayout(dp(320), ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     private float sizePercent() {
@@ -736,25 +748,38 @@ public class TouchLayoutEditor extends FrameLayout {
 
     /* Where the drawer was left, as a share of its room (-1 the far left, 1 the far right): the next time the
      * editor opens, it is there again. */
+    private float mShare = 1f;   /* where the drawer sits: 1 the right edge, 0 the left */
+
     private void saveDrawer() {
         float room = drawerRoom();
         if (room <= 0) return;
         /* (1 the right edge, 0 the left -- the drawer's own x runs the other way, 0 at the right and -room
          * at the left) */
-        float share = 1f + Math.max(-1f, Math.min(0f, mDrawerBase / room));
+        mShare = 1f + Math.max(-1f, Math.min(0f, mDrawerBase / room));
         mActivity.getSharedPreferences("ngb_touch_editor", 0).edit()
-                .putFloat("drawer_share", share).apply();
+                .putFloat("drawer_share", mShare).apply();
+    }
+
+    /* The drawer's own x, from the share and the room the body has now: called again whenever that room
+     * changes -- the number keypad resizes the page, and a drawer placed for the old width went off the glass
+     * as the keys came up (user 2026-11-27). */
+    private void placeDrawer() {
+        float room = drawerRoom();
+        mDrawerBase = -(1f - mShare) * room;
+        mDockLeft = mShare < 0.5f;
+        if (mDrawer != null && mDrawer.getVisibility() == View.VISIBLE)
+            mDrawer.setTranslationX(mDrawerBase);
     }
 
     private void restoreDrawer() {
-        float share = mActivity.getSharedPreferences("ngb_touch_editor", 0).getFloat("drawer_share", 1f);
-        share = Math.max(0f, Math.min(1f, share));
-        float room = drawerRoom();
+        mShare = mActivity.getSharedPreferences("ngb_touch_editor", 0).getFloat("drawer_share", 1f);
+        mShare = Math.max(0f, Math.min(1f, mShare));
         /* 0 is the right edge and -room the left: a share of 1 is the right, 0 the left. (It used to be taken
          * as a positive push, so the drawer opened off the right edge of the glass and never showed at all --
          * user 2026-11-27.) */
-        mDrawerBase = -(1f - share) * room;
-        mDockLeft = share < 0.5f;
+        float room = drawerRoom();
+        mDrawerBase = -(1f - mShare) * room;
+        mDockLeft = mShare < 0.5f;
     }
 
     private void openDrawer() {
@@ -978,20 +1003,20 @@ public class TouchLayoutEditor extends FrameLayout {
             if (mEditor.mGrid) {
                 mPaint.setStyle(Paint.Style.STROKE);
                 mPaint.setStrokeWidth(1);
-                mPaint.setColor(0x14FFFFFF);
+                mPaint.setColor(0x22FFFFFF);
                 for (int i = 1; i < 36; i++) {
                     if (i % 6 == 0) continue;
                     float x = viewW * i / 36f, y = viewH * i / 36f;
                     canvas.drawLine(x, 0, x, viewH, mPaint);
                     canvas.drawLine(0, y, viewW, y, mPaint);
                 }
-                mPaint.setColor(0x2EFFFFFF);
+                mPaint.setColor(0x3EFFFFFF);
                 for (int i = 1; i < 6; i++) {
                     float x = viewW * i / 6f, y = viewH * i / 6f;
                     canvas.drawLine(x, 0, x, viewH, mPaint);
                     canvas.drawLine(0, y, viewW, y, mPaint);
                 }
-                mPaint.setColor(0x44FFFFFF);
+                mPaint.setColor(0x5AFFFFFF);
                 canvas.drawLine(viewW / 2f, 0, viewW / 2f, viewH, mPaint);
                 canvas.drawLine(0, viewH / 2f, viewW, viewH / 2f, mPaint);
             }
@@ -1026,15 +1051,17 @@ public class TouchLayoutEditor extends FrameLayout {
                 float asp = Math.max(0.4f, Math.min(4f, mEditor.mAsp[id]));
                 int rgb = COLOUR_RGB[mEditor.mColour[id]];
                 outline(mPath, cx, cy, radius, asp, mEditor.mShape[id]);
+                /* (the same wash the game puts under a key: src/touch_pad.c draw_plain's 8,10,14 plate -- the
+                 * editor showed a white one, and the pad changed colour on the way into the game) */
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor((rgb & 0x00FFFFFF) | 0x14FFFFFF);
+                mPaint.setColor(0x5C080A0E);
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
                 mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f : 1.5f);
-                mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xB3000000));
+                mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xCC000000));
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(0xFFFFFFFF);
+                mPaint.setColor(rgb);      /* (the name in the key's own colour, as the game's plate has it) */
                 mPaint.setTextAlign(Paint.Align.CENTER);
                 mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.62f));
                 String text = SHORT[id];
@@ -1107,6 +1134,8 @@ public class TouchLayoutEditor extends FrameLayout {
                     mDrag = id;
                     mLastX = px;
                     mLastY = py;
+                } else if (mEditor.drawerOpen()) {
+                    mEditor.closeDrawer();      /* (the empty canvas: the drawer goes away, the keys stay) */
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -1249,6 +1278,8 @@ public class TouchLayoutEditor extends FrameLayout {
             mDp = c.getResources().getDisplayMetrics().density;
             mGrip = 26 * mDp;
             setLayerType(View.LAYER_TYPE_HARDWARE, null);   /* (moved every frame: kept on the GPU) */
+            setOverScrollMode(OVER_SCROLL_NEVER);           /* (the glow at the edge flickered as it moved) */
+            setVerticalScrollBarEnabled(false);
         }
 
         /* A grip line at the drawer's edge: it says where to take hold of it. */
@@ -1288,7 +1319,7 @@ public class TouchLayoutEditor extends FrameLayout {
                     float dx = e.getX() - mDownX, dy = e.getY() - mDownY;
                     /* A sideways move is taken at once, and the drawer starts from here -- not from the
                      * finger-down point, so it does not jump the slop's worth the moment it is caught. */
-                    if (!mDragging && Math.abs(dx) > mSlop * 0.5f && Math.abs(dx) > Math.abs(dy)) {
+                    if (!mDragging && Math.abs(dx) > mSlop * 0.3f && Math.abs(dx) > Math.abs(dy)) {
                         mDragging = true;
                         mDownX = mLastX = e.getX();
                         if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);

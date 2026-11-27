@@ -1347,12 +1347,11 @@ static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a
 static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected)
 {
     if (!selected && color == 0 && shape == 0) return;
-    static const uint8_t colors[6][3] = {
-        {55, 166, 255}, {40, 112, 220}, {92, 132, 255},
-        {24, 72, 160}, {130, 160, 255}, {18, 42, 92}
-    };
-    int ci = color < 0 || color > 5 ? 0 : color;
-    uint8_t cr = selected ? 255 : colors[ci][0], cg = selected ? 210 : colors[ci][1], cb = selected ? 90 : colors[ci][2];
+    /* (the editor's own palette: a ring that stays the colour the player picked -- it was a fixed blue, and
+     * the key looked blue in the game and gold on the editor's page -- user 2026-11-27) */
+    uint8_t cr, cg, cb;
+    if (selected) { cr = 255; cg = 255; cb = 255; }
+    else plain_tint(color, &cr, &cg, &cb);
     float outer = r * 1.20f, inner = outer - fmaxf(1.5f, r * 0.055f);
     int x0 = (int)floorf(cx - outer * asp - 1), x1 = (int)ceilf(cx + outer * asp + 1);
     int y0 = (int)floorf(cy - outer - 1), y1 = (int)ceilf(cy + outer + 1);
@@ -1700,7 +1699,7 @@ void ngb_touch_layout_apply(const char *text)
                 s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
                 s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 8 ? 8 : shape);
                 s_layout_action[id] = action >= 0 && action < PA_COUNT ? action : PA_NONE;
-                s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 6 ? 6 : combo);
+                s_layout_combo[id] = (uint8_t)(combo < 0 ? 0 : combo > 5 ? 5 : combo);
                 s_layout_enabled[id] = shown != 0;
                 s_layout_skin[id] = skin != 0;
                 if (read >= 12) s_layout_asp[id] = asp < 0.4f ? 0.4f : asp > 4.f ? 4.f : asp;
