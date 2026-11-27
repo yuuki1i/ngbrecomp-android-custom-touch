@@ -124,6 +124,16 @@ int ngb_android_pick_disc(char *out, size_t n)
     }
 }
 
+/* This game's XBE with its own sections: a translation or a mod pack (src/install.c). Asked before the game
+ * is taken as installed; 1 to run it anyway. */
+static int confirm_modified(const char *why)
+{
+    static const char *b[] = { "继续安装", "取消" };
+    char text[1500];
+    snprintf(text, sizeof text, "%s\n\n继续安装后游戏内可能出现汉化/整合包自身的改动，也可能偶发卡死或闪退。", why);
+    return ask("Ninja Gaiden Black", text, b, 2) == 0;
+}
+
 static void toast_progress(uint64_t done, uint64_t total, void *ud)
 {
     int *last = ud;
@@ -178,7 +188,9 @@ int ngb_android_install(const char *src, const char *installed, char *out, size_
     int last = -10;
     SDL_AndroidShowToast("Installing Ninja Gaiden Black: a few minutes", 1, -1, 0, 0);
     ngb_install_set_progress(toast_progress, &last);
+    ngb_install_set_confirm(confirm_modified);
     int rc = ngb_install(src, installed, out, n);
+    ngb_install_set_confirm(NULL);
     ngb_install_set_progress(NULL, NULL);
     if (rc != 0) {
         char msg[1400];

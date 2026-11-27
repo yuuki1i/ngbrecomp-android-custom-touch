@@ -29,8 +29,14 @@ void ngb_install_set_progress(ngb_progress_fn fn, void *ud);
 /* Stop an install in progress (from another thread): it fails, "Cancelled". */
 void ngb_install_cancel(void);
 
-/* 0 when dir/default.xbe is the one this build was recompiled from. */
+/* 0 when dir/default.xbe is the one this build was recompiled from; 2 when it is this game's XBE but its
+ * sections differ (a translation or a mod pack); 1 when it is something else; -1 when there is none. */
 int ngb_check_xbe(const char *dir);
+
+/* Asked, once, when the game installed is this game's but modified (a translation, a mod pack): 1 to run it
+ * anyway. The Android launcher asks in a dialog (src/android_install.c); elsewhere NGB_ANY_XBE=1 does it. */
+typedef int (*ngb_confirm_fn)(const char *why);
+void ngb_install_set_confirm(ngb_confirm_fn fn);
 
 /* Portable mode (src/main.c): where the program is -- beside the AppImage on Linux -- and the file there
  * that turns it on. 1 on success. */

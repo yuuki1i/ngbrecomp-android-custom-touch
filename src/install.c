@@ -52,6 +52,31 @@ static const char XDVDFS_MAGIC[20] = "MICROSOFT*XBOX*MEDIA";
 static const uint64_t BASES[] = { 0, 0xFD90, 0x30600, 0xFD90000, 0x18300000 };
 
 static char s_err[1024];
+static ngb_confirm_fn s_confirm;
+/* A game the player took as it is though its XBE is a translation's or a mod pack's: the mark beside the
+ * game's files, so the next start does not ask again. */
+#define MODIFIED_MARK ".ngb-modified-xbe"
+static void mark_modified(const char *dir)
+{
+    char p[4200];
+    FILE *f;
+    snprintf(p, sizeof p, "%s/%s", dir, MODIFIED_MARK);
+    if ((f = fopen(p, "w"))) {
+        fputs("This game's default.xbe is a translation's or a mod pack's, accepted when it was installed.\n", f);
+        fclose(f);
+    }
+}
+static int is_modified_marked(const char *dir)
+{
+    char p[4200];
+    FILE *f;
+    snprintf(p, sizeof p, "%s/%s", dir, MODIFIED_MARK);
+    f = fopen(p, "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
 static ngb_progress_fn s_progress;
 static void *s_progress_ud;
 static volatile int s_cancel;
@@ -67,6 +92,7 @@ static void fail(const char *fmt, ...)
 }
 
 const char *ngb_install_error(void) { return s_err; }
+void ngb_install_set_confirm(ngb_confirm_fn fn) { s_confirm = fn; }
 
 void ngb_install_set_progress(ngb_progress_fn fn, void *ud)
 {
@@ -236,17 +262,25 @@ int ngb_check_xbe(const char *dir)
     }
     {
         uint32_t base = le32(d + 0x104), table = le32(d + 0x120) - base;
+        int shape = 1;   /* (every section header inside the file, with a size of its own: an XBE that is this
+                          * game's, whatever its bytes have been made into) */
         for (int i = 0; i < nsec; i++) {
             const unsigned char *h = d + table + (size_t)i * 56;
             uint32_t raw, rsz;
             uint64_t got;
             if (table + (size_t)(i + 1) * 56 > (size_t)size) {
                 ok = 0;
+                shape = 0;
                 break;
             }
             raw = le32(h + 12);
             rsz = le32(h + 16);
-            if (rsz != s_xbe_sections[i].size || (uint64_t)raw + rsz > (uint64_t)size) {
+            if (!rsz || (uint64_t)raw + rsz > (uint64_t)size) {
+                shape = 0;
+                ok = 0;
+                continue;
+            }
+            if (rsz != s_xbe_sections[i].size) {
                 fprintf(stderr, "%s: section %s is %u bytes, not %u\n", p, s_xbe_sections[i].name, rsz,
                         s_xbe_sections[i].size);
                 ok = 0;
@@ -258,6 +292,12 @@ int ngb_check_xbe(const char *dir)
                         (unsigned long long)got);
                 ok = 0;
             }
+        }
+        if (!ok) {   /* (a translation or a mod pack: an XBE of this game's shape, its own bytes in it) */
+            free(d);
+            fprintf(stderr, "%s: an XBE this build does not know, its sections changed%s (a translation or a "
+                            "mod pack?)\n", p, shape ? "" : ", its section table rebuilt");
+            return 2;
         }
     }
     free(d);
@@ -413,10 +453,23 @@ static FILE *open_image(const char *iso)
     return fopen(iso, "rb");
 }
 
+/* The game partition's descriptor at base: the signature of an Xbox disc image (XDVDFS) there, its root
+ * folder's sector and size read into root and rsize. 1 when it is. */
+static int xdvdfs_at(Image *im, uint64_t base, uint32_t *root, uint32_t *rsize)
+{
+    unsigned char desc[64];
+    im->base = base;
+    if (read_at(im, 32, desc, sizeof desc) != 0 || memcmp(desc, XDVDFS_MAGIC, sizeof XDVDFS_MAGIC) != 0)
+        return 0;
+    *root = desc[20] | desc[21] << 8 | desc[22] << 16 | (uint32_t)desc[23] << 24;
+    *rsize = desc[24] | desc[25] << 8 | desc[26] << 16 | (uint32_t)desc[27] << 24;
+    return 1;
+}
+
 static int extract_iso(const char *iso, const char *dest)
 {
     Image im = { 0 };
-    unsigned char desc[SECTOR];
+    uint32_t root = 0, rsize = 0;
     int rc = -1, found = 0;
 
     im.f = open_image(iso);
@@ -427,35 +480,42 @@ static int extract_iso(const char *iso, const char *dest)
             fail("Cannot open %s: %s", iso, strerror(errno));
         return -1;
     }
-    for (size_t i = 0; i < sizeof BASES / sizeof BASES[0]; i++) {
-        im.base = BASES[i];
-        if (read_at(&im, 32, desc, sizeof desc) == 0 &&
-            !memcmp(desc, XDVDFS_MAGIC, sizeof XDVDFS_MAGIC)) {
-            uint32_t root = desc[20] | desc[21] << 8 | desc[22] << 16 | (uint32_t)desc[23] << 24;
-            uint32_t rsize = desc[24] | desc[25] << 8 | desc[26] << 16 | (uint32_t)desc[27] << 24;
+    for (size_t i = 0; i < sizeof BASES / sizeof BASES[0]; i++)
+        if (xdvdfs_at(&im, BASES[i], &root, &rsize)) {
             found = 1;
-            fprintf(stderr, "Extracting the game from %s ...\n", iso);
-            im.count_only = 1;
-            rc = extract_dir(&im, root, rsize, dest);
-            im.count_only = 0;
-            if (rc == 0) {
-                if (mkdirs(dest) != 0) {
-                    fail_mkdirs(dest);
-                    rc = -1;
-                } else {
-                    rc = extract_dir(&im, root, rsize, dest);
-                }
-            }
-            if (rc != 0 && !s_err[0])
-                fail("The disc image could not be read.");
-            if (rc == 0)
-                fprintf(stderr, "  done: %llu files, %llu MB\n",
-                        (unsigned long long)im.files, (unsigned long long)(im.bytes >> 20));
             break;
         }
+    if (!found) {   /* (a rebuilt image -- a translation, a mod pack -- may put the partition where this
+                     * build does not know: find its signature, the first 64 MB at the disc's sector size) */
+        for (uint64_t b = 0; b <= (64ull << 20); b += SECTOR)
+            if (xdvdfs_at(&im, b, &root, &rsize)) {
+                found = 1;
+                fprintf(stderr, "%s: the game partition starts at 0x%llx\n", iso, (unsigned long long)b);
+                break;
+            }
     }
-    if (!found)
-        fail("%s is not an Xbox disc image.", iso);
+    if (found) {
+        fprintf(stderr, "Extracting the game from %s ...\n", iso);
+        im.count_only = 1;
+        rc = extract_dir(&im, root, rsize, dest);
+        im.count_only = 0;
+        if (rc == 0) {
+            if (mkdirs(dest) != 0) {
+                fail_mkdirs(dest);
+                rc = -1;
+            } else {
+                rc = extract_dir(&im, root, rsize, dest);
+            }
+        }
+        if (rc != 0 && !s_err[0])
+            fail("The disc image could not be read.");
+        if (rc == 0)
+            fprintf(stderr, "  done: %llu files, %llu MB\n",
+                    (unsigned long long)im.files, (unsigned long long)(im.bytes >> 20));
+    } else {
+        fail("%s is not an Xbox disc image (no Xbox partition found in it). If it is a translation or a mod "
+             "pack, unpack it to a folder with default.xbe and choose the folder instead.", iso);
+    }
     fclose(im.f);
     return rc;
 }
@@ -907,6 +967,17 @@ int ngb_install(const char *src, const char *installed, char *out, size_t n)
     switch (ngb_check_xbe(out)) {
     case 0:
         return 0;
+    case 2:   /* (a translation or a mod pack: this game's XBE with its own sections) */
+        if (getenv("NGB_ANY_XBE"))
+            return 0;
+        fail("%s is a translated or modded Ninja Gaiden Black: its default.xbe is this game's, but its "
+             "sections are not the retail USA disc's. It can be installed and run; expect the game's own "
+             "changes (text, mods) and, now and then, trouble the retail disc does not have.", out);
+        if (s_confirm && s_confirm(s_err)) {
+            mark_modified(out);
+            return 0;
+        }
+        return -1;
     case 1:
         if (getenv("NGB_ANY_XBE"))
             return 0;
@@ -1321,6 +1392,16 @@ check:
     switch (ngb_check_xbe(out)) {
     case 0:
         return 0;
+    case 2:
+        fprintf(stderr, "%s: a translated or modded Ninja Gaiden Black (its default.xbe is this game's, its "
+                        "sections are not the retail disc's)\n", out);
+        if (getenv("NGB_ANY_XBE") || is_modified_marked(out))
+            return 0;
+        if (s_confirm && s_confirm("This is a translated or modded Ninja Gaiden Black. Run it anyway?")) {
+            mark_modified(out);
+            return 0;
+        }
+        return -1;
     case 1:
         fprintf(stderr, "%s/default.xbe is not the retail USA Ninja Gaiden Black "
                         "this build was made from.\n", out);
