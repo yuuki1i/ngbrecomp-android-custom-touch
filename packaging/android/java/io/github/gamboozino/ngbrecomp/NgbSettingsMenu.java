@@ -381,11 +381,12 @@ public class NgbSettingsMenu extends FrameLayout {
                       mActivity.setFxValue(1, mFxDump);
                   });
         addHead("诊断");
-        addAction("看到特效绘制了吗", "进游戏挥两刀、放个忍术，再回来点这里。数字变了，就说明这版抓到了残影和刀光的绘制。",
+        addAction("本帧的混合绘制", "挥一刀、放个忍术，再进来点这里：这一帧所有半透明绘制的种类。哪一条像残影，告诉我它那行。",
                   () -> {
                       int n = mActivity.getFxValue(7);
                       android.widget.Toast
-                          .makeText(mActivity, "累计命中 " + n + " 次绘制", android.widget.Toast.LENGTH_LONG).show();
+                          .makeText(mActivity, "命中 " + n + " 次\n" + mActivity.fxStats(),
+                                     android.widget.Toast.LENGTH_LONG).show();
                   });
         addHead("说明");
         addAction("抓到的文件在哪", "存档目录下的 fx 文件夹。抓一次、放飞燕和蓄力，再把 fx-dump.txt 传来，就能按它定位。",

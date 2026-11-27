@@ -189,6 +189,9 @@ void ngb_settings_open(void);       /* the Android settings page: 画面 and 按
 void ngb_pc_set_setting(int which, int value);
 int ngb_fx_trail(void);                            /* src/ingame_menu.c: 50 the trail and the weapon's ghost, 0..200 */
 extern volatile int ngb_fx_hits;                   /* src/fx_dump.c: how many draws the trail's pass took */
+typedef struct { unsigned key; int n; } NgFxBucket;  /* src/d3d/vk/backend.cpp: the frame's kinds of blended draw */
+extern NgFxBucket ngb_fx_last[24];
+extern int ngb_fx_last_n;
 int ngb_fx_tint(int which);                        /* src/ingame_menu.c: the trail's r, g, b, alpha, glow */
 void ngb_fx_tint_set(int which, int value);
 int ngb_fx_dump(void);                             /* src/ingame_menu.c: 51 what the game draws, written out */
@@ -2179,6 +2182,41 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxS
     } else {
         ngb_fx_tint_set((int)which - 2, (int)value);
     }
+}
+/* 诊断: every kind of blended draw the last frame made, in words the menu can show. Read-only, best effort:
+   the renderer owns the buckets, and a torn count only makes a line odd for one press. */
+static const char *fx_blend_name(unsigned v)
+{
+    switch (v) {
+    case 0: return "ZERO";
+    case 1: return "ONE";
+    case 2: return "SRCCOLOR";
+    case 3: return "INVSRCCOLOR";
+    case 4: return "SRCALPHA";
+    case 5: return "INVSRCALPHA";
+    default: return "?";
+    }
+}
+JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxStats(
+    JNIEnv *env, jobject activity) {
+    (void)activity;
+    char b[1024];
+    int off = 0, n = ngb_fx_last_n < 24 ? ngb_fx_last_n : 24;
+    off += snprintf(b + off, sizeof b - (size_t)off, "本帧混合绘制 %d 类", n);
+    int order[24];
+    for (int i = 0; i < n; i++) order[i] = i;
+    for (int i = 0; i < n; i++)          /* most vertices first */
+        for (int j = i + 1; j < n; j++)
+            if (ngb_fx_last[order[j]].n > ngb_fx_last[order[i]].n) { int t = order[i]; order[i] = order[j]; order[j] = t; }
+    for (int i = 0; i < n && i < 6; i++) {
+        unsigned key = ngb_fx_last[order[i]].key;
+        off += snprintf(b + off, sizeof b - (size_t)off, "\n· 混合 %s/%s%s%s%s · 顶点 %d",
+                        fx_blend_name(key & 0xFu), fx_blend_name((key >> 4) & 0xFu),   /* source / destination */
+                        (key & 0x100u) ? "" : " · 不混合", (key & 0x200u) ? " · 目标贴图" : "",
+                        (key & 0x400u) ? " · 2D" : " · 3D", ngb_fx_last[order[i]].n);
+        if (key & 0x800u) off += snprintf(b + off, sizeof b - (size_t)off, " · 特效尺寸");
+    }
+    return (*env)->NewStringUTF(env, b);
 }
 JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureDir(
     JNIEnv *env, jobject activity) {

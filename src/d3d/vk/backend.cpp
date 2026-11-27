@@ -13,6 +13,17 @@
 extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
 extern "C" int ngb_fx_tint(int which);   /* src/ingame_menu.c: its r, g, b, alpha and glow, percent */
 extern "C" volatile int ngb_fx_hits;     /* src/fx_dump.c: how many draws the trail's pass took */
+
+/* What a frame's blended draws look like, one bucket a kind: the blend, whether the picture comes from a
+   target, whether it is a quad, and whether the target is an effect's own (256x128 and up, below the
+   display's). The phone's 诊断 row prints it, so where the afterimages are drawn is read, not guessed. */
+extern "C" {
+struct NgFxBucket { unsigned key; int n; };
+NgFxBucket ngb_fx_buckets[24];      /* the frame being drawn */
+int ngb_fx_bucket_n;
+NgFxBucket ngb_fx_last[24];         /* the frame before: whole, so the menu can read it at any moment */
+int ngb_fx_last_n;
+}
 #ifdef __ANDROID__
 #include <sys/resource.h>
 #endif
@@ -3899,6 +3910,16 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         from_target[0] && !info[0].shadow &&
         Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
         trail_desc.width < 640;
+    {   /* one bucket a kind of blended draw, for the phone's 诊断 row */
+        TextureDesc sd{};
+        unsigned bkey = unsigned(k.src & 0xFu) | (unsigned(k.dst & 0xFu) << 4) | (k.blend ? 0x100u : 0u) |
+                        (from_target[0] ? 0x200u : 0u) | (a.pretransformed ? 0x400u : 0u) |
+                        (Describe(s.textures[0], sd) && sd.width >= 256 && sd.width < 640 ? 0x800u : 0u);
+        int i = 0;
+        while (i < ngb_fx_bucket_n && ngb_fx_buckets[i].key != bkey) ++i;
+        if (i < ngb_fx_bucket_n) ngb_fx_buckets[i].n += int(count);
+        else if (ngb_fx_bucket_n < 24) { ngb_fx_buckets[ngb_fx_bucket_n].key = bkey; ngb_fx_buckets[ngb_fx_bucket_n].n = int(count); ++ngb_fx_bucket_n; }
+    }
     if (trail_pass || trail_geo) {
         async_now_ = false;
         ++ngb_fx_hits;
@@ -5604,6 +5625,13 @@ void VulkanBackend::Present(const Surface& front) {
     else if (show && replay_ && replay_at_ > 0) nv2a_present_set_external_at(show->image, show->w, show->h, replay_at_);
     else if (show) nv2a_present_set_external(show->image, show->w, show->h);
     frame_++;
+    /* the frame just ended becomes the one the phone reads, and the next frame's kinds start from nothing */
+    if (ngb_fx_bucket_n > 0) {
+        int n = ngb_fx_bucket_n < 24 ? ngb_fx_bucket_n : 24;
+        for (int i = 0; i < n; i++) ngb_fx_last[i] = ngb_fx_buckets[i];
+        ngb_fx_last_n = n;
+    }
+    ngb_fx_bucket_n = 0;
 }
 
 

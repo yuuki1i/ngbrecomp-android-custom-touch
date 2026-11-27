@@ -55,6 +55,7 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchSkinSetPath(int id, String path);
     private native int nativeVideoGet(int which);
     private native int nativeFxGet(int which);
+    private native String nativeFxStats();
     private native void nativeFxSet(int which, int value);
     private native int nativePadThemeGet();
     private native void nativePadThemeSet(int value);
@@ -371,6 +372,7 @@ public class NgbActivity extends SDLActivity {
     public void setPadTheme(int value) { nativePadThemeSet(value); }
     public void setVideoValue(int which, int value) { nativeVideoSet(which, value); }
     public int getFxValue(int which) { return nativeFxGet(which); }        /* 0 the trail, 1 the capture */
+    public String fxStats() { return nativeFxStats(); }
     public void setFxValue(int which, int value) { nativeFxSet(which, value); }
 
     public void showTouchEditor() {
