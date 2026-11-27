@@ -160,14 +160,14 @@ static const char *const s_help[S_COUNT] = {
 };
 
 /* The categories: the strip's words, their rows. */
-#define CATS 8
+#define CATS 7
 #define CAT_ROWS 9
 #define CAT_CTL 5                 /* Controls: the bindings' list (src/bindings.c), not settings */
 #define CAT_CHEAT 4
 #define CAT_UNL CATS              /* Unlocks: a page of Cheats' (its row S_UNLOCKS), not on the strip */
 /* Gameplay: optional changes to how the game plays (off unless chosen; docs/quick-menu.md) */
 static const char *const s_cat_name[CATS] = { "Graphics", "Display", "Sound", "Gameplay", "Cheats", "Controls",
-                                               "Menu Options", "Effects" };
+                                               "Menu Options" };
 static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
     { S_RENDER, S_TEXTURE, S_MSAA, S_SHADOW, S_GLOW, S_LOADDETAIL, S_RTHREAD, S_INTERP, -1 },
     { S_ASPECT, S_WINDOW, S_DISPLAY, S_VSYNC, S_FPS, S_HUD, S_HUDSTYLE, S_HUDASPECT, S_SKIP },
@@ -175,9 +175,8 @@ static const signed char s_cat_rows[CATS + 1][CAT_ROWS] = {
     { S_QUICKSCALE, S_QUICKFREEZE, S_INTERCEPT, S_ESSCHARGE, S_CUTSKIP, S_RESPONSIVE, S_CROSSHAIR, S_SHURIKEN, -1 },
     { S_HEALTH, S_NINPO, S_ESSENCE, S_SCARABS, S_INFITEMS, S_INFAMMO, S_ONEHIT, S_UNLOCKS, -1 },
     { -1 },
-    { S_LAUNCHER, -1 },
+    { S_LAUNCHER, S_FXTRAIL, S_FXDUMP, -1 },   /* (and the effects, a row each: user 2026-11-27, one page) */
     { S_ALLDIFF, S_ALLCOST, S_MISSIONS, S_ARCADE, S_MOVIES, S_ALLWEAP, S_ALLARM, S_ALLSCROLL, -1 },
-    { S_FXTRAIL, S_FXDUMP, -1 },
 };
 
 #include "bindings.h"
