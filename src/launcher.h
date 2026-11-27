@@ -37,6 +37,9 @@ typedef struct NgbSettings {
     int touch_opacity;      /* Android: the touch controls' opacity, percent, 30..100 (their button, #285) */
     int fx_trail;           /* Effects > Trail Density: the afterimages' and weapon trails' share of their strength, percent, 0..200 (100 the game's) */
     int fx_dump;            /* Effects > Effect Capture: record the effect draws to fx-dump.txt, once per press (the tuning of the trails) */
+    int fx_r, fx_g, fx_b;   /* Effects > Trail Colour: what the afterimages and trails are tinted with, percent each (100 the game's) */
+    int fx_alpha;           /* Effects > Trail Opacity: their alpha, percent, 0..200 (100 the game's) */
+    int fx_glow;            /* Effects > Trail Glow: their brightness, percent, 0..300 (100 the game's) */
     int shuriken_icon;      /* Gameplay > Shuriken Icon: the HUD's projectile box for the Shuriken and Windmill Shuriken too (src/hud.c, #276) */
     int cheats_unlocked;    /* the Cheats asked for once ("Use cheats?" Yes): until then they stay locked (src/pause_tab.c) */
     int hud_aspect;         /* Display > HUD Aspect: 0 stretched as the game's widescreen mode draws it, 1 its own shape (the renderer narrows only the HUD's elements: src/d3d/vk/backend.cpp, #220 #219) */

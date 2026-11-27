@@ -11,6 +11,7 @@
 #include "port.h"
 
 extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
+extern "C" int ngb_fx_tint(int which);   /* src/ingame_menu.c: its r, g, b, alpha and glow, percent */
 #ifdef __ANDROID__
 #include <sys/resource.h>
 #endif
@@ -3868,7 +3869,9 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
        glow's is, a different target -- not the 128x128 glow, not the display's own. */
     TextureDesc trail_desc{};
     const int trail_pct = ngb_fx_trail();
-    bool trail_pass = !glow_pass && trail_pct != 100 && rt && a.pretransformed && !prog && !s.ps && count == 4 &&
+    const bool trail_default = trail_pct == 100 && ngb_fx_tint(0) == 100 && ngb_fx_tint(1) == 100 &&
+        ngb_fx_tint(2) == 100 && ngb_fx_tint(3) == 100 && ngb_fx_tint(4) == 100;
+    bool trail_pass = !glow_pass && !trail_default && rt && a.pretransformed && !prog && !s.ps && count == 4 &&
         from_target[0] && !info[0].shadow && k.blend && !k.zen && k.wmask == 15 &&
         ((k.src == 1 && k.dst == 1) || (k.src == 5 && k.dst == 6)) &&
         s.tss[0][kTssColorOp] == 5 && s.tss[0][kTssColorArg1] == 2 && s.tss[0][kTssColorArg2] == 3 &&
@@ -3894,10 +3897,9 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
     if (trail_pass) {
         async_now_ = false;
         const bool additive = k.dst == 1;
-        pkey ^= 0x674C4F5753540200ull ^ uint64_t(trail_pct / 5) ^ (additive ? 0x10000ull : 0);
+        pkey ^= 0x674C4F5753540200ull ^ (additive ? 0x10000ull : 0);   /* (one shader per blend: the numbers ride the constants) */
         k.ps = pkey;
-        const float kscale = float(trail_pct) / 100.f;
-        pmod = Module(pkey,[&] {return TrailStrengthHlsl(PixelHlsl(pk), kscale, additive);},false);
+        pmod = Module(pkey,[&] {return TrailTintHlsl(PixelHlsl(pk), additive);},false);
     }
     if (glow_pass && ContinuousGlowEnabled() && GlowStrength()<1.0f) {
         async_now_=false;
@@ -4008,6 +4010,14 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         c.bumpl[i][3] = float(t[kTssMaxMipLevel]);
     }
     if (glow_pass) c.bump[3][2]=GlowStrength(); // unused by this single-texture draw
+    if (trail_pass) {   // (unused by this single-texture draw: the trail's colour, opacity, glow and share)
+        c.bump[2][0] = float(ngb_fx_tint(0)) / 100.f;
+        c.bump[2][1] = float(ngb_fx_tint(1)) / 100.f;
+        c.bump[2][2] = float(ngb_fx_tint(2)) / 100.f;
+        c.bump[2][3] = float(ngb_fx_tint(3)) / 100.f;
+        c.bump[3][0] = float(ngb_fx_tint(4)) / 100.f;
+        c.bump[3][1] = float(trail_pct) / 100.f;
+    }
     // The 2D (screen-space draws into the back buffer) on a wider screen. The game's 2D screens -- menus,
     // the title, chapter cards (src/pc_menu.c says which) -- in its 16:9 look, stretched no wider than 16:9,
     // or with Menus 4:3 the console's 4:3 picture in the middle. In play stretched alike, the HUD's elements

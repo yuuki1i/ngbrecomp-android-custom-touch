@@ -163,6 +163,9 @@ void ngb_settings_load(NgbSettings *s)
     s->touch_opacity = 100;     /* (the touch controls as 1.0.2 drew them) */
     s->fx_trail = 100;          /* the effects as the game has them */
     s->fx_dump = 0;
+    s->fx_r = s->fx_g = s->fx_b = 100;   /* (the trails as the game draws them) */
+    s->fx_alpha = 100;
+    s->fx_glow = 100;
     s->touch_layout = 1;        /* Classic (#285) */
     s->skip_intro = 0;
     s->show_launcher = 1;
@@ -237,6 +240,16 @@ void ngb_settings_load(NgbSettings *s)
             s->fx_trail = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
         } else if (!strcmp(key, "fx_dump")) {
             s->fx_dump = atoi(val) != 0;
+        } else if (!strcmp(key, "fx_r")) {
+            s->fx_r = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
+        } else if (!strcmp(key, "fx_g")) {
+            s->fx_g = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
+        } else if (!strcmp(key, "fx_b")) {
+            s->fx_b = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
+        } else if (!strcmp(key, "fx_alpha")) {
+            s->fx_alpha = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
+        } else if (!strcmp(key, "fx_glow")) {
+            s->fx_glow = atoi(val) < 0 ? 0 : atoi(val) > 300 ? 300 : atoi(val);
         } else if (!strcmp(key, "shuriken_icon")) {
             s->shuriken_icon = atoi(val) != 0;
         } else if (!strcmp(key, "hud_aspect")) {
@@ -347,6 +360,11 @@ void ngb_settings_save(const NgbSettings *s)
     fprintf(f, "shuriken_icon = %d\n", s->shuriken_icon);
     fprintf(f, "fx_trail = %d\n", s->fx_trail);
     fprintf(f, "fx_dump = %d\n", s->fx_dump);
+    fprintf(f, "fx_r = %d\n", s->fx_r);
+    fprintf(f, "fx_g = %d\n", s->fx_g);
+    fprintf(f, "fx_b = %d\n", s->fx_b);
+    fprintf(f, "fx_alpha = %d\n", s->fx_alpha);
+    fprintf(f, "fx_glow = %d\n", s->fx_glow);
     fprintf(f, "touch_layout = %d\n", s->touch_layout);
     fprintf(f, "touch_opacity = %d\n", ngb_touch_opacity_value(s->touch_opacity));
     fprintf(f, "text_language = %s\n", s->text_language == 2 ? "japanese" : s->text_language == 1 ? "english" : "auto");

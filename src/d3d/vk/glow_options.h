@@ -45,12 +45,18 @@ inline std::string GlowStrengthHlsl(std::string src) {
    one full-screen quad. Scaling that blend is the trail's density, exactly as the glow's strength
    scales the bloom's. Additive passes carry their strength in the colour, so the colour is what is
    scaled; an alpha blend carries it in alpha. At 100% the shader is left alone. */
-inline std::string TrailStrengthHlsl(std::string src, float k, bool additive) {
+inline std::string TrailTintHlsl(std::string src, bool additive) {
     const std::string needle="return outc;";
     size_t at=src.find(needle);
     if (at==std::string::npos) return src;   // not the expected shader: the blend stands as the game made it
-    src.replace(at,needle.size(),std::string("outc.") + (additive ? "rgb" : "a") + " *= " + std::to_string(k) +
-                                "f;\n    return outc;");
+    // the share and the glow in one product, the colour over the completed picture; an additive pass
+    // carries its strength in the colour, an alpha blend in alpha. All from the constants the draw sets,
+    // so a slider moves the picture without a shader being made again.
+    const std::string k="(bumpmat[3].x * bumpmat[3].y)";
+    std::string body="outc.rgb *= bumpmat[2].rgb * " + k + ";\n    ";
+    if (!additive) body += "outc.a *= bumpmat[2].w * " + k + ";\n    ";
+    body += "return outc;";
+    src.replace(at,needle.size(),body);
     return src;
 }
 

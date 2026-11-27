@@ -348,6 +348,33 @@ public class NgbSettingsMenu extends FrameLayout {
                       mFxTrail = v * 25;
                       mActivity.setFxValue(0, mFxTrail);
                   });
+        addHead("颜色");
+        addChoice("红", "残影与刀光里红的分量。三个都是 100% 就是游戏本来的颜色。",
+                  percents(0, 200, 25), mFxR / 25, v -> {
+                      mFxR = v * 25;
+                      mActivity.setFxValue(2, mFxR);
+                  });
+        addChoice("绿", "三个色分量各自调，只改残影与刀光，不碰人物和场景。",
+                  percents(0, 200, 25), mFxG / 25, v -> {
+                      mFxG = v * 25;
+                      mActivity.setFxValue(3, mFxG);
+                  });
+        addChoice("蓝", "全 0 就是黑色的拖影；只想更亮就把三个一起往上推。",
+                  percents(0, 200, 25), mFxB / 25, v -> {
+                      mFxB = v * 25;
+                      mActivity.setFxValue(4, mFxB);
+                  });
+        addHead("强弱");
+        addChoice("透明度", "残影与刀光有多透。100% 是游戏本来的样子，0 就看不见了。",
+                  percents(0, 200, 10), mFxA / 10, v -> {
+                      mFxA = v * 10;
+                      mActivity.setFxValue(5, mFxA);
+                  });
+        addChoice("发光", "亮度增益：往上推更刺眼，往下压更沉。100% 是游戏本来的样子。",
+                  percents(0, 300, 10), mFxGlow / 10, v -> {
+                      mFxGlow = v * 10;
+                      mActivity.setFxValue(6, mFxGlow);
+                  });
         addToggle("特效抓取", "把游戏这一帧画的特效记下来，写进存档目录的 fx/fx-dump.txt。开着 10 秒后自己关。",
                   mFxDump != 0, v -> {                       /* (the sink hands over a choice index: 0 开, 1 关) */
                       mFxDump = v == 0 ? 1 : 0;
@@ -664,12 +691,17 @@ public class NgbSettingsMenu extends FrameLayout {
         }
     }
 
-    private int mFxTrail = 100, mFxDump;
+    private int mFxTrail = 100, mFxDump, mFxR = 100, mFxG = 100, mFxB = 100, mFxA = 100, mFxGlow = 100;
 
     private void loadPicture() {
         try {
-            mFxTrail = mActivity.getFxValue(0);
+            mFxTrail = mActivity.getFxValue(0) / 25 * 25;
             mFxDump = mActivity.getFxValue(1);
+            mFxR = mActivity.getFxValue(2) / 25 * 25;
+            mFxG = mActivity.getFxValue(3) / 25 * 25;
+            mFxB = mActivity.getFxValue(4) / 25 * 25;
+            mFxA = mActivity.getFxValue(5) / 10 * 10;
+            mFxGlow = mActivity.getFxValue(6) / 10 * 10;
             mBright = mActivity.getVideoValue(0);
             mGamma = mActivity.getVideoValue(1);
             mTint = mActivity.getVideoValue(2);

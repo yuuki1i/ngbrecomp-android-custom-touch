@@ -173,6 +173,31 @@ int ngb_pc_setting(int which);
 void ngb_pc_set_setting(int which, int value);
 volatile int ngb_fx_dump_on;
 int ngb_fx_trail(void) { return ngb_pc_setting(50); }
+/* The trail's look, straight from the settings: 0 R, 1 G, 2 B, 3 alpha, 4 glow, percent each. */
+int ngb_fx_tint(int which)
+{
+    switch (which) {
+    case 0: return s_running.fx_r;
+    case 1: return s_running.fx_g;
+    case 2: return s_running.fx_b;
+    case 3: return s_running.fx_alpha;
+    default: return s_running.fx_glow;
+    }
+}
+void ngb_fx_tint_set(int which, int value)
+{
+    int top = which == 4 ? 300 : 200;
+    int v = value < 0 ? 0 : value > top ? top : value;
+    switch (which) {
+    case 0: s_running.fx_r = v; break;
+    case 1: s_running.fx_g = v; break;
+    case 2: s_running.fx_b = v; break;
+    case 3: s_running.fx_alpha = v; break;
+    default: s_running.fx_glow = v; break;
+    }
+    if (!getenv("NGB_NO_SETTINGS"))
+        ngb_settings_save(&s_running);
+}
 int ngb_fx_dump(void) { return ngb_pc_setting(51); }
 void ngb_fx_dump_done(void) { ngb_pc_set_setting(51, 0); }
 
