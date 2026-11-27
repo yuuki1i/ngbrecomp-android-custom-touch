@@ -1413,9 +1413,9 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
         }
     /* (white on the dark plate, as the console's own keys have it -- the key's colour stays on its ring) */
     if (s_pad_theme == 2 && id >= BA && id <= BY)
-        mark_shape(id, cx, cy, fminf(hw, hh) * 0.36f, 240, 243, 249, fminf(1.f, a + 0.2f));
+        mark_shape(id, cx, cy, fminf(hw, hh) * 0.32f, 240, 243, 249, fminf(1.f, a + 0.2f));
     else if (c->label)
-        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.15f, hh * 0.46f, 240, 243, 249,
+        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.02f, hh * 0.40f, 240, 243, 249,
                      fminf(1.f, a + 0.25f));   /* (small again: a key's name is a mark, not a poster -- user) */
 }
 

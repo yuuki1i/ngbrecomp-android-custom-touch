@@ -3909,12 +3909,8 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
             }
         }
     }
-    /* The trail as geometry too: the blade's strip and the charge's flare are triangles that sample an effect
-       target and blend over the picture, not a full-screen quad. Same numbers, scaled where they land. */
-    bool trail_geo = !trail_pass && !trail_default && !glow_pass && rt && k.blend && !a.pretransformed &&
-        from_target[0] && !info[0].shadow &&
-        Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
-        trail_desc.width < 640;
+    /* (the geometry half is gone: it reached the chest's flare and the doors' glow as readily as a blade's
+       strip, and a scene that flickers is worse than a slider that waits -- user 2026-11-27) */
     {   /* one bucket a kind of blended draw, and the capture watching every draw, for the phone's 诊断 row */
         TextureDesc sd{};
         if (ngb_fx_dump_on)   /* (the capture had only been wired to the D3D layer: on Android nothing was written) */
@@ -3927,11 +3923,11 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         if (i < ngb_fx_bucket_n) ngb_fx_buckets[i].n += int(count);
         else if (ngb_fx_bucket_n < 24) { ngb_fx_buckets[ngb_fx_bucket_n].key = bkey; ngb_fx_buckets[ngb_fx_bucket_n].n = int(count); ++ngb_fx_bucket_n; }
     }
-    if (trail_pass || trail_geo) {
+    if (trail_pass) {
         async_now_ = false;
         ++ngb_fx_hits;
         const bool additive = k.dst == 1;
-        pkey ^= (trail_geo ? 0x674C4F5753540300ull : 0x674C4F5753540200ull) ^ (additive ? 0x10000ull : 0);   /* (one shader per blend: the numbers ride the constants) */
+        pkey ^= 0x674C4F5753540200ull ^ (additive ? 0x10000ull : 0);   /* (one shader per blend: the numbers ride the constants) */
         k.ps = pkey;
         pmod = Module(pkey,[&] {return TrailTintHlsl(PixelHlsl(pk), additive);},false);
     }
@@ -4044,7 +4040,7 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         c.bumpl[i][3] = float(t[kTssMaxMipLevel]);
     }
     if (glow_pass) c.bump[3][2]=GlowStrength(); // unused by this single-texture draw
-    if (trail_pass || trail_geo) {   // (unused by these single-texture draws: the trail's colour, opacity, glow and share)
+    if (trail_pass) {   // (unused by this single-texture draw: the trail's colour, opacity, glow and share)
         c.bump[2][0] = float(ngb_fx_tint(0)) / 100.f;
         c.bump[2][1] = float(ngb_fx_tint(1)) / 100.f;
         c.bump[2][2] = float(ngb_fx_tint(2)) / 100.f;

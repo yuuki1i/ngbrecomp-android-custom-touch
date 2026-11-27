@@ -163,7 +163,8 @@ void ngb_settings_load(NgbSettings *s)
     s->touch_opacity = 100;     /* (the touch controls as 1.0.2 drew them) */
     s->fx_trail = 100;          /* the effects as the game has them */
     s->fx_dump = 0;
-    s->fx_on = 1;                        /* (the trails there, as the game draws them) */
+    s->fx_on = 0;                        /* (off until asked: the blend-back path is not proven yet, and a
+                                          * scene that flickers is worse than a slider that waits) */
     s->fx_r = s->fx_g = s->fx_b = 100;
     s->fx_alpha = 100;
     s->fx_glow = 100;

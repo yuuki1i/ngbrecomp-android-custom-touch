@@ -389,11 +389,11 @@ public class NgbSettingsMenu extends FrameLayout {
         addHead("重置");
         addAction("恢复默认", "把这一页每一格都放回游戏本来的样子：总开关开、其余 100%。",
                   () -> {
-                      mFxOn = 1;
+                      mFxOn = 0;
                       mFxTrail = 100;
                       mFxR = mFxG = mFxB = mFxA = mFxGlow = 100;
                       mFxDump = 0;
-                      mActivity.setFxValue(8, 1);
+                      mActivity.setFxValue(8, 0);
                       mActivity.setFxValue(0, 100);
                       mActivity.setFxValue(1, 0);
                       mActivity.setFxValue(2, 100);
@@ -723,7 +723,7 @@ public class NgbSettingsMenu extends FrameLayout {
     }
 
     private int mFxTrail = 100, mFxDump, mFxR = 100, mFxG = 100, mFxB = 100, mFxA = 100, mFxGlow = 100;
-    private int mFxOn = 1;
+    private int mFxOn;   /* (off until asked, as the settings load it) */
 
     private void loadPicture() {
         try {
