@@ -1418,13 +1418,6 @@ void nv2a_window_event_hook(const void *sdl_event)
 {
     const SDL_Event *ev = sdl_event;
     extern int ngb_quick_event(const void *event);
-    /* A motion the player did not make (the window changed under a pointer at rest: nv2a_window.h) moves no menu's
-     * cursor -- the pause page's rows, the game's menus (hover_tick), the quick menu, all from here. */
-    if (ev->type == SDL_MOUSEMOTION && !nv2a_mouse_motion_by_player(ev)) {
-        if (mouse_log())
-            fprintf(stderr, "[MOUSE] menus: a motion not the player's, left alone\n");
-        return;
-    }
     if (ngb_quick_event(ev)) return;
     if (ev->type == SDL_KEYDOWN && ev->key.keysym.sym == SDLK_F7 && !ev->key.repeat) {
         extern volatile int ngb_trace_request;   /* src/d3d/vk/backend.cpp: record the next frames */
