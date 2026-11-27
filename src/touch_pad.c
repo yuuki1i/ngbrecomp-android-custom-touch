@@ -312,6 +312,10 @@ static float d_anim_x[NCTRL], d_anim_y[NCTRL], d_anim_r[NCTRL];
 static bool d_anim_ready;
 static bool s_layout_custom[NCTRL], d_layout_custom[NCTRL], s_layout_loaded, s_edit_mode, d_edit_mode;
 static float s_layout_asp[NCTRL], d_layout_asp[NCTRL];   /* how much wider than tall a key is drawn */
+/* The pad's look, the same on every key and in the editor: 0 the hairline (no plate, a thin ring, the name),
+ * 1 the glass (a dark plate under the name). (user 2026-11-27: all the keys in one of two styles, not each its
+ * own.) */
+static uint8_t s_pad_style;
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 /* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
  * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
@@ -360,7 +364,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"STYLE ")){int st=0;if(sscanf(line,"# STYLE %d",&st)==1)s_pad_style=st?1:0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
@@ -372,6 +376,7 @@ static void layout_save(void) {
     if(dir){char active[512];snprintf(active,sizeof active,"%s/touch-controls-active.cfg",dir);FILE *af=fopen(active,"w");if(af){fprintf(af,"%d\n",s_preset);fclose(af);}SDL_free(dir);}
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
+    fprintf(fp,"# STYLE %d\n",s_pad_style?1:0);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
     fprintf(fp,"# TEXDUMP %d\n", ngb_texture_dump_on);
@@ -1217,7 +1222,7 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
     plain_size(shape, r, &hw, &hh);
     hw *= d_layout_asp[id];   /* (as long as the editor stretched it) */
     float rad = shape == 6 || shape == 8 ? fminf(hw, hh) * 0.22f : hw;
-    float edge = fmaxf(2.f, r * 0.06f);
+    float edge = fmaxf(1.5f, r * (s_pad_style ? 0.075f : 0.040f));
     uint8_t cr, cg, cb;
     plain_tint(d_layout_color[id], &cr, &cg, &cb);
     int x0 = (int)floorf(cx - hw - 2), x1 = (int)ceilf(cx + hw + 2);
@@ -1234,9 +1239,11 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
             }
             if (d > 0)
                 continue;
-            badge_pixel(x, y, 8, 10, 14, (uint8_t)lroundf((lit ? 0.60f : 0.36f) * a * 255));   /* the plate */
-            if (d > -edge)                                                                    /* its hairline */
-                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 1.f : 0.80f) * a * 255));
+            /* (the hairline has no plate at all, the glass a dark one -- user 2026-11-27) */
+            float plate = s_pad_style ? (lit ? 0.68f : 0.48f) : (lit ? 0.16f : 0.07f);
+            badge_pixel(x, y, 8, 10, 14, (uint8_t)lroundf(plate * a * 255));
+            if (d > -edge)                                                                    /* its ring */
+                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 1.f : 0.88f) * a * 255));
         }
     if (c->label)
         plain_letter(c->label, cx, cy, hw * 1.6f, hh * 0.90f, cr, cg, cb, fminf(1.f, a + 0.2f));
@@ -1649,7 +1656,7 @@ void ngb_touch_layout_get(char *out, size_t n)
     layout_load();
     layout_known();
     float aspect = s_aspect > 0.1f ? s_aspect : 16.0f / 9;
-    int k = snprintf(out, n, "V4 %.4f\n", aspect);
+    int k = snprintf(out, n, "V4 %.4f %u\n", aspect, s_pad_style);
     for (int i = 0; i < NCTRL && k > 0; i++) {
         if ((size_t)k >= n)
             break;
@@ -1675,6 +1682,10 @@ void ngb_touch_layout_apply(const char *text)
     while (line && *line) {
         const char *end = strchr(line, '\n');
         size_t len = end ? (size_t)(end - line) : strlen(line);
+        if (len && line[0] == 'V') {
+            int st = 0;
+            if (sscanf(line, "V4 %*f %d", &st) == 1) s_pad_style = (uint8_t)(st != 0);
+        }
         if (len && line[0] != 'V' && line[0] != 'M') {
             char row[256];
             if (len >= sizeof row)

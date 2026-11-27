@@ -75,8 +75,8 @@ public class TouchLayoutEditor extends FrameLayout {
     private final boolean[] mComboKind = new boolean[N];
 
     private Preview mPreview;
-    private TextView mCurrent, mSizeValue, mAlphaValue, mColourValue, mShapeValue, mActionValue, mComboValue,
-            mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
+    private TextView mCurrent, mSizeValue, mStyleValue, mAlphaValue, mColourValue, mShapeValue, mActionValue,
+            mComboValue, mShowValue, mSkinValue, mHint, mXValue, mYValue, mWidthValue;
     private Button mDelete, mComboRow;
     private LinearLayout mPanel;
     private DrawerScroll mPanelScroll;
@@ -91,6 +91,7 @@ public class TouchLayoutEditor extends FrameLayout {
         "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
     };
     private int mSelected = 0;
+    int mStyle;                  /* 0 the hairline, 1 the glass: one look for every key (held in the layout) */
     boolean mGrid = true;        /* (the ruled sheet: the player may want a clean picture behind the keys) */
 
     public TouchLayoutEditor(NgbActivity activity) {
@@ -139,6 +140,9 @@ public class TouchLayoutEditor extends FrameLayout {
                 if (parts.length >= 2) {
                     try { mAspect = Float.parseFloat(parts[1]); } catch (Exception e) { }
                 }
+                if (parts.length >= 3) {
+                    try { mStyle = clamp(Integer.parseInt(parts[2]), 0, 1); } catch (Exception e) { }
+                }
                 continue;
             }
             String[] parts = line.split("\\s+");
@@ -167,7 +171,7 @@ public class TouchLayoutEditor extends FrameLayout {
 
     private void save() {
         StringBuilder text = new StringBuilder();
-        text.append(String.format(Locale.US, "V4 %.4f\n", mAspect));
+        text.append(String.format(Locale.US, "V4 %.4f %d\n", mAspect, mStyle));
         for (int i = 0; i < N; i++) {
             int action = mButton[i] ? mAction[i] : -1;
             text.append(String.format(Locale.US,
@@ -504,6 +508,14 @@ public class TouchLayoutEditor extends FrameLayout {
         mColourValue.setOnClickListener(v -> choose("颜色", COLOURS, mColour[mSelected], i -> { mColour[mSelected] = i; refresh(); }));
         panel.addView(row("颜色", mColourValue));
 
+        mStyleValue = valueView(120);
+        mStyleValue.setOnClickListener(v -> {
+            mStyle = 1 - mStyle;
+            refresh();
+            mHint.setText(mStyle == 0 ? "全部按键·细线：只有一圈线，画面最干净"
+                                      : "全部按键·玻璃：键底有一层深色，字看得清");
+        });
+        panel.addView(row("外观（全部按键）", mStyleValue));
         mShapeValue = valueView(110);
         mShapeValue.setOnClickListener(v -> choose("形状", SHAPES, mShape[mSelected], i -> { mShape[mSelected] = i; refresh(); }));
         panel.addView(row("形状", mShapeValue));
@@ -949,6 +961,7 @@ public class TouchLayoutEditor extends FrameLayout {
         mAlphaValue.setText(String.format(Locale.US, "%d%%", (int) Math.round(mAlpha[mSelected] * 100)));
         mColourValue.setText(COLOURS[mColour[mSelected]]);
         mShapeValue.setText(SHAPES[mShape[mSelected]]);
+        if (mStyleValue != null) mStyleValue.setText(mStyle == 0 ? "细线" : "玻璃");
         mActionValue.setText(mButton[mSelected] ? ACTIONS[mAction[mSelected] + 1] : "—");
         mActionValue.setAlpha(mButton[mSelected] ? 1f : 0.35f);
         mComboValue.setText(mComboKind[mSelected] ? COMBOS[mCombo[mSelected]] : "—");
@@ -1054,10 +1067,12 @@ public class TouchLayoutEditor extends FrameLayout {
                 /* (the same wash the game puts under a key: src/touch_pad.c draw_plain's 8,10,14 plate -- the
                  * editor showed a white one, and the pad changed colour on the way into the game) */
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(0x5C080A0E);
+                mPaint.setColor(mEditor.mStyle == 1 ? 0x7A080A0E : 0x12080A0E);   /* (glass / hairline: the
+                        game's draw_plain puts the same two plates under a key) */
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
-                mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f : 1.5f);
+                mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f
+                                     : (mEditor.mStyle == 1 ? 2f : 1.2f));
                 mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xCC000000));
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.FILL);
