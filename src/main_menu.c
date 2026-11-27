@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "xbox_memory_layout.h"
+#include "hurricane_zh.h"
 
 /* A debugging option from the environment, read once (these are asked per sprite or per frame). */
 #define ENV_ONCE(name) (__extension__({ static const char *v_ = (const char *)1; \
@@ -70,10 +71,12 @@ void ngb_general_page_init(void)
         if (va6) {
             memcpy((void *)XBOX_PTR(va6), t6, sizeof t6);
             MEM32(MENU_TEXT(6)) = MEM32(MENU_TEXT(6) + 4) = va6;
+            ngb_zh_engine_text(MENU_TEXT(6), MENU_TEXT(6) + 4, t6);   /* Hurricane x2.1: its Japanese column Chinese */
         }
         if (va7) {
             memcpy((void *)XBOX_PTR(va7), t7, sizeof t7);
             MEM32(MENU_TEXT(7)) = MEM32(MENU_TEXT(7) + 4) = va7;
+            ngb_zh_engine_text(MENU_TEXT(7), MENU_TEXT(7) + 4, t7);
         }
     }
     uint32_t pages = MEM32(0x42A28C);

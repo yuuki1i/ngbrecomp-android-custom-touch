@@ -41,9 +41,18 @@
 
 static void restart_portable(const char *src);
 
-/* The retail USA default.xbe the code was recompiled from. */
-#define NGB_XBE_SIZE  4571136u
-#define NGB_XBE_FNV   0x3602ba6a6079c8cdull
+/* The default.xbe the code was recompiled from: the Hurricane x2.1 Chinese build (vb-zh-x2.1,
+ * SHA-256 aa3c5bec...), patched from the retail USA one. */
+#define NGB_XBE_SIZE  4583424u
+#define NGB_XBE_FNV   0x0e05bb170e439927ull
+/* (UTF-8: win_tell shows it as such) */
+#define NGB_WRONG_DISC "这不是本程序所需的「忍者龙剑传 黑之章 飓风版[中英] vb-zh-x2.1」镜像" \
+    "（需要美版原版镜像打上哈雅布撒的 x2.1 补丁后得到的版本）。\n\n" \
+    "This is not NINJA GAIDEN BLACK [Hurricane] vb-zh-x2.1 (the retail USA disc with the x2.1 patch), " \
+    "which this build was made from."
+/* At the end of the setup and of every error box (user 2026-10-17) */
+#define NGB_CONTACT "有任何使用问题请联系 QQ：2682557218　bilibili：哈雅布撒\n" \
+    "Any problem? QQ 2682557218, bilibili 哈雅布撒"
 
 #define SECTOR 2048u
 static const char XDVDFS_MAGIC[20] = "MICROSOFT*XBOX*MEDIA";
@@ -205,18 +214,20 @@ static void fail_mkdirs(const char *path)
 }
 
 /* 0 when dir's default.xbe is the one this build was made from. */
-/* The retail XBE's sections, in order: their sizes and FNV-1a hashes. A disc image made with a
+/* That XBE's sections, in order: their sizes and FNV-1a hashes. A disc image made with a
  * "media patch" (so a modded console runs it from a burned DVD) has a changed header and
- * certificate, but the game itself -- these sections -- is the same, and so is this build. */
+ * certificate, but the game itself -- these sections -- is the same, and so is this build.
+ * x2.1 changes .text, .rdata and .data and adds HANZI (the others are the retail ones). */
 static const struct { const char *name; uint32_t size; uint64_t fnv; } s_xbe_sections[] = {
-    { ".text",     3576960, 0x4f583bc03974eb5dull }, { "D3DX",          552, 0x802e93d06050ddc2ull },
+    { ".text",     3576960, 0x976e2ac24503f4c5ull }, { "D3DX",          552, 0x802e93d06050ddc2ull },
     { "DSOUND",     116108, 0x1c717f4fb13d38d9ull }, { "XONLINE",    100604, 0xf7f32cba9715d707ull },
     { "XNET",        73112, 0x5dd132e95dd1b4ecull }, { "PSFD00",      11192, 0xd033e2d3a400c0d7ull },
     { "XGRPH",        4388, 0xdb9d2b60f04aec39ull }, { "D3D",         68272, 0x54c712be5b41551bull },
-    { "XPP",         32308, 0x10b3b979adbff38eull }, { ".rdata",     216700, 0x722ca73485b1ee65ull },
-    { ".data",      283752, 0x2990cb7806d3c3d8ull }, { "DOLBY",       29036, 0x08826a2af878f54full },
+    { "XPP",         32308, 0x10b3b979adbff38eull }, { ".rdata",     216700, 0xd494896249e5fa4full },
+    { ".data",      283752, 0x7a3cb054100098f6ull }, { "DOLBY",       29036, 0x08826a2af878f54full },
     { "XON_RD",       5388, 0xa7c8c48ee45f6184ull }, { "$$XTIMAGE",   10240, 0xe4449f60879ad7d0ull },
     { "$$XSIMAGE",    4096, 0x0eb831e2c2d793a4ull }, { ".XTLID",       1808, 0x04d0097419f217b7ull },
+    { "HANZI",       12288, 0x9d0573f341b1d7cbull },
 };
 
 static uint64_t fnv1a(const unsigned char *p, size_t n, uint64_t h)
@@ -729,8 +740,8 @@ static void to_slashes(char *p)
 static int win_welcome(const char *installed, int *portable)
 {
     typedef HRESULT(WINAPI * TaskDialogIndirectFn)(const TASKDIALOGCONFIG *, int *, int *, BOOL *);
-    char path[1024], text[2048];
-    wchar_t wtext[2048];
+    char path[1024], text[4096];
+    wchar_t wtext[4096];
     const char *lad = getenv("LOCALAPPDATA");
     size_t ln = lad ? strlen(lad) : 0;
     snprintf(path, sizeof path, "%s", installed);
@@ -742,21 +753,33 @@ static int win_welcome(const char *installed, int *portable)
         snprintf(rest, sizeof rest, "%s", path + ln);
         snprintf(path, sizeof path, "%%LOCALAPPDATA%%%s", rest);
     }
+    /* Hurricane: where it goes unless Portable is ticked -- the profile's folder, on drive C as a rule (user
+     * 2026-10-17); not said once portable already */
+    const char *portable_on = getenv("NGB_PORTABLE");
+    const char *note = portable_on ? "" :
+        "注意：不勾选下面的“便携模式”，游戏就装在上面这个位置（一般在 C 盘，C 盘要留出 6 GB）。"
+        "想装到其他磁盘，请把本程序放到那个磁盘，再勾选“便携模式”。\n";
+    const char *note_en = portable_on ? "" :
+        " Unless Portable below is ticked, that folder is in your profile, as a rule on drive C (6 GB needed "
+        "there); for another drive, put the program there and tick Portable.";
     snprintf(text, sizeof text,
-             "The game itself is not included. To play, choose your own copy of the "
-             "Xbox game (the retail USA release):\n\n"
-             "\u2022  a disc image: .iso, including a full Redump dump, or the .7z / .zip it came in\n"
-             "\u2022  or a folder of extracted files, with default.xbe\n\n"
-             "A disc image is installed once (about 6 GB) into\n%s\n"
-             "and the game starts from there from then on.", path);
-    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, 2048);
+             "欢迎！本程序不含游戏本体，请选择你自己的「忍者龙剑传 黑之章 飓风版[中英] vb-zh-x2.1」：\n"
+             "\u2022  镜像文件 .iso（美版原版镜像打上哈雅布撒的 x2.1 补丁后得到的），或装着它的 .7z / .zip\n"
+             "\u2022  或者解压出来的游戏文件夹（里面有 default.xbe）\n\n"
+             "选择镜像时，游戏只需安装一次（约 6 GB），会装到：\n%s\n%s"
+             "以后启动直接进入游戏。\n\n"
+             "Welcome! The game is not included: choose your own NINJA GAIDEN BLACK [Hurricane] vb-zh-x2.1 "
+             "(the retail USA disc with the x2.1 patch) -- a disc image (.iso, or the .7z / .zip it came in) or a "
+             "folder of extracted files with default.xbe. A disc image is installed once (about 6 GB) into the "
+             "folder above.%s\n\n" NGB_CONTACT, path, note, note_en);
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, 4096);
 
     HMODULE cc = LoadLibraryA("comctl32.dll");
     TaskDialogIndirectFn td = cc ? (TaskDialogIndirectFn)(void *)GetProcAddress(cc, "TaskDialogIndirect") : NULL;
     if (td) {
         TASKDIALOG_BUTTON buttons[] = {
-            { 101, L"Choose disc image..." },
-            { 102, L"Choose folder..." },
+            { 101, L"选择镜像文件… / Choose disc image" },
+            { 102, L"选择游戏文件夹… / Choose folder" },
         };
         TASKDIALOGCONFIG c = { sizeof c };
         int pressed = 0;
@@ -773,14 +796,15 @@ static int win_welcome(const char *installed, int *portable)
         c.nDefaultButton = 101;
         BOOL checked = FALSE;
         if (!getenv("NGB_PORTABLE"))   /* not already portable (issue #4) */
-            c.pszVerificationText = L"Keep the game, saves and settings next to the program (portable)";
+            c.pszVerificationText = L"便携模式：游戏、存档和设置都放在程序旁边（不勾选则装到上面的位置） / Portable";
         if (SUCCEEDED(td(&c, &pressed, NULL, &checked))) {
             *portable = checked != FALSE;
             return pressed == 101 ? 1 : pressed == 102 ? 2 : 0;
         }
     }
-    strncat(text, "\n\nYes: choose a disc image.   No: choose a folder.", sizeof text - strlen(text) - 1);
-    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, 2048);
+    strncat(text, "\n\n是：选择镜像文件　否：选择游戏文件夹\nYes: choose a disc image.   No: choose a folder.",
+            sizeof text - strlen(text) - 1);
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wtext, 4096);
     switch (MessageBoxW(NULL, wtext, L"Ninja Gaiden Black - Setup", MB_YESNOCANCEL | MB_ICONINFORMATION)) {
     case IDYES:
         return 1;
@@ -879,8 +903,7 @@ static int install_from(const char *src, const char *dest)
     s_cancel = 0;
     rc = install_image(src, part);
     if (rc == 0 && ngb_check_xbe(part) == 1 && !getenv("NGB_ANY_XBE")) {
-        fail("This is not the retail USA Ninja Gaiden Black (NTSC) this "
-             "build was made from.");
+        fail(NGB_WRONG_DISC);
         rc = -1;
     }
     if (rc == 0) {
@@ -981,8 +1004,7 @@ int ngb_install(const char *src, const char *installed, char *out, size_t n)
     case 1:
         if (getenv("NGB_ANY_XBE"))
             return 0;
-        fail("%s/default.xbe is not the retail USA Ninja Gaiden Black (NTSC) "
-             "this build was made from.", out);
+        fail("%s/default.xbe:\n" NGB_WRONG_DISC, out);
         return -1;
     default:
         fail("There is no default.xbe in %s.", out);
@@ -1093,16 +1115,19 @@ static int win_install(const char *src, const char *installed, char *out, size_t
     INITCOMMONCONTROLSEX icc = { sizeof icc, ICC_PROGRESS_CLASS };
     WNDCLASSA wc = { 0 };
     HINSTANCE inst = GetModuleHandleA(NULL);
-    HFONT font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    /* Hurricane: Microsoft YaHei UI for the Chinese, else the GUI font */
+    HFONT font = CreateFontW(-16, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Microsoft YaHei UI");
     HWND text;
     HANDLE th;
     MSG m;
-    RECT r = { 0, 0, 440, 96 };
+    RECT r = { 0, 0, 440, 112 };
 
     InitCommonControlsEx(&icc);
     wc.lpfnWndProc = win_proc;
     wc.hInstance = inst;
     wc.hCursor = LoadCursorA(NULL, (LPCSTR)IDC_ARROW);
+    wc.hIcon = LoadIconA(inst, MAKEINTRESOURCEA(1));   /* Hurricane: the program's icon */
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = "NgbInstall";
     RegisterClassA(&wc);
@@ -1113,11 +1138,15 @@ static int win_install(const char *src, const char *installed, char *out, size_t
     if (!job.wnd)
         return ngb_install(src, installed, out, n);
     SetWindowLongPtrA(job.wnd, GWLP_USERDATA, (LONG_PTR)&job);
-    text = CreateWindowA("STATIC", "Installing the game from your disc image. This takes a minute or two.",
-                         WS_CHILD | WS_VISIBLE, 16, 16, 408, 20, job.wnd, NULL, inst, NULL);
-    SendMessageA(text, WM_SETFONT, (WPARAM)font, TRUE);
+    SetWindowTextW(job.wnd, L"正在安装 / Installing - Ninja Gaiden Black");
+    text = CreateWindowW(L"STATIC", L"正在从镜像安装游戏，大约需要一两分钟，请稍候……\n"
+                         L"Installing the game, please wait...",
+                         WS_CHILD | WS_VISIBLE, 16, 12, 408, 54, job.wnd, NULL, inst, NULL);
+    if (!font)
+        font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    SendMessageW(text, WM_SETFONT, (WPARAM)font, TRUE);
     job.bar = CreateWindowA(PROGRESS_CLASSA, NULL, WS_CHILD | WS_VISIBLE,
-                            16, 48, 408, 22, job.wnd, NULL, inst, NULL);
+                            16, 74, 408, 22, job.wnd, NULL, inst, NULL);
     SendMessageA(job.bar, PBM_SETRANGE, 0, MAKELPARAM(0, 1000));
     ShowWindow(job.wnd, SW_SHOW);
 
@@ -1140,7 +1169,34 @@ static int win_install(const char *src, const char *installed, char *out, size_t
 
 static void win_tell(const char *msg)
 {
-    MessageBoxA(NULL, msg, "Ninja Gaiden Black", MB_OK | MB_ICONERROR);
+    wchar_t w[4096];   /* Hurricane: UTF-8, for the messages in Chinese; whom to ask after it */
+    char all[4096];
+    snprintf(all, sizeof all, "%s\n\n%s", msg, NGB_CONTACT);
+    MultiByteToWideChar(CP_UTF8, 0, all, -1, w, 4096);
+    MessageBoxW(NULL, w, L"Ninja Gaiden Black", MB_OK | MB_ICONERROR);
+}
+
+/* Hurricane: the good news, once, after the player chose the game in the setup (user 2026-10-17). */
+static void win_installed(const char *dir, int copied)
+{
+    char path[1024], msg[2048];
+    wchar_t w[2048];
+    snprintf(path, sizeof path, "%s", dir);
+    for (char *q = path; *q; q++)
+        if (*q == '/')
+            *q = '\\';
+    if (copied)
+        snprintf(msg, sizeof msg,
+                 "安装完成！\n\n游戏已安装到：\n%s\n以后启动会直接进入游戏，不需要再选择镜像。\n\n"
+                 "点击「确定」开始游戏，祝你玩得开心！\n\n"
+                 "The game is installed. Press OK to play.", path);
+    else
+        snprintf(msg, sizeof msg,
+                 "已找到游戏！\n\n将直接从这个文件夹运行：\n%s\n请不要移动或删除这个文件夹。\n\n"
+                 "点击「确定」开始游戏，祝你玩得开心！\n\n"
+                 "The game's files were found; it runs from this folder. Press OK to play.", path);
+    MultiByteToWideChar(CP_UTF8, 0, msg, -1, w, 2048);
+    MessageBoxW(NULL, w, L"Ninja Gaiden Black", MB_OK | MB_ICONINFORMATION);
 }
 #endif
 
@@ -1198,6 +1254,7 @@ static void restart_portable(const char *src)
     if (!GetModuleFileNameW(NULL, self, MAX_PATH) || !MultiByteToWideChar(CP_ACP, 0, src, -1, wsrc, 4096))
         return;
     _snwprintf(cmd, 8400, L"\"%ls\" \"%ls\"", self, wsrc);
+    SetEnvironmentVariableW(L"NGB_SETUP_PICKED", L"1");   /* Hurricane: its success message there (win_installed) */
     if (CreateProcessW(self, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
         CloseHandle(pi.hThread);
         CloseHandle(pi.hProcess);
@@ -1286,6 +1343,13 @@ int ngb_find_game(const char *arg, const char *save_dir, const char *exe_dir,
         src = env;
         from_env = 1;
     }
+    /* Hurricane: Return to Main Menu starts the program again with this one's command line, which still
+     * names the disc image after the portable restart (or a disc dropped on the exe): it was installed
+     * again (player report, 2026-10-17). The installed copy is taken then. */
+    if (src && !from_env && getenv("NGB_TO_MAIN_MENU") && has_xbe(installed)) {
+        snprintf(out, n, "%s", installed);
+        goto check;
+    }
     if (!src) {
         if (has_xbe(installed)) { snprintf(out, n, "%s", installed); goto check; }
         if (has_xbe(beside))    { snprintf(out, n, "%s", beside);    goto check; }
@@ -1362,7 +1426,7 @@ int ngb_find_game(const char *arg, const char *save_dir, const char *exe_dir,
         if (!src) {
             fprintf(stderr,
                 "No game files found. Run it once with your disc image:\n"
-                "  NinjaGaidenBlack /path/to/disc.iso   (or the .7z, or a folder "
+                "  ngb-hurricane-zh-x2.1 /path/to/disc.iso   (or the .7z, or a folder "
                 "of extracted files)\n"
                 "It is installed into %s and found there from then on.\n", installed);
             return -1;
@@ -1372,11 +1436,21 @@ int ngb_find_game(const char *arg, const char *save_dir, const char *exe_dir,
     if (win_install(src, installed, out, n) == 0) {
         if (!from_env)
             remember_game(save_dir, installed, out);
+        /* chosen in the setup just now (not a command line or NGB_GAME_DIR), here or before the portable restart */
+        if (src == picked || (src == arg && getenv("NGB_SETUP_PICKED")))
+            win_installed(out, strcmp(out, installed) == 0);
         return 0;
     }
     {
-        char msg[1200];
-        snprintf(msg, sizeof msg, "The game could not be installed.\n\n%s", ngb_install_error());
+        char msg[3072];
+        snprintf(msg, sizeof msg,
+                 "安装没有成功。别担心，请检查下面几项后再试一次：\n"
+                 "•  选择的是 vb-zh-x2.1 镜像（美版原版镜像打上哈雅布撒的 x2.1 补丁后得到的）\n"
+                 "•  安装位置所在的磁盘至少还有 6 GB 空间\n"
+                 "•  镜像文件完整（下载或解压没有中断）\n\n"
+                 "The game could not be installed. Check that it is the vb-zh-x2.1 disc, that 6 GB are free "
+                 "and that the image is complete.\n\n"
+                 "详细原因 / Details:\n%s", ngb_install_error());
         win_tell(msg);
     }
     return -1;
@@ -1408,8 +1482,7 @@ check:
         if (getenv("NGB_ANY_XBE"))
             return 0;
 #if defined(_WIN32)
-        win_tell("The installed game is not the retail USA Ninja Gaiden Black (NTSC) "
-                 "this build was made from.");
+        win_tell(NGB_WRONG_DISC);
 #endif
         return -1;
     default:

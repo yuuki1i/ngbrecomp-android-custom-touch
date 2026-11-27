@@ -104,10 +104,10 @@ class FpuLifterTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         runtime_types = (
             root / "templates" / "runtime" / "recomp_types.h"
-        ).read_text()
+        ).read_text(encoding="utf-8")
         main = (
             root / "templates" / "new-game" / "src" / "main.c"
-        ).read_text()
+        ).read_text(encoding="utf-8")
 
         regs = (root / "templates" / "runtime" / "recomp_regs.h").read_text()
         # (the registers are one thread-local struct, recomp_regs.h, which the

@@ -42,7 +42,6 @@ typedef struct NgbSettings {
     int smooth_glow;        /* Bloom: 2 On (#248, #270), 3 Off (src/d3d/vk/glow_options.h; 0 Original and 1 Reduced by NGB_BLOOM only) */
     int detail_under_load;  /* the game's own detail lowering when the GPU looks busy (src/d3d/d3d.c, #50, #114) */
     int render_thread;      /* Multithreaded Renderer: drawing on a thread of its own (src/d3d/gpu/threaded.cpp) */
-    int intercept;          /* Gameplay > Intercept (src/intercept.c, #109): 0 off, 1 Black's, 2 the Hurricane Pack's */
     int essence_charging;   /* Gameplay > Essence-Only Charging (src/ut_charge.c, #120) */
     int skip_cutscenes;     /* Gameplay > Skip Any Cutscene (src/cutscene_skip.c, #139) */
     int responsive_menus;   /* Gameplay > Responsive Menus (src/responsive.c, #116) */

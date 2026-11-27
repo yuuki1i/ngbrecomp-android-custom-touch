@@ -191,6 +191,13 @@ extern uint32_t g_xbox_code_hi;
 #define XBOX_FS_BASE g_fs_base
 
 
+/* A function listed with the lifter's --flags-out returns its last compare: it stores the compare's
+ * snapshot here before each ret and its callers load it back after the call (flags are otherwise each
+ * lifted function's own locals). Written and read with no wait in between, so plain globals. The
+ * title defines them when it uses the option. */
+extern uint32_t g_flags_out_fa, g_flags_out_fb;
+extern int32_t g_flags_out_fas, g_flags_out_fbs;
+
 /* ---- non-local jumps (setjmp / longjmp) --------------------------------
  *
  * A recompiled function is a real C function, so restoring the guest esp is

@@ -3931,7 +3931,7 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
     }
     Color(SimpleState(s, kMPsFinalConstant0), c.pc[16]);
     Color(SimpleState(s, kMPsFinalConstant1), c.pc[17]);
-    static const bool psclog = std::getenv("NGB_D3D_PSCLOG") != nullptr;
+    static const bool psclog = std::getenv("NGB_D3D_PSCLOG") != nullptr;   // Hurricane: read once, not at every draw
     if (s.ps && psclog) {   // debugging: each pixel shader's combiner constants, once (#29)
         static std::set<uint64_t> told;
         uint64_t k = uint64_t(s.ps->handle) << 32 ^ SimpleState(s, kMPsConstant0);

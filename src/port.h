@@ -10,6 +10,7 @@
 #ifndef NGB_PORT_H
 #define NGB_PORT_H
 
+#include "hurricane_version.h"   /* NGB_DATA_NAME */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -173,14 +174,14 @@ static inline void ngb_config_dir(char *out, size_t n, int make)
 #ifdef _WIN32
     const char *appdata = getenv("APPDATA");
     if ((!xdg || !*xdg) && appdata && *appdata) {
-        snprintf(out, n, "%s/NinjaGaidenBlack", appdata);
+        snprintf(out, n, "%s/" NGB_DATA_NAME, appdata);
         if (make)
             ngb_mkdir(out);
         return;
     }
 #endif
     if (xdg && *xdg) {
-        snprintf(out, n, "%s/NinjaGaidenBlack", xdg);
+        snprintf(out, n, "%s/" NGB_DATA_NAME, xdg);
     } else {
 #ifdef __APPLE__
         ngb_macos_dir(out, n, "config", make);
@@ -189,7 +190,7 @@ static inline void ngb_config_dir(char *out, size_t n, int make)
         snprintf(out, n, "%s/.config", home ? home : ".");
         if (make)
             ngb_mkdir(out);
-        snprintf(out, n, "%s/.config/NinjaGaidenBlack", home ? home : ".");
+        snprintf(out, n, "%s/.config/" NGB_DATA_NAME, home ? home : ".");
 #endif
     }
     if (make)

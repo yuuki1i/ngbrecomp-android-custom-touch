@@ -1,5 +1,5 @@
 /*
- * hud.c -- the HUD on or off (Display & Audio > HUD, #80).
+ * hud.c -- the HUD on or off (Display > HUD, #80).
  *
  * sub_001FA210 is the game's in-play HUD, each frame: its first calls (sub_001FA070 to sub_00203A50) run
  * whatever the screen, then -- in play, the HUD not hidden by the game (0xDB9C6E 0xFFFF) -- the health and
@@ -93,7 +93,9 @@ void sub_001FA210(void)
  * Gaiden's shorter "HIT" did not). The European release moves the word by a language's own amount (a table of six, by the game's language
  * index: 6 for English and for Japanese); here the same 6, at the three places that draw the word and its glow. The
  * lifted function, kept here (src/manual_functions.json), with that one change. */
-#define HITS_SHIFT 6
+/* Hurricane: 0, the US place (user 2026-11-18) -- x2.1 draws 连击 there instead of HITS (localization docs/16
+ * section 8), centred in its texture, which the move was not made for. */
+#define HITS_SHIFT 0
 /**
  * sub_001FE350
  * Original: 0x001FE350 - 0x001FEA01 (1713 bytes, 407 insns)

@@ -4,7 +4,9 @@
 #include "launcher_font.h"
 #include "quick_select.h"
 #include "bindings.h"
+#include "hurricane_zh.h"
 #include <SDL.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -642,6 +644,27 @@ static void panel(float cx, float cy, int width, int height, unsigned alpha)
 
 static void text_at(const char *t, int x, int y, int height, uint32_t color)
 {
+    /* Hurricane x2.1: the text in Chinese, in the embedded font, while the game's text is (src/hurricane_zh.c);
+     * sized and shadowed as the launcher font's below, as src/ingame_menu.c draws its Chinese */
+    const char *z = ngb_zh(t);
+    if (z || ngb_zh_is_wide(t))
+    {
+        const char *s = z ? z : t;
+        float P = height * 0.87f;
+        int mw = (int)ceilf(ngb_zh_text(NULL, 0, 0, s, P, 1.0f, 0, 0)) + 4, mh = (int)ceilf(height * 1.3f) + 4;
+        uint8_t *m = calloc((size_t)mw * mh, 1);
+        if (!m)
+            return;
+        ngb_zh_text(m, mw, mh, s, P, 1.0f, 0, height * 0.78f);
+        for (int yy = 0; yy < mh; yy++)
+            for (int xx = 0; xx < mw; xx++)
+                blend(x + xx + 1, y + yy + 2, 0, m[yy * mw + xx]);
+        for (int yy = 0; yy < mh; yy++)
+            for (int xx = 0; xx < mw; xx++)
+                blend(x + xx, y + yy, color, m[yy * mw + xx]);
+        free(m);
+        return;
+    }
     for (; *t; t++)
     {
         unsigned ch = (unsigned char)*t;

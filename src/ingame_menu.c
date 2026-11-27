@@ -32,6 +32,7 @@
 #include "input/xinput_xbox.h"
 #include "usb/usb_gamepad.h"
 #include "apu/apu.h"
+#include "hurricane_zh.h"   /* Hurricane x2.1: the text in Chinese */
 
 enum { KEY_UP = 1, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_OK, KEY_BACK, KEY_CLEAR, KEY_TAB_LEFT, KEY_TAB_RIGHT };
 
@@ -138,7 +139,7 @@ void ngb_menu_set_running(const NgbSettings *s)
  * audio (0 off, 1 the HRTF filters, 2 clear, their levels only; #30, #86), 24 the HUD (src/hud.c, #80), 25 the audio
  * output (0 auto, 1 stereo, 2 5.1; src/audio), 26-28 the main menu's MISSIONS, ARCADE NINJA GAIDEN and
  * MOVIE THEATER unlocked (src/cheats.c, saved), 29 Lower Detail Under Load (src/d3d/d3d.c), 30 the render thread
- * (src/d3d/hle.cpp, the Multithreaded Renderer), 31 Intercept (src/intercept.c), 32 all weapons (a cheat), 33 Essence-Only Charging (src/ut_charge.c), 34 Skip Any Cutscene (src/cutscene_skip.c), 35 unused (the GPU driver was, #151), 36 Responsive Menus (src/responsive.c), 37 all armlets, 38 all technique scrolls and 39 one hit kill (cheats), 41 HUD Style (#121), 42 HUD Aspect, 43 Talisman of Rebirth, 44 Bow Crosshair, 45 Frame Interpolation (src/d3d/gpu/threaded.cpp), 47 Shuriken Icon (src/hud.c), 48 the touch layout and 49 Touch Opacity (src/touch_pad.c). A change applies at once (8, 9 and 25 at the next start, 30 after a restart) and is saved, the
+ * (src/d3d/hle.cpp, the Multithreaded Renderer), 31 unused (upstream's Intercept left out: x2.1 has its own; src/intercept.c is not built), 32 all weapons (a cheat), 33 Essence-Only Charging (src/ut_charge.c), 34 Skip Any Cutscene (src/cutscene_skip.c), 35 unused (the GPU driver was, #151), 36 Responsive Menus (src/responsive.c), 37 all armlets, 38 all technique scrolls and 39 one hit kill (cheats), 41 HUD Style (#121), 42 HUD Aspect, 43 Talisman of Rebirth, 44 Bow Crosshair, 45 Frame Interpolation (src/d3d/gpu/threaded.cpp), 47 Shuriken Icon (src/hud.c), 48 the touch layout and 49 Touch Opacity (src/touch_pad.c). A change applies at once (8, 9 and 25 at the next start, 30 after a restart) and is saved, the
  * cheats' not. */
 int ngb_cheat(int which);
 void ngb_cheat_set(int which, int on);
@@ -192,7 +193,10 @@ int ngb_pc_setting(int which)
     case 0:  return s_running.scale;
     case 1:  return s_running.anisotropy;
     case 2:  return s_running.shadow_scale;
-    case 3:  return s_running.fullscreen;
+    case 3: {   /* the mode the window is in (or is being put in): F11 and Alt+Enter change it too, not the setting */
+        int w, h, m = nv2a_window_mode(&w, &h);
+        return m >= 0 ? m : s_running.fullscreen;
+    }
     case 4:  return s_running.vsync;
     case 6: {                                  /* the window size: aspect * 8 + its index */
         int i = ngb_settings_size_index(&s_running);
@@ -209,8 +213,8 @@ int ngb_pc_setting(int which)
     case 24: return s_running.show_hud;
     case 41: return s_running.hud_style;
     case 42: return s_running.hud_aspect;
-    case 43: return s_running.talisman;
-    case 44: return s_running.bow_crosshair;
+    case 43: return 1;   /* Hurricane: upstream's Talisman of Rebirth not taken -- x2.1 switches it itself */
+    case 44: return 0;   /* Hurricane: upstream's Bow Crosshair not taken -- x2.1 has its own (画面设置) */
     case 45: return s_running.frame_interp;
     case 46: return s_running.cheats_unlocked;
     case 47: return s_running.shuriken_icon;
@@ -218,7 +222,6 @@ int ngb_pc_setting(int which)
     case 49: return ngb_touch_opacity_value(s_running.touch_opacity);
     case 29: return s_running.detail_under_load;
     case 30: return s_running.render_thread;
-    case 31: return s_running.intercept;
     case 33: return s_running.essence_charging;
     case 34: return s_running.skip_cutscenes;
     case 36: return s_running.responsive_menus;
@@ -269,7 +272,6 @@ void ngb_pc_set_setting(int which, int value)
     case 49: s_running.touch_opacity = ngb_touch_opacity_value(value); break;   /* (src/touch_pad.c, at once) */
     case 29: s_running.detail_under_load = !!value; break;
     case 30: s_running.render_thread = !!value; break;   /* at the next start */
-    case 31: s_running.intercept = value < 0 ? 0 : value > 2 ? 2 : value; break;
     case 33: s_running.essence_charging = !!value; break;
     case 34: s_running.skip_cutscenes = !!value; break;
     case 36: s_running.responsive_menus = !!value; break;
@@ -1245,7 +1247,8 @@ static void mouse_test_tick(void)
     Uint32 id = w ? SDL_GetWindowID(w) : 0;
     switch (c) {
     case 'M':
-        e.type = SDL_MOUSEMOTION; e.motion.windowID = id; e.motion.x = x; e.motion.y = y; e.motion.which = NV2A_MOUSEID_SCRIPTED;
+        e.type = SDL_MOUSEMOTION; e.motion.windowID = id; e.motion.x = x; e.motion.y = y;
+        e.motion.which = NV2A_MOUSEID_SCRIPTED;   /* (the pointer itself unmoved: still a move, nv2a_window.h) */
         break;
     case 'L': case 'R':
         e.type = SDL_MOUSEBUTTONDOWN; e.button.windowID = id; e.button.x = x; e.button.y = y;
@@ -1298,8 +1301,11 @@ static bool game_mouse(const SDL_Event *ev)
         if (ev->type == SDL_MOUSEMOTION) {
             game_point(ev->motion.windowID, ev->motion.x, ev->motion.y, &gx, &gy);
             row = tab_hit(gx, gy, &zone);
-            if (row >= 0 && s_tab_focus && row != hover)
+            if (row >= 0 && s_tab_focus && row != hover) {
+                if (mouse_log())
+                    fprintf(stderr, "[MOUSE] pause page: row %d (was %d) at %.0f,%.0f\n", row, hover, gx, gy);
                 tab_push(TAB_ROW | row);
+            }
             hover = row;
             s_mx = (int)gx;                       /* the tabs, for hover_tick */
             s_my = (int)gy;
@@ -1412,6 +1418,13 @@ void nv2a_window_event_hook(const void *sdl_event)
 {
     const SDL_Event *ev = sdl_event;
     extern int ngb_quick_event(const void *event);
+    /* A motion the player did not make (the window changed under a pointer at rest: nv2a_window.h) moves no menu's
+     * cursor -- the pause page's rows, the game's menus (hover_tick), the quick menu, all from here. */
+    if (ev->type == SDL_MOUSEMOTION && !nv2a_mouse_motion_by_player(ev)) {
+        if (mouse_log())
+            fprintf(stderr, "[MOUSE] menus: a motion not the player's, left alone\n");
+        return;
+    }
     if (ngb_quick_event(ev)) return;
     if (ev->type == SDL_KEYDOWN && ev->key.keysym.sym == SDLK_F7 && !ev->key.repeat) {
         extern volatile int ngb_trace_request;   /* src/d3d/vk/backend.cpp: record the next frames */
@@ -1751,8 +1764,15 @@ static void fill(float x, float y, float w, float h, uint32_t rgb, int a)
             blend(&s_px[(size_t)yy * s_w + xx], rgb, a);
 }
 
+/* Hurricane x2.1: Chinese in the embedded font, its ideographs a little taller than the capitals here */
+#define ZH_PX 0.87f
+#define ZH_BASE 0.78f
+
 static float text_width(const char *t, float size)
 {
+    const char *z = ngb_zh(t);
+    if (z)
+        return ngb_zh_text(NULL, 0, 0, z, size * ZH_PX, 1.0f, 0, 0);
     float w = 0;
     for (; *t; t++) {
         int c = (unsigned char)*t;
@@ -1771,6 +1791,25 @@ static void text(const char *t, float x, float y, float size, uint32_t rgb,
     if (align == 2) x -= text_width(t, size);
     float scale = size * s_k / LAUNCHER_FONT_H_PX;   /* window px per glyph px */
     float px0 = s_ox + x * s_k, py0 = s_oy + y * s_k;
+    const char *z = ngb_zh(t);
+    if (z) {
+        float P = size * ZH_PX * s_k;
+        int mw = (int)ceilf(ngb_zh_text(NULL, 0, 0, z, P, 1.0f, 0, 0)) + 4, mh = (int)ceilf(size * s_k * 1.3f) + 4;
+        uint8_t *m = calloc((size_t)mw * mh, 1);
+        if (!m)
+            return;
+        float fx = px0 - floorf(px0), fy = py0 - floorf(py0);
+        ngb_zh_text(m, mw, mh, z, P, 1.0f, fx, fy + size * s_k * ZH_BASE);
+        int X0 = (int)floorf(px0), Y0 = (int)floorf(py0);
+        for (int yy = 0; yy < mh; yy++)
+            for (int xx = 0; xx < mw; xx++) {
+                int X = X0 + xx, Y = Y0 + yy;
+                if (m[yy * mw + xx] && X >= 0 && Y >= 0 && X < s_w && Y < s_h)
+                    blend(&s_px[(size_t)Y * s_w + X], rgb, m[yy * mw + xx] * alpha / 255);
+            }
+        free(m);
+        return;
+    }
     for (; *t; t++) {
         int c = (unsigned char)*t;
         if (c < 32 || c > 126) c = '?';
@@ -2211,23 +2250,30 @@ int ngb_renderer_fatal_elsewhere(void)
  * game far slower than the player had any way to know why (#47). */
 _Noreturn void ngb_renderer_fatal(const char *detail)
 {
-    char msg[1024];
+    char msg[2048];   /* Hurricane: in Chinese too (UTF-8), before the English (user 2026-10-18) */
     t_fatal_mine = 1;
     if (__atomic_exchange_n(&s_fatal_up, 1, __ATOMIC_ACQ_REL))
         for (;;)
             SDL_Delay(1000);                       /* (the other renderer's message is up: it ends the game) */
 #ifdef __ANDROID__
     snprintf(msg, sizeof msg,
+             "本程序需要手机显卡的 Vulkan 驱动支持 dynamic rendering 与 synchronization2"
+             "（Vulkan 1.3 自带，或以扩展提供），这台手机不满足：\n\n%s\n\n"
+             "系统更新有时会带来新驱动。也欢迎到项目的 GitHub 页面报告手机型号与芯片。\n\n"
              "Ninja Gaiden Black needs a phone GPU whose Vulkan driver has dynamic rendering and "
              "synchronization2 (Vulkan 1.3, or those as extensions), and this phone's "
-             "does not:\n\n%s\n\n"
+             "does not (see above). "
              "A system update sometimes brings a newer driver. Please report your phone's model and chip on "
              "the project's GitHub page.", detail);
 #else
     snprintf(msg, sizeof msg,
+             "本程序需要显卡驱动支持 Vulkan 1.3 的 dynamic rendering 与 synchronization2"
+             "（Vulkan 1.3 自带，或旧版驱动以扩展提供），"
+             "这台电脑不满足：\n\n%s\n\n"
+             "请更新显卡驱动。大约 2016 年以前的显卡（例如 Nvidia GTX 600、700 系列）不受支持。\n\n"
              "Ninja Gaiden Black needs a GPU and driver with Vulkan 1.3's dynamic rendering and synchronization2 "
              "(in Vulkan 1.3, or as extensions of an older one), and this system does not "
-             "offer them:\n\n%s\n\n"
+             "offer them (see above). "
              "Please update your graphics driver. GPUs from before about 2016 (for example Nvidia's "
              "GTX 600 and 700 series) are not supported.", detail);
 #endif

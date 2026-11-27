@@ -70,6 +70,38 @@ def _parse_force_returns(items):
     return out
 
 
+def _load_flags_after_call(path, option="--flags-after-call"):
+    """--flags-after-call JSON {"0x<call VA>": "<hex bytes>"} -> {call VA: Instruction}. Each value is one
+    cmp or test (they write only the flags, so lifting them again in the caller changes nothing else),
+    decoded at the call's return address. --flags-out uses the same shape with function addresses."""
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_32
+    from .disasm import Disassembler
+    with open(path, "r", encoding="utf-8") as fh:
+        entries = json.load(fh)
+    d = Disassembler()
+    cs = Cs(CS_ARCH_X86, CS_MODE_32)
+    cs.detail = True
+    out = {}
+    for site, hexbytes in entries.items():
+        if site.startswith("#"):
+            continue
+        va = int(site, 16)
+        raw = bytes.fromhex(hexbytes)
+        decoded = list(cs.disasm(raw, va + 5))
+        if len(decoded) != 1 or decoded[0].size != len(raw) or decoded[0].mnemonic not in ("cmp", "test"):
+            raise SystemExit(f"{option} {site}: {hexbytes} is not exactly one cmp/test")
+        out[va] = d._decode_instruction(decoded[0])
+    return out
+
+
+def _load_ebp_to_callee(path):
+    """--ebp-to-callee JSON {"0x<call VA>": "0x<callee VA>"} -> {call VA: callee VA}; the lifter checks each
+    call site's target against its callee."""
+    with open(path, "r", encoding="utf-8") as fh:
+        entries = json.load(fh)
+    return {int(site, 16): int(callee, 16) for site, callee in entries.items() if not site.startswith("#")}
+
+
 def _load_addrs(path):
     """Load a JSON address list (or {addr: name} map) as a set of ints."""
     if not path:
@@ -250,6 +282,25 @@ def main():
                              "not implement yet: the body still runs, only "
                              "the answer changes, and the emitted code is "
                              "inert unless RECOMP_FORCE_RETURN is set")
+    parser.add_argument("--flags-after-call", metavar="JSON",
+                        help="Call sites whose callee leaves the flags the caller "
+                             "branches on: {\"0x<call VA>\": \"<hex bytes of the "
+                             "callee's last cmp/test>\"}. After each such call the "
+                             "compare is lifted again in the caller (lifted "
+                             "functions keep flags to themselves)")
+    parser.add_argument("--flags-out", metavar="JSON",
+                        help="Functions that return their flags: {\"0x<function "
+                             "VA>\": \"<hex bytes of its last cmp/test>\"}. Each "
+                             "stores that compare's snapshot before every ret "
+                             "(g_flags_out_*) and every direct call to it loads it "
+                             "back, for when redoing the compare in the caller "
+                             "would read restored registers (test ecx,ecx; popad; ret)")
+    parser.add_argument("--ebp-to-callee", metavar="JSON",
+                        help="Call sites whose callee reads the caller's ebp: "
+                             "{\"0x<call VA>\": \"0x<callee VA>\"}. Around each such "
+                             "call the caller's ebp is the callee's (g_ebp, g_seh_ebp), "
+                             "put back after; for a caller whose ebp is not its frame "
+                             "(patched-in code reading [ebp+n] of an FPO caller)")
     parser.add_argument("--coalesce-functions", metavar="JSON", action="append",
                         help="Explicit owner bounds and false interior starts "
                              "to merge before translation; repeatable")
@@ -325,6 +376,12 @@ def main():
             os.path.dirname(os.path.abspath(__file__)), "output",
             "icall_sites.json"),
     )
+    if args.flags_after_call:
+        translator.translator.lifter.flags_after_call = _load_flags_after_call(args.flags_after_call)
+    if args.flags_out:
+        translator.translator.lifter.flags_out = _load_flags_after_call(args.flags_out, "--flags-out")
+    if args.ebp_to_callee:
+        translator.translator.lifter.ebp_to_callee = _load_ebp_to_callee(args.ebp_to_callee)
 
     t_load = time.time() - t0
     print(f"Loaded {len(translator.func_db)} functions, "

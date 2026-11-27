@@ -39,6 +39,7 @@
 
 #include "xbox_memory_layout.h"   /* xbox_HeapAlloc: guest memory */
 #include "port.h"
+#include "hurricane_zh.h"
 #include "launcher.h"                 /* ngb_vsync_name, ngb_vsync_step */
 
 /* Settings, from src/ingame_menu.c: 0 render scale (1-8), 1 smooth
@@ -64,9 +65,10 @@ enum { ROW_SCREEN, ROW_MOVIE, ROW_PC, ROW_DEFAULT, ROW_EXIT,
        ROW_RENDER, ROW_TEXTURE, ROW_SHADOW, ROW_DISPLAY, ROW_VSYNC, ROW_FPS, ROW_WINDOW, ROW_ASPECT, ROW_BACK,
        ROW_SKIP, ROW_LAUNCHER, ROW_MSAA, ROW_HEALTH, ROW_NINPO, ROW_ESSENCE, ROW_ALLDIFF, ROW_SCARABS, ROW_ALLCOST, ROW_EXTRACOST,
        ROW_GLOW, ROW_QUICKFREEZE, ROW_QUICKSCALE, ROW_INFITEMS, ROW_INFAMMO, ROW_POSAUDIO, ROW_HUD, ROW_AUDIOOUT,
-       ROW_MISSIONS, ROW_ARCADE, ROW_MOVIES, ROW_UNLOCKS, ROW_LOADDETAIL, ROW_RTHREAD, ROW_INTERCEPT,
+       ROW_MISSIONS, ROW_ARCADE, ROW_MOVIES, ROW_UNLOCKS, ROW_LOADDETAIL, ROW_RTHREAD,
        ROW_ALLWEAP, ROW_ESSCHARGE, ROW_CUTSKIP, ROW_RESPONSIVE, ROW_ALLARM, ROW_ALLSCROLL, ROW_ONEHIT,
        ROW_HUDSTYLE, ROW_HUDASPECT, ROW_TALISMAN, ROW_CROSSHAIR, ROW_INTERP, ROW_SHURIKEN,
+       ROW_KINDS   /* (the tables indexed by a row kind have one entry each: checked where they are) */
 };
 
 static int is_ours(int page) { return page >= PAGE_GFX && page < PAGE_GFX + N_OURS; }
@@ -82,8 +84,7 @@ static const uint8_t s_rows_gfx[] = { ROW_RENDER, ROW_TEXTURE, ROW_MSAA, ROW_SHA
                                       ROW_RTHREAD, ROW_INTERP };
 static const uint8_t s_rows_disp[] = { ROW_ASPECT, ROW_WINDOW, ROW_DISPLAY, ROW_VSYNC, ROW_FPS, ROW_HUD, ROW_HUDSTYLE, ROW_HUDASPECT, ROW_SKIP };
 static const uint8_t s_rows_sound[] = { ROW_POSAUDIO, ROW_AUDIOOUT };
-static const uint8_t s_rows_game[] = { ROW_QUICKSCALE, ROW_QUICKFREEZE, ROW_INTERCEPT, ROW_ESSCHARGE, ROW_CUTSKIP, ROW_RESPONSIVE, ROW_CROSSHAIR,
-                                      ROW_SHURIKEN };   /* (Talisman of Rebirth: equipped from the item page, src/talisman.c) */
+static const uint8_t s_rows_game[] = { ROW_QUICKSCALE, ROW_QUICKFREEZE, ROW_ESSCHARGE, ROW_CUTSKIP, ROW_RESPONSIVE, ROW_SHURIKEN };   /* (x2.1: no Intercept, Bow Crosshair, Talisman rows -- its own) */
 static const uint8_t s_rows_cheat[] = { ROW_HEALTH, ROW_NINPO, ROW_ESSENCE, ROW_SCARABS, ROW_INFITEMS, ROW_INFAMMO,
                                         ROW_ONEHIT, ROW_UNLOCKS };
 static const uint8_t s_rows_unl[] = { ROW_ALLDIFF, ROW_ALLCOST, ROW_MISSIONS, ROW_ARCADE, ROW_MOVIES, ROW_ALLWEAP,
@@ -213,9 +214,6 @@ static const struct { const uint8_t *kinds; int n; } s_ours[N_OURS] = {
 #define D_LOADDETAIL 0x201DD
 #define T_RTHREAD  0x201DE            /* Multithreaded Renderer (src/d3d/gpu/threaded.cpp) */
 #define D_RTHREAD  0x201DF
-#define T_INTERCEPT 0x201E8           /* Intercept (src/intercept.c, #109) */
-#define D_INTERCEPT 0x201E9
-#define T_INTERCEPT0 0x201EA          /* + 0..2: Off, Black, Hurricane Pack */
 #define T_ALLWEAP  0x201ED            /* All Weapons (a cheat, src/cheats.c) */
 #define D_ALLWEAP  0x201EE
 #define T_ESSCHARGE 0x201EF           /* Essence-Only Charging (src/ut_charge.c, #120) */
@@ -280,7 +278,7 @@ static const struct { uint32_t id; const char *text; } s_text[] = {
     { D_UNLOCKS,  "Difficulties, costumes and the main menu's extras (saved); weapons, armlets and scrolls (this session)." },
     { T_INFITEMS, "Infinite Items" },
     { T_INFAMMO,  "Infinite Projectiles" },
-    { D_INFITEMS, "Healing items, the Talisman of Rebirth and the Jewel of the Demon Seal are not used up.\nFor this session only." },
+    { D_INFITEMS, "Healing items, talismans and jewels are not used up. For this session only." },
     { D_INFAMMO,  "Shuriken, smoke bombs, arrows and spears are not used up. For this session only." },
     { T_QUICKSCALE0 + 0, "150%" }, { T_QUICKSCALE0 + 1, "125%" },
     { T_QUICKSCALE0 + 2, "100%" }, { T_QUICKSCALE0 + 3, "75%" },
@@ -298,8 +296,6 @@ static const struct { uint32_t id; const char *text; } s_text[] = {
     { D_LOADDETAIL, "Eases off detail when busy, as on the Xbox; Ryu's shadow may flicker." },
     { T_RTHREAD, "Multithreaded Renderer" },
     { D_RTHREAD, "Drawing on a thread of its own, for slower CPUs. Needs restart." },
-    { T_INTERCEPT, "Intercept" },
-    { D_INTERCEPT, "Tap guard as a hit lands to turn it aside (the Hurricane Pack's move Black left out)." },
     { T_ALLWEAP, "All Weapons" },
     { D_ALLWEAP, "Every weapon, at Level 1 or at its highest level, with its ammunition. Turned off, they are taken back." },
     { T_ESSCHARGE, "Essence-Only Charging" },
@@ -314,7 +310,6 @@ static const struct { uint32_t id; const char *text; } s_text[] = {
     { T_ONEHIT, "One Hit Kill" },
     { D_ONEHIT, "Any hit that hurts an enemy or a boss kills it. For this session only." },
     { D_RESPONSIVE, "Start at the title, in a cutscene's opening wait and after equipping in the pause menu works at once." },
-    { T_INTERCEPT0 + 0, "Off" }, { T_INTERCEPT0 + 1, "Black" }, { T_INTERCEPT0 + 2, "Hurricane" },
     { T_ANISO0 + 0, "Off" }, { T_ANISO0 + 1, "2x" }, { T_ANISO0 + 2, "4x" },
     { T_ANISO0 + 3, "8x" }, { T_ANISO0 + 4, "16x" },
     { T_MSAA0 + 0, "Off" }, { T_MSAA0 + 1, "2x" }, { T_MSAA0 + 2, "4x" }, { T_MSAA0 + 3, "8x" },
@@ -443,9 +438,11 @@ static uint32_t make_labels(const uint8_t *kinds, int n)
                                    T_HEALTH, T_NINPO, T_ESSENCE, T_ALLDIFF, T_SCARABS, T_ALLCOST, T_EXTRACOST,
                                    T_GLOW, T_QUICKFREEZE, T_QUICKSCALE, T_INFITEMS, T_INFAMMO, T_POSAUDIO, T_HUD,
                                    T_AUDIOOUT, T_MISSIONS, T_ARCADE, T_MOVIES, T_UNLOCKS, T_LOADDETAIL, T_RTHREAD,
-                                   T_INTERCEPT, T_ALLWEAP, T_ESSCHARGE, T_CUTSKIP, T_RESPONSIVE, T_ALLARM,
-                                   T_ALLSCROLL, T_ONEHIT, T_HUDSTYLE, T_HUDASPECT, T_TALISMAN,
-                                   T_CROSSHAIR, T_INTERP, T_SHURIKEN };
+                                   T_ALLWEAP, T_ESSCHARGE, T_CUTSKIP, T_RESPONSIVE, T_ALLARM,
+                                   T_ALLSCROLL, T_ONEHIT, T_HUDSTYLE, T_HUDASPECT,
+                                   T_TALISMAN, T_CROSSHAIR,   /* (on no page here: x2.1 has its own, user 2026-11-16) */
+                                   T_INTERP, T_SHURIKEN };
+    _Static_assert(sizeof id / sizeof id[0] == ROW_KINDS, "a label for each row kind");
     uint32_t va = xbox_HeapAlloc(4 * n, 4);
     for (int i = 0; i < n; i++)
         MEM32(va + 4 * i) = id[kinds[i]];
@@ -489,15 +486,15 @@ static void pc_menu_init(void)
         MEM32(e) = id;
         MEM32(e + 4) = str;           /* English */
         MEM32(e + 8) = str;           /* and in the Japanese text too */
+        if (i < add)                  /* Hurricane x2.1: there its Chinese (src/hurricane_zh.c) */
+            ngb_zh_engine_text(e + 4, e + 8, text);
     }
     MEM32(0x436240 + 2 * 4) = tab;
     MEM16(0x43626C + 2 * 2) = (uint16_t)(count + add + extra);
 
-    /* Pages 4 (0x429D18) and 6 (0x429D48): last row, row table. */
-    MEM8(0x429D18 + 2) = N_WS - 1;
-    MEM32(0x429D18 + 0xC) = make_rows(s_rows_ws, N_WS);
-    MEM8(0x429D48 + 2) = N_STD - 1;
-    MEM32(0x429D48 + 0xC) = make_rows(s_rows_std, N_STD);
+    /* Pages 4 (0x429D18) and 6 (0x429D48) are left as the Hurricane x2.1 XBE has them (its crosshair row:
+     * 5 / 3 rows); rebuilt from s_rows_ws / s_rows_std they would be retail's. Those tables still name
+     * retail's rows for row_kind(), which the x2.1 hooks feed retail's row numbers. */
 
     /* RECOMP SETTINGS' page table: the game's (0x429CB8: pages 0-9 of 0x18
      * bytes, then 0xFF) with page 0's categories ours -- rows opening pages
@@ -900,7 +897,6 @@ static uint32_t pc_value_id(int row, uint32_t movie_id)
     case ROW_GLOW:    return T_GLOW0 + (uint32_t)ngb_pc_setting(18);
     case ROW_LOADDETAIL: return ngb_pc_setting(29) ? T_ON : T_OFF;
     case ROW_RTHREAD: return ngb_pc_setting(30) ? T_ON : T_OFF;
-    case ROW_INTERCEPT: return T_INTERCEPT0 + (uint32_t)ngb_pc_setting(31);
     case ROW_INFITEMS: return ngb_pc_setting(21) ? T_ON : T_OFF;
     case ROW_INFAMMO: return ngb_pc_setting(22) ? T_ON : T_OFF;
     case ROW_ALLWEAP: return T_ALLWEAP0 + (uint32_t)ngb_pc_setting(32);
@@ -976,7 +972,6 @@ static int pc_value_change(int row, int delta)
     case ROW_GLOW:    ngb_pc_set_setting(18, ngb_glow_step(ngb_pc_setting(18), step)); break;
     case ROW_LOADDETAIL: ngb_pc_set_setting(29, !ngb_pc_setting(29)); break;
     case ROW_RTHREAD: ngb_pc_set_setting(30, !ngb_pc_setting(30)); break;
-    case ROW_INTERCEPT: ngb_pc_set_setting(31, (ngb_pc_setting(31) + (step > 0 ? 1 : 2)) % 3); break;
     case ROW_INFITEMS: ngb_pc_set_setting(21, !ngb_pc_setting(21)); break;
     case ROW_INFAMMO: ngb_pc_set_setting(22, !ngb_pc_setting(22)); break;
     case ROW_ALLWEAP: ngb_pc_set_setting(32, (ngb_pc_setting(32) + (step > 0 ? 1 : 2)) % 3); break;
@@ -1148,9 +1143,17 @@ loc_0017F54E: ;
     goto loc_0017F681;
 
 loc_0017F567: ;
-    SET_LO8(edx, MEM8(edi + 0xC));
+    if (is_ours(MEM8(edi))) {
+        SET_LO8(edx, MEM8(edi + 0xC));   /* Hurricane: PC pages, the original instruction */
+    } else {
+    PUSH32(esp, 0x0017F56Cu); RECOMP_ABI_CALL(0x00DC8A40u, sub_00DC8A40); /* call 0x00DC8A40 */
+    }
+    /* flags as 0x0017F567's callee left them: cmp dl, 0xff (and the original's own on PC pages) */
     _fa = (uint32_t)(LO8(edx)) & 0xFFu; _fb = (uint32_t)(0xFF) & 0xFFu;
     _fas = (int32_t)(int8_t)(_fa); _fbs = (int32_t)(int8_t)(_fb); /* cmp LO8(edx), 0xFF (8-bit) */
+
+loc_0017F56C: ;
+    /* nop */
     if (CMP_NE(_fa, _fb)) goto loc_0017F5F9; /* jne: not equal / not zero */
 
 loc_0017F573: ;
@@ -1296,7 +1299,10 @@ loc_0017F665: ;
     PUSH32(esp, 0x0017F66Eu); RECOMP_ABI_CALL(0x001E3400u, sub_001E3400); /* call 0x001E3400 */
 
 loc_0017F66E: ;
-    SET_LO8(edx, MEM8(0x42D3E1));
+    PUSH32(esp, 0x0017F673u); RECOMP_ABI_CALL(0x00DC8AA0u, sub_00DC8AA0); /* call 0x00DC8AA0 */
+
+loc_0017F673: ;
+    /* nop */
     _fb = (uint32_t)(8) & 0xFFFFFFFFu; _fbs = (int32_t)(int32_t)(_fb); /* add source, before the write */
     esp = esp + 8;
     _fa = (uint32_t)(esp) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* add result */
@@ -1373,7 +1379,6 @@ loc_0017F6EA: ;
     esp = esp + 0xC;
     _fa = (uint32_t)(esp) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* add result */
     esp += 4; return; /* ret */
-
 }
 
 /**
@@ -1591,18 +1596,20 @@ loc_0021F0E6: ;
     if (TEST_Z(_fa, _fb)) goto loc_0021F10D; /* je: equal / zero */
 
 loc_0021F0F8: ;
-    /* PC: the page's rows and their text. */
     pc_menu_init();
-    MEM32(esp + 0x1C) = N_WS;
-    MEM32(esp + 0x4C) = s_labels_ws;
-    goto loc_0021F11C;
+    ecx = esp + 0x80;
+    MEM32(esp + 0x1C) = 5;
+    MEM32(esp + 0x4C) = ecx;
+    goto loc_0021F11D;
 
 loc_0021F10D: ;
+    edx = esp + 0x70;
+    MEM32(esp + 0x1C) = 3;
+    MEM32(esp + 0x4C) = edx;
     pc_menu_init();
-    MEM32(esp + 0x1C) = N_STD;
-    MEM32(esp + 0x4C) = s_labels_std;
 
-loc_0021F11C: ;
+loc_0021F11D: ;
+    /* PC: the page's rows and their text (ngbrecomp's pages; 4 and 6 keep x2.1's 5 / 3 rows). */
     if (is_ours(page_now())) {
         MEM32(esp + 0x1C) = (uint32_t)s_ours[page_now() - PAGE_GFX].n;
         MEM32(esp + 0x4C) = s_labels_ours[page_now() - PAGE_GFX];
@@ -1612,7 +1619,6 @@ loc_0021F11C: ;
         MEM32(esp + 0x4C) = s_labels_unl;
     }
 
-loc_0021F11D: ;
     ecx = ZX8(MEM8(0xDB9ADA));
     eax = MEM32(0xBCE018);
     edx = ((int32_t)eax < 0) ? 0xFFFFFFFF : 0; /* cdq */
@@ -1683,11 +1689,11 @@ loc_0021F1F5: ;
     /* nop */
 
 loc_0021F200: ;
+    if (is_ours(page_now())) {   /* Hurricane: PC pages, the retail hint flag */
     _fa = (uint32_t)(MEM8(0xD21748)) & 0xFFu; _fb = (uint32_t)(1) & 0xFFu;
     _fas = (int32_t)(int8_t)(_fa); _fbs = (int32_t)(int8_t)(_fb); /* test MEM8(0xD21748), 1 (8-bit) */
-    if (TEST_Z(_fa, _fb)) goto loc_0021F21E; /* je: equal / zero */
+    if (TEST_Z(_fa, _fb)) goto hz_hint_21E; /* je: equal / zero */
 
-loc_0021F209: ;
     ecx = MEM32(ebp + 8);
     esi = MEM32(ecx + 0x10);
     edx = 0; /* xor self */
@@ -1696,12 +1702,34 @@ loc_0021F209: ;
     _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp esi, eax (32-bit) */
     SET_LO8(edx, (CMP_NE(_fa, _fb)) ? 1 : 0); /* setne */
     MEM32(0x43B47C) = edx;
-    goto loc_0021F223;
+    goto hz_hint_223;
 
-loc_0021F21E: ;
+hz_hint_21E: ;
     MEM32(0x43B47C) = eax;
 
-loc_0021F223: ;
+hz_hint_223: ;
+    goto hz_hint_done;
+    }
+    ecx = MEM32(ebp + 8);
+    ecx = MEM32(ecx + 0x10);
+    ecx--;
+    _fa = (uint32_t)(ecx) & 0xFFFFFFFFu;
+    _fas = (int32_t)(int32_t)(_fa); _fb = (_fa == 0x7FFFFFFFu); /* dec result/SF/OF; CF unchanged */
+    edx = ZX8(MEM8(0xD21748));
+    edx = edx & 1;
+    _fa = (uint32_t)(edx) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* and result */
+    _fa = (uint32_t)(ecx) & 0xFFFFFFFFu; _fb = (uint32_t)(edx) & 0xFFFFFFFFu;
+    _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp ecx, edx (32-bit) */
+    SET_LO8(edx, (CMP_A(_fa, _fb)) ? 1 : 0); /* seta */
+    MEM32(0x43B47C) = edx;
+    /* nop */
+    /* nop */
+    /* nop */
+    /* nop */
+    /* nop */
+    /* nop */
+    /* nop */
+hz_hint_done: ;
     edx = MEM32(esp + 0x10);
     edi = esp + 0x14;
     esi = esp + 0x18;
@@ -1853,8 +1881,18 @@ loc_0021F3A3: ;
     _fas = (int32_t)(int32_t)(_fa); _fb = (_fa == 0x80000000u); /* inc result/SF/OF; CF unchanged */
 
 loc_0021F3A9: ;
+    if (is_ours(page_now())) {   /* Hurricane: PC pages, the original instructions */
     edx = MEM32(esp + 0x4C);
     eax = SX16(LO16(ebx));
+    } else {
+    g_ebp = ebp; /* frame stays current across calls */
+    g_seh_ebp = ebp;
+    PUSH32(esp, 0x0021F3AEu); RECOMP_ABI_CALL(0x00DC8980u, sub_00DC8980); /* call 0x00DC8980 */
+    }
+
+loc_0021F3AE: ;
+    /* nop */
+    /* nop */
     esi = eax + 0x13;
     PUSH32(esp, 2);
     ecx = 0; /* xor self */
@@ -1872,7 +1910,7 @@ loc_0021F3A9: ;
     PUSH32(esp, ecx);
     g_ebp = ebp; /* frame stays current across calls */
     g_seh_ebp = ebp;
-    PUSH32(esp, 0x0021F3D7u); RECOMP_ABI_CALL(0x001E6AE0u, sub_001E6AE0); /* call 0x001E6AE0 */
+    PUSH32(esp, 0x0021F3D7u); RECOMP_ABI_CALL(0x00DC87F0u, sub_00DC87F0); /* call 0x00DC87F0 */
 
 loc_0021F3D7: ;
     ecx = eax;
@@ -2000,19 +2038,44 @@ loc_0021F51A: ;
     PUSH32(esp, 0x0021F542u); RECOMP_ABI_CALL(0x00221340u, sub_00221340); /* call 0x00221340 */
 
 loc_0021F542: ;
-    _fa = (uint32_t)(MEM8(0xD21748)) & 0xFFu; _fb = (uint32_t)(1) & 0xFFu;
-    _fas = (int32_t)(int8_t)(_fa); _fbs = (int32_t)(int8_t)(_fb); /* test MEM8(0xD21748), 1 (8-bit) */
-    /* PC: values on both pages, not only Movie Display Ratio's. */
+    if (is_ours(page_now())) {   /* PC pages: ngbrecomp's values (a text for each kind of row) */
+        eax = MEM32(0x43B474);
+        ecx = MEM32(esp + 0x18);
+        edi = eax + ecx;
+        eax = pc_value_id((int)MEM32(esp + 0x10),
+                          MEM32(esp + ZX8(MEM8(0xDA42EF)) * 4 + 0x78));
+        if (eax == 0) goto loc_0021F5BF;
+        goto hz_value_text;
+    }
+    g_ebp = ebp; /* frame stays current across calls */
+    g_seh_ebp = ebp;
+    PUSH32(esp, 0x0021F547u); RECOMP_ABI_CALL(0x00DC89A0u, sub_00DC89A0); /* call 0x00DC89A0 */
+
+loc_0021F547: ;
+    /* Hurricane: the hook's ZF, from its two returns -- row 1 (the crosshair it just drew): `cmp eax,eax`,
+     * ZF set; any other row: the replaced `test byte [0xD21748],1`, ZF when not widescreen. Its [esp+0x14]
+     * is this frame's [esp+0x10] (the call pushed the return address). */
+    if (MEM32(esp + 0x10) == 1 || !(MEM8(0xD21748) & 1)) goto loc_0021F5BF;
 
 loc_0021F54B: ;
     eax = MEM32(0x43B474);
     ecx = MEM32(esp + 0x18);
     edi = eax + ecx;
-    eax = pc_value_id((int)MEM32(esp + 0x10),
-                      MEM32(esp + ZX8(MEM8(0xDA42EF)) * 4 + 0x78));
-    if (eax == 0) goto loc_0021F5BF;
+    g_ebp = ebp; /* frame stays current across calls */
+    g_seh_ebp = ebp;
+    PUSH32(esp, 0x0021F55Cu); RECOMP_ABI_CALL(0x00DC8A30u, sub_00DC8A30); /* call 0x00DC8A30 */
+    /* flags as 0x0021F557's callee left them: test eax, eax */
+    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fb = (uint32_t)(0) & 0xFFFFFFFFu;
+    _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp eax, 0 (32-bit) */
+
+loc_0021F55C: ;
+    if (CMP_NE(_fa, _fb)) goto loc_0021F5BF; /* jne: not equal / not zero */
 
 loc_0021F55E: ;
+    eax = ZX8(MEM8(0xDA42EF));
+    eax = MEM32(esp + eax * 4 + 0x78);
+
+hz_value_text: ;
     edx = 0; /* xor self */
     _fa = (uint32_t)(edx) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* xor result */
     SET_LO8(edx, MEM8(0x8DE524));
@@ -2128,12 +2191,13 @@ void sub_00220870(void)
                                            D_INFITEMS & 0xFFFF, D_INFAMMO & 0xFFFF, D_POSAUDIO & 0xFFFF,
                                            D_HUD & 0xFFFF, D_AUDIOOUT & 0xFFFF, D_MISSIONS & 0xFFFF,
                                            D_ARCADE & 0xFFFF, D_MOVIES & 0xFFFF, D_UNLOCKS & 0xFFFF,
-                                           D_LOADDETAIL & 0xFFFF, D_RTHREAD & 0xFFFF, D_INTERCEPT & 0xFFFF,
+                                           D_LOADDETAIL & 0xFFFF, D_RTHREAD & 0xFFFF,
                                            D_ALLWEAP & 0xFFFF, D_ESSCHARGE & 0xFFFF, D_CUTSKIP & 0xFFFF,
                                            D_RESPONSIVE & 0xFFFF, D_ALLARM & 0xFFFF, D_ALLSCROLL & 0xFFFF,
                                            D_ONEHIT & 0xFFFF, D_HUDSTYLE & 0xFFFF,
                                            D_HUDASPECT & 0xFFFF, D_TALISMAN & 0xFFFF, D_CROSSHAIR & 0xFFFF,
                                            D_INTERP & 0xFFFF, D_SHURIKEN & 0xFFFF };
+    _Static_assert(sizeof video_kind / sizeof video_kind[0] == ROW_KINDS, "a help for each row kind");
     RECOMP_ENTRY(0x00220870u);
     uint32_t out = ecx;
     uint32_t level = MEM16(0x8DE430), tab = MEM16(0x8DE4CC), row = MEM16(0x8DE468);
@@ -2167,7 +2231,12 @@ void sub_00220870(void)
     } else if (level == 1) {
         if (tab == 0 && row < 7) id = general[row];
         else if (tab == 1 && row < 6) id = audio[row];
+        /* Hurricane x2.1 (its hook at 0x2209FA / 0x220A22, 0xDC8790): Controller Settings has 7 rows,
+         * Screen Settings 5 (widescreen) or 3, their descriptions in tables of the XBE's HANZI data. */
+        else if (tab == 2 && row < 7) id = MEM16(0xDC8DC8 + 2 * row);
         else if (tab == 2 && row < 6) id = control[row];
+        else if (tab == 3 && (MEM8(0xD21748) & 1) && row < 5) id = MEM16(0xDC8EE8 + 2 * row);
+        else if (tab == 3 && !(MEM8(0xD21748) & 1) && row < 3) id = MEM16(0xDC8EF4 + 2 * row);
         else if (tab == 3) {
             int kind = row_kind((int)row);
             if (kind >= 0)

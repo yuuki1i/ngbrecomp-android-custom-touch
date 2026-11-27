@@ -92,7 +92,7 @@ static const Action s_act[A_COUNT] = {
     { "Quick Menu: Next", "quick_right", "Opens the melee weapons on the next card; while open, selects the next entry.", SDL_SCANCODE_RIGHT, 0, P(P_DR), T_HOST, 8, 0 },
     { "Quick Menu: Confirm", "quick_confirm", "Equips the selected weapon or Ninpo, or uses the selected item.", SDL_SCANCODE_RETURN, 0, P(P_A), T_HOST, 16, 0 },
     { "Quick Menu: Cancel", "quick_cancel", "Closes the quick menu without applying the selection.", SDL_SCANCODE_ESCAPE, SDL_SCANCODE_BACKSPACE, P(P_B), T_HOST, 32, 0 },
-    { "Toggle HUD", "toggle_hud", "Shows or hides the HUD (Display & Audio > HUD). Not bound unless chosen.", 0, 0, 0, T_HOST,
+    { "Toggle HUD", "toggle_hud", "Shows or hides the HUD (Display > HUD). Not bound unless chosen.", 0, 0, 0, T_HOST,
       NGB_BIND_HUD_BIT, 0 },
 };
 
@@ -613,16 +613,11 @@ void ngb_bind_load(void)
         if (line[0] == '#' || sscanf(line, " %63[^= ] = %399[^\r\n]", key, val) != 2)
             continue;
         if (!strcmp(key, "invert_camera_x") || !strcmp(key, "invert_camera_y")) {
-            s_invert[0][key[14] == 'y'] = atoi(val) != 0;
+            (void)val;   /* Hurricane: not read -- x2.1's own camera option instead (src/pause_tab.c) */
             continue;
         }
-        if (!strcmp(key, "invert_first_person_x")) {
-            s_invert[1][0] = atoi(val) != 0;
-            first_set = 1;
-            continue;
-        }
-        if (!strcmp(key, "third_person_on_load")) {
-            s_third_start = atoi(val) != 0;
+        if (!strcmp(key, "invert_first_person_x") || !strcmp(key, "third_person_on_load")) {
+            (void)val;   /* Hurricane: x2.1's own camera option and third-person start instead */
             continue;
         }
         if (!strcmp(key, "start_back_reset")) {

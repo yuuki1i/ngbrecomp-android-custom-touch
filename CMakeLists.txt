@@ -86,7 +86,8 @@ endif()
 set(NGB_FONTS
     "EBGaramond-ExtraBoldItalic.ttf\;ngb_font_tab"
     "LiberationSerif-Regular.ttf\;ngb_font_body"
-    "LiberationSerif-Bold.ttf\;ngb_font_label")
+    "LiberationSerif-Bold.ttf\;ngb_font_label"
+    "NGBHanzi-Bold.ttf\;ngb_font_cjk")    # Hurricane x2.1: Source Han Sans CN Bold, cut (tools/hurricane/make_zh.py)
 set(NGB_FONT_SOURCES)
 foreach(entry ${NGB_FONTS})
     list(GET entry 0 file)
@@ -152,10 +153,9 @@ add_library(ngb_gen OBJECT ${RECOMP_GEN_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/menu_font.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fps_text.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hud.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/intercept.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ut_charge.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cutscene_skip.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/talisman.c
+    # (src/talisman.c not built: x2.1 has its own talisman switch, src/hurricane_hint.c -- user 2026-11-23)
     ${CMAKE_CURRENT_SOURCE_DIR}/src/responsive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fiber_delete.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kitetsu_levels.c
@@ -166,6 +166,11 @@ add_library(ngb_gen OBJECT ${RECOMP_GEN_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/save_slots.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/quick_select.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main_menu.c
+    # The Hurricane x2.1 build: hand-written for its patched-in code.
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_hint.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_flags.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_zh.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_zh_data.c
     # The Direct3D hooks (docs/renderer.md, tools/take_d3d.py).
     ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d/d3d.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cheats.c
@@ -292,9 +297,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${XBOXRECOMP_DIR}/src
 )
 
+# Hurricane: the program's name says which disc it is for (user 2026-10-17)
+set(NGB_EXE_NAME ngb-hurricane-zh-x2.1)
 if(WIN32)
     # A GUI program (no console window); main() attaches to a parent console.
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME NinjaGaidenBlack
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${NGB_EXE_NAME}
                           WIN32_EXECUTABLE TRUE)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         winmm dbghelp comdlg32 comctl32 shell32 ole32)
@@ -314,7 +321,7 @@ elseif(ANDROID)
     target_include_directories(${PROJECT_NAME} PRIVATE ${NGB_ADRENOTOOLS_INCLUDE})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${NGB_ADRENOTOOLS} ${NGB_LINKERNSBYPASS})
 else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME NinjaGaidenBlack)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${NGB_EXE_NAME})
     # -rdynamic: the crash handler names the faulting sub_XXXXXXXX via dladdr.
     target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS} m)

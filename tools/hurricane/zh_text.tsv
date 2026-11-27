@@ -1,0 +1,287 @@
+ctx	en	zh	use
+# The recomp's own text in Chinese, shown when the game's text language is the Japanese column (Hurricane x2.1: Chinese).
+# ctx: "" = everywhere; "cat" = the pause page's category strip. use: E = also the game's text table (src/pc_menu.c,
+# src/main_menu.c: encoded with x2.1's charmap, every character must be in it), P = our own drawing only (embedded font).
+# Terms follow the x2.1 glossary (精魂, 忍法, 黄金圣甲虫, 服装, 风驱, 强攻击, 防御, 飞行道具, 业力, 开/关, 是/否).
+# --- main menu (src/main_menu.c)
+	RECOMP SETTINGS	重编设置	E
+	EXIT GAME	退出游戏	E
+# --- RECOMP SETTINGS and Screen Settings pages, the game's own menu (src/pc_menu.c)
+	PC Settings	重编设置	E
+	Render Resolution	渲染分辨率	E
+	Anisotropic Filtering	纹理过滤	E
+	Anti-Aliasing (MSAA)	抗锯齿	E
+	Smooths the edges of the 3D; 2x to 8x samples a pixel.	多重采样抗锯齿（MSAA），平滑3D画面边缘	E
+	Off	关	E
+	On	开	P
+	Shadow Resolution	阴影分辨率	E
+	Display	显示模式	E
+	V-Sync	垂直同步	E
+	Show FPS	显示帧率	E
+	Native (1x)	原生（1倍）	E
+	Smooth	平滑	E
+	Original	原版	E
+	Fullscreen	全屏	E
+	Windowed	窗口	E
+	Adaptive	自适应	E
+	Borderless	无边框	E
+	Aspect Ratio	画面比例	E
+	The shape of the picture and the window sizes offered.	画面比例，以及可选的窗口大小	E
+	Window Size	窗口大小	E
+	The size of the window when not full screen.	非全屏时的窗口大小	E
+	Graphics and display settings of the PC version.	重编版的图形与显示设置	E
+	Sets the resolution the game is drawn at.	设置游戏画面的渲染分辨率	E
+	Keeps textures sharp at an angle; Off is the console's filtering.	各向异性过滤：远处与侧面的纹理更清晰，关为原版	E
+	Sets the resolution of the character shadows.	设置角色阴影的分辨率	E
+	A window, the whole screen, or a window without a frame.	窗口、全屏或无边框窗口	E
+	No tearing. Mailbox: least delay. FIFO: steadiest. Adaptive: a late frame goes at once.	画面与刷新同步。Mailbox：延迟最低，FIFO：最稳定，自适应：迟到的帧立即显示	E
+	Shows the frame rate in a corner of the screen.	在画面一角显示帧率	E
+	Skip Intros	跳过片头	E
+	Settings at Startup	启动时设置	E
+	Yes	是	E
+	No	否	E
+	Starts at the title screen, from the next start.	下次启动起直接进入标题画面	E
+	Shows the settings screen before the game, from the next start.	下次启动起，在游戏前显示设置画面	E
+	Render resolution, texture filtering, anti-aliasing, shadows and the glow.	渲染分辨率、纹理过滤、抗锯齿、阴影与泛光	E
+	Aspect ratio, window size, display mode, V-Sync, the FPS counter, the HUD and the intros.	画面比例、窗口大小、显示模式、垂直同步、帧率、界面显示与片头。	E
+	HUD	界面显示	E
+	The health and Ninpo bar, weapons and the rest drawn over play. Off: a clear screen.	游戏中叠加在画面上的体力与忍法条、武器等。关：画面干净	E
+	Positional Audio	立体声定位	E
+	Audio Output	声道	E
+	Speakers. Auto: 5.1 when the output device has 5.1 or 7.1 channels, else stereo. From the next start.	自动：输出设备有5.1或7.1声道时用5.1，否则用立体声。下次启动起生效	E
+	Auto	自动	E
+	Stereo	立体声	E
+	Sounds placed left and right. Console: the sound chip's filters. Panning: their placement only, clearer.	把声音分到左右。主机原版：经过音效芯片的滤波。声像：只保留定位，声音更清晰	E
+	Console	主机原版	E
+	Panning	声像	E
+	Toggle HUD	切换界面显示	P
+	Shows or hides the HUD (Display > HUD). Not bound unless chosen.	显示或隐藏界面（显示 → 界面显示）。默认不绑定	P
+	Positional audio and the speakers.	立体声定位与声道。	E
+	Returns to the Recomp Settings screen.	返回重编设置画面	E
+	Infinite Health	无限体力	E
+	Infinite Ninpo	无限忍法	E
+	Infinite Essence	无限精魂	E
+	Ryu's health stays full. For this session only.	龙的体力始终全满。仅本次有效	E
+	Ninpo is always ready. For this session only.	忍法随时可用。仅本次有效	E
+	As much essence as can be held. For this session only.	精魂保持在持有上限。仅本次有效	E
+	Help for a hard spot: health, ninpo, essence, items and projectiles. Not saved.	难关助力：体力、忍法、精魂、道具与飞行道具。不会保存	E
+	All Difficulties	全部难度	E
+	Every difficulty at New Game, Ninja Dog to Master Ninja.	新游戏可选全部难度，从忍犬到超忍	E
+	Golden Scarabs	黄金圣甲虫	E
+	All 50 Golden Scarabs: Muramasa gives every reward. For this session only.	全部50只圣甲虫，可领村正全部宝物。仅本次有效	E
+	All Costumes	全部服装	E
+	Every costume at the Costume Selection, and three it never offers.	服装选择提供全部服装，另加三套隐藏服装	E
+	Extra Costume	隐藏服装	E
+	Costumes in the game's files it never offers. From the next area.	游戏文件中未开放的服装。从下一区域起生效	E
+	Game's Choice	游戏默认	E
+	Extra 1	隐藏1	E
+	Extra 2	隐藏2	E
+	Extra 3	隐藏3	E
+	The keys, mouse buttons and controller buttons used in play.	游戏中使用的各种操作按键	E
+	Smoother Glow	柔和泛光	E
+	A softer, fainter glow on bright lights. Off: the console's.	亮光的泛光更柔和、更淡。关：主机原版	E
+	Lower Detail Under Load	高负载时降低画质	E
+	Eases off detail when busy, as on the Xbox; Ryu's shadow may flicker.	负载高时降低画质（与Xbox相同），龙的影子可能闪烁	E
+	Unlocks	解锁	E
+	Every weapon, at its highest level. Turned off, they are taken back.	全部武器，均为最高等级。关闭后收回	E
+	Difficulties, costumes and the main menu's extras (saved); weapons, armlets and scrolls (this session).	难度、服装与主菜单的附加项目（会保存）。武器、腕轮与秘传书（仅本次有效）	E
+	Responsive Menus	即时反应	E
+	Start at the title, in a cutscene's opening wait and after equipping in the pause menu works at once.	标题画面、过场开头的等待和暂停菜单装备后，按开始键立即生效	E
+	All Armlets	全部腕轮	E
+	Every armlet and band. Turned off, they are taken back.	全部腕轮与结。关闭后收回	E
+	All Scrolls	全部秘传书	E
+	The Izuna Drop, Counter Attack and Guillotine Throw scrolls. Turned off, they are taken back.	饭纲落、化劲之法、斩首投的秘传书。关闭后收回	E
+	One Hit Kill	一击必杀	E
+	Any hit that hurts an enemy or a boss kills it. For this session only.	任何对敌人或头目造成伤害的一击都会直接击杀。仅本次有效	E
+	Missions	任务模式	E
+	MISSIONS in the main menu without earning it.	主菜单的任务模式无需达成条件直接开放	E
+	Arcade Ninja Gaiden	街机版	E
+	ARCADE NINJA GAIDEN in the main menu without earning it.	主菜单的街机版忍者龙剑传无需达成条件直接开放	E
+	Movie Theater	影像鉴赏	E
+	MOVIE THEATER in the main menu without earning it.	主菜单的影像鉴赏无需达成条件直接开放	E
+	Quick Menu	快速菜单	E
+	A d-pad menu of weapons, Ninpo and items (Up and Down open it), at this size.	用十字键选择武器、忍法与道具的菜单（按上或下打开），以此大小显示	E
+	Quick Menu Pause	快速菜单暂停	E
+	The game pauses while the quick menu is open (once Ryu's action ends).	打开快速菜单时游戏暂停（龙的动作结束后）	E
+	Infinite Items	无限道具	E
+	Infinite Projectiles	无限飞行道具	E
+	Healing items, the Talisman of Rebirth and the jewels (Demon Seal, Life of the Gods, Spirit of the Devils...)\nare not used up. For this session only.	恢复道具、还魂护符与各种珠（魄封珠、神命珠、鬼神珠等）不会消耗。\n仅本次有效	E
+	Healing items, the Talisman of Rebirth and the Jewel of the Demon Seal are not used up.	恢复道具、还魂护符与魄封珠不会消耗。	P
+	For this session only.	仅本次有效	P
+	Shuriken, smoke bombs, arrows and spears are not used up. For this session only.	手里剑、烟玉、箭与水中枪的鱼叉不会消耗。仅本次有效	E
+# --- the pause menu's Settings tab (src/pause_tab.c)
+cat	Graphics	图形	P
+cat	Display	显示	P
+cat	Sound	音效	P
+cat	Cheats	作弊	P
+cat	Gameplay	玩法	P
+cat	Controls	按键	P
+	FPS Counter	帧率显示	P
+	Draws the game at a multiple of the console's resolution.	以主机分辨率的整数倍渲染游戏画面	P
+	Keeps textures sharp at an angle. Off: the console's filtering.	各向异性过滤：远处与侧面的纹理更清晰。关：主机原版	P
+	The detail of the characters' shadows; 1x is the console's.	角色阴影的精度，1x 为主机原版	P
+	Frames per second, in the corner of the screen.	在画面一角显示每秒帧数	P
+	Starts at the title screen. From the next start.	直接从标题画面开始。下次启动起生效	P
+	The settings screen before the game. From the next start.	在游戏前显示设置画面。下次启动起生效	P
+	Smooths the edges of the 3D: 2x to 8x samples a pixel.	多重采样抗锯齿（MSAA），平滑3D画面边缘	P
+	All 50: Muramasa gives every reward. For this session only.	全部50只：可领村正全部宝物。仅本次有效	P
+	Costumes in the game it never offers. From the next area.	游戏中未开放的服装。从下一区域起生效	P
+	1x (console)	1x（主机）	P
+	Keyboard / Mouse	键盘 / 鼠标	P
+	Controller	控制器	P
+	Default Controls	恢复默认按键	P
+	Camera Sensitivity	镜头灵敏度	P
+	How fast the right stick and the mouse turn the camera (play only).	右摇杆与鼠标转动镜头的速度（仅限游戏中）	P
+	Already full	已达上限	P
+	Press a button	请按按键	P
+	Press a key	请按按键	P
+	R Stick	右摇杆	P
+	L Stick	左摇杆	P
+	Press the controller's button (wait to cancel).	请按下控制器按键（稍等即取消）	P
+	Press 1 or 2	请按 1 或 2 个键	P
+	Press a button, or two together for a pair (wait to cancel).	请按下一个按键，或同时按两个键设为组合（稍等即取消）	P
+	B: change   Y / Delete: clear   (play only; the menus keep theirs)	B：更改　Y / Delete：清除（仅限游戏操作，菜单按键不变）	P
+	Start+Back Reset	开始+返回 回标题	P
+	Holding Start and Back (Select) goes back to the title screen. Off: the game ignores it.	同时按住开始键与 Back（Select）键回到标题画面。关：游戏不理会这个组合	P
+	Press a key or mouse button (Esc cancels).	请按下键盘或鼠标按键（Esc 取消）	P
+	Every action as it was.	所有操作恢复为默认按键	P
+	A: change   X / Delete: clear   (play only; the menus keep theirs)	A：更改　X / Delete：清除（仅限游戏操作，菜单按键不变）	P
+	Controls	按键设置	P
+	EXTRA 1	隐藏 1	P
+	EXTRA 2	隐藏 2	P
+	EXTRA 3	隐藏 3	P
+	EXTRA 4	隐藏 4	P
+	EXTRA 5	隐藏 5	P
+	EXTRA 6	隐藏 6	P
+	EXTRA 7	隐藏 7	P
+	EXTRA 8	隐藏 8	P
+	EXTRA 9	隐藏 9	P
+	Exit Game?	要退出游戏吗？	P
+	Return to the Main Menu?	要返回主菜单吗？	P
+	Return to Game	返回游戏	P
+	Return to Main Menu	返回主菜单	P
+	Exit Game	退出游戏	P
+	Closes this menu.	关闭此菜单	P
+	Back to the main menu. Unsaved progress is lost.	返回主菜单。未保存的进度将会丢失	P
+	Closes the game. Unsaved progress is lost.	关闭游戏。未保存的进度将会丢失	P
+# --- the controls (src/bindings.c): actions, their help, the mouse buttons
+	Attack	攻击	P
+	Special Attack	强攻击	P
+	Jump	跳跃	P
+	Projectile Weapon	飞行道具	P
+	Ninpo	忍法	P
+	Wind Run	风驱	P
+	Guard	防御	P
+	Center Camera	镜头移至后方	P
+	Display Map	地图显示	P
+	Karma Window On/Off	业力显示	P
+	Pause	暂停	P
+	Back	BACK键	P
+	Left Stick Button	左摇杆按键	P
+	Toggle Camera Mode	切换镜头模式	P
+	Move Forward	向前移动	P
+	Move Back	向后移动	P
+	Move Left	向左移动	P
+	Move Right	向右移动	P
+	Camera Up	镜头向上	P
+	Camera Down	镜头向下	P
+	Camera Left	镜头向左	P
+	Camera Right	镜头向右	P
+	D-Pad Up	十字键上	P
+	D-Pad Down	十字键下	P
+	D-Pad Left	十字键左	P
+	D-Pad Right	十字键右	P
+	A quick strike.	快速的攻击	P
+	A strong strike.	强力的攻击	P
+	Jump; at a wall, run along it.	跳跃；靠近墙壁时可沿墙奔跑	P
+	Throws the projectile weapon.	投掷飞行道具	P
+	Casts the ninpo (Special Attack and Projectile together).	施展忍法（强攻击与飞行道具同按）	P
+	Runs at the nearest enemy (Attack and Jump together).	冲向最近的敌人（攻击与跳跃同按）	P
+	Blocks; with a direction, rolls.	防御；加方向则翻滚	P
+	Turns the camera behind Ryu.	将镜头转到龙的身后	P
+	Shows the map.	显示地图	P
+	Shows or hides the karma window.	显示或隐藏业力窗口	P
+	The pause menu.	打开暂停菜单	P
+	The controller's Back button.	控制器的BACK键	P
+	The controller's left stick button.	手柄的左摇杆按键	P
+	Switches the right stick between turning the camera and looking in first person (the right stick's button).	右摇杆在转动镜头与第一人称观看之间切换（右摇杆按键）	P
+	Moves Ryu (the left stick).	移动龙（左摇杆）	P
+	Turns the camera (the right stick; the mouse too).	转动镜头（右摇杆，鼠标亦可）	P
+	The controller's directional pad.	控制器的十字键	P
+	Quick Menu: Category Up	快速菜单：上一类	P
+	Quick Menu: Category Down	快速菜单：下一类	P
+	Quick Menu: Previous	快速菜单：上一个	P
+	Quick Menu: Next	快速菜单：下一个	P
+	Quick Menu: Confirm	快速菜单：确定	P
+	Quick Menu: Cancel	快速菜单：取消	P
+	Opens Melee Weapons; while open, selects the previous category.	打开武器栏；菜单打开时选择上一类	P
+	Opens Consumables; while open, selects the next category.	打开道具栏；菜单打开时选择下一类	P
+	Opens the melee weapons on the card before; while open, selects the previous entry.	打开上一页的武器；菜单打开时选择上一项	P
+	Opens the melee weapons on the next card; while open, selects the next entry.	打开下一页的武器；菜单打开时选择下一项	P
+	Equips the selected weapon or Ninpo, or uses the selected item.	装备所选的武器或忍法，或使用所选的道具	P
+	Closes the quick menu without applying the selection.	关闭快速菜单，不应用所选项	P
+	Mouse Left	鼠标左键	P
+	Mouse Middle	鼠标中键	P
+	Mouse Right	鼠标右键	P
+	Mouse 4	鼠标侧键4	P
+	Mouse 5	鼠标侧键5	P
+# --- the settings over the game, F1 (src/ingame_menu.c; its rows' names from src/launcher.c)
+	Options	选项	P
+	Resume	继续游戏	P
+	Press again to quit	再按一次退出	P
+	Quit game	退出游戏	P
+	Aspect ratio	画面比例	P
+	Window size	窗口大小	P
+	Render resolution	渲染分辨率	P
+	Anisotropic filtering	纹理过滤	P
+	Anti-aliasing (MSAA)	抗锯齿	P
+	Shadow resolution	阴影分辨率	P
+	Skip intros and warnings	跳过片头与警告	P
+	Up/Down or mouse: choose    Left/Right or click: change    A / Enter: select    B / Esc / F1: resume	上/下或鼠标：选择　　左/右或点击：更改　　A / Enter：确定　　B / Esc / F1：继续游戏	P
+	Changes apply when you resume. Skip intros and the startup screen take effect next start.	继续游戏时应用更改。跳过片头与启动画面在下次启动时生效。	P
+	The resolution the game is drawn at: the console's 720x480 times this.	以主机 720x480 的倍数渲染。	E
+	Optional changes to how the game plays, each off unless chosen: the Quick Menu.	可选的玩法改动，未选择时均为关闭：快速菜单等	E
+	Resolution, texture filtering, anti-aliasing, shadows, the glow, and two options for slower PCs.	分辨率、纹理过滤、抗锯齿、阴影、泛光，以及两项适合低性能PC的选项	E
+	Help for a hard spot: health, ninpo, essence, items and projectiles. Not saved. And the unlocks.	难关助力：体力、忍法、精魂、道具与飞行道具（不保存），以及解锁	E
+	Button Prompts	按键提示	E
+# --- 0.9.40-0.9.44 (Multithreaded Renderer, Clear, All Weapons, Essence-Only Charging, Skip Any Cutscene)
+	The buttons the prompts show. Auto: whichever controller or keyboard is in use.	提示显示的按键。自动：跟随正在使用的手柄或键盘	P
+	Multithreaded Renderer	多线程渲染	E
+	Drawing on a thread of its own, for slower CPUs. May have bugs. Needs restart.	在独立线程中绘制画面，适合性能低的CPU。可能有问题，重启游戏后生效	E
+	Clear	清晰	E
+	Sounds placed left and right. Clear: by level only. Console: as the Xbox, duller. Mixed: between the two.	把声音分到左右。清晰：只按音量定位。主机原版：与Xbox相同，声音不够清晰。混合：在两者之间	E
+	Mixed	混合	E
+	Speakers. Auto: 5.1 when the output device has 5.1 or 7.1 channels, else stereo. Needs a restart of the game.	自动：输出设备有5.1或7.1声道时用5.1，否则用立体声。重启游戏后生效	E
+	All Weapons	全部武器	E
+	Essence-Only Charging	只用精魂蓄力	E
+	Holding attack no longer charges an Ultimate Technique: only absorbing essence does.	按住攻击不再蓄力绝技，只有吸收精魂才能蓄力	E
+	Skip Any Cutscene	跳过任何过场	E
+	Start skips any movie or in-game cutscene, watched before or not. Off: as on the Xbox.	按开始键可跳过任何影片与过场，不论是否看过。关：与Xbox相同	E
+	Cross: change   Square / Delete: clear   (play only; the menus keep theirs)	×：更改　□ / Delete：清除（仅限游戏操作，菜单按键不变）	P
+# --- 0.9.59-0.9.70 (HUD Style, HUD Aspect, Frame Interpolation)
+	HUD Style	HUD样式	E
+	HUD Aspect	HUD比例	E
+	Frame Interpolation	插帧	E
+	Compact	精简	E
+	Stretched	拉长	E
+	Corrected	修正	E
+	Full Rate	全速	E
+	Half Rate	半速	E
+	Healing items, talismans and jewels are not used up. For this session only.	恢复道具、还魂护符与各种珠不会消耗。仅本次有效	E
+	Compact: the health bar, weapon and karma window smaller and nearer the screen's corners.	精简：体力条、武器与业力窗口缩小，并靠近画面四角	E
+	Corrected: the HUD in its own shape on a wide screen, not stretched across it.	修正：HUD 保持原本比例，不随画面横向拉长	E
+	Experimental. Pictures between the game's frames, on a 120 Hz or faster display.	实验性功能。在游戏的帧之间插入画面，需要 120 Hz 以上的显示器	E
+# --- 0.9.71-0.9.74 (Bloom)
+	Bloom	泛光	E
+	Reduced	减弱	E
+	Original: the console's. Corrected: the same bloom, steady and even at any resolution. Off: none.	原版：与主机相同。修正：同样的泛光，在任何分辨率下都稳定一致。关：不显示	E
+# --- 0.9.75-0.9.82 (cheats question, All Weapons levels, Bloom, Positional Audio)
+	Do you want to use cheats?	要使用作弊吗？	P
+	Level 1	1级	E
+	Max Level	最高等级	E
+	Every weapon, at Level 1 or at its highest level, with its ammunition. Turned off, they are taken back.	全部武器，1级或最高等级，附带弹药。关闭后收回	E
+	The game's glow around bright things, steady and even at any resolution.	游戏中亮处周围的泛光，在任何分辨率下都稳定一致	E
+	Sounds placed around you. Console: as on the Xbox. Mixed: brighter, easier to place. Clear: by level only.	把声音分到四周。主机原版：与Xbox相同。混合：更明亮，更容易分辨方位。清晰：只按音量	E
+# --- 0.9.83-0.9.84 (Shuriken Icon)
+	Shuriken Icon	手里剑图标	E
+	On: the HUD shows the Shuriken or Windmill Shuriken when one is equipped.	开：装备手里剑或风车手里剑时，HUD 显示其图标	E

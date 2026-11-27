@@ -18,6 +18,8 @@
  * executable, or wherever NGB_GAME_DIR (or the first argument) points.
  */
 
+#include "hurricane_version.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #include <dbghelp.h>
@@ -679,17 +681,17 @@ static void save_dir_path(char *out, size_t n)
 #if defined(_WIN32)
     const char *base = getenv("LOCALAPPDATA");
     if (env && *env) { snprintf(out, n, "%s", env); return; }
-    snprintf(out, n, "%s/NinjaGaidenBlack", base && *base ? base : ".");
+    snprintf(out, n, "%s/" NGB_DATA_NAME, base && *base ? base : ".");
 #else
     const char *xdg = getenv("XDG_DATA_HOME"), *home = getenv("HOME");
     if (env && *env) { snprintf(out, n, "%s", env); return; }
     if (xdg && *xdg)
-        snprintf(out, n, "%s/NinjaGaidenBlack", xdg);
+        snprintf(out, n, "%s/" NGB_DATA_NAME, xdg);
     else
 #ifdef __APPLE__
         ngb_macos_dir(out, n, "saves", 1);
 #else
-        snprintf(out, n, "%s/.local/share/NinjaGaidenBlack", home && *home ? home : ".");
+        snprintf(out, n, "%s/.local/share/" NGB_DATA_NAME, home && *home ? home : ".");
 #endif
 #endif
 }
@@ -781,7 +783,11 @@ static void bringup_defaults(void)
      * plain memory, as other code reads them (an interrupt routine polls one). */
     if (!dsound_host_mixer()) {
         set_default("RECOMP_AC97_READY", "1");
-        set_default("RECOMP_DSP_ACK", "0x86BF8810");   /* contiguous memory starts at 64 MB */
+        /* contiguous memory starts at 64 MB. Hurricane x2.1: the game's heap (its first contiguous
+         * allocation) is 0x70000 bytes bigger than retail's (0x24E2000), so every block after it -- the
+         * mailbox's (DirectSound, 49152 bytes) too -- sits 0x70000 higher: measured with
+         * RECOMP_CONTIG_LOG, 0x86BF8000 in retail, 0x86C68000 here. */
+        set_default("RECOMP_DSP_ACK", "0x86C68810");
     } else if (getenv("RECOMP_AC97_READY")) {
         /* Left in the environment, it would unmap the chip's registers with no model behind them: the USB
          * interrupt routine's read of one (0xFE80200C) then faults at boot (#136). */
@@ -1328,13 +1334,13 @@ int main(int argc, char **argv)
                 xdg = getenv("LOCALAPPDATA");
 #endif
             if (xdg && *xdg)
-                snprintf(dir, sizeof dir, "%s/NinjaGaidenBlack/shaders", xdg);
+                snprintf(dir, sizeof dir, "%s/" NGB_DATA_NAME "/shaders", xdg);
             else if (home && *home) {
 #ifdef __APPLE__
                 ngb_macos_dir(dir, sizeof dir - 32, "cache", 1);
-                strcat(dir, "/NinjaGaidenBlack/shaders");
+                strcat(dir, "/" NGB_DATA_NAME "/shaders");
 #else
-                snprintf(dir, sizeof dir, "%s/.cache/NinjaGaidenBlack/shaders", home);
+                snprintf(dir, sizeof dir, "%s/.cache/" NGB_DATA_NAME "/shaders", home);
 #endif
             } else
                 dir[0] = 0;
@@ -1410,16 +1416,10 @@ int main(int argc, char **argv)
     /* The text's language, which the game takes from the dashboard's at boot (#236): settings.ini's text_language,
      * else the system's first preferred language -- Japanese on a Japanese system, as on a Japanese console. The
      * disc has English and Japanese text only. */
-    {
-        int ja = cfg.text_language == 2;
-        if (cfg.text_language == 0) {
-            SDL_Locale *loc = SDL_GetPreferredLocales();
-            ja = loc && loc[0].language && !strcmp(loc[0].language, "ja");
-            SDL_free(loc);
-        }
-        xbox_XcLanguage = ja ? 2 : 1;
-        fprintf(stderr, "Text language: %s%s\n", ja ? "Japanese" : "English", cfg.text_language ? "" : " (the system's)");
-    }
+    /* Hurricane: not taken (user 2026-11-18) -- x2.1 sets the text to Chinese at every boot whatever the dashboard
+     * says (localization docs/17 section 7), and every build so far answered English; the dashboard stays English. */
+    xbox_XcLanguage = 1;
+    (void)cfg.text_language;
 #else
     {
         const char *ws = getenv("NGB_WIDESCREEN");
@@ -1438,7 +1438,7 @@ int main(int argc, char **argv)
 #endif
 #if defined(NGB_NV2A_VK)
     if (s_use_gpu && !s_headless &&
-        nv2a_window_create("Ninja Gaiden Black", cfg.width, cfg.height,
+        nv2a_window_create(NGB_WINDOW_TITLE, cfg.width, cfg.height,
                            cfg.fullscreen, ngb_settings_aspect_ratio(&cfg),
                            cfg.vsync) != 0) {
         fprintf(stderr, "Cannot open the game window.\n");

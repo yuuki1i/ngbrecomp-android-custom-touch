@@ -20,6 +20,7 @@
  * memory) to <dir>/contig_<n>.bin (the file is removed after).
  */
 #define RECOMP_GENERATED_CODE
+#include "hurricane_version.h"   /* NGB_DATA_NAME */
 #include "recomp_funcs.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -336,8 +337,10 @@ loc_001543AF: ;
 
 loc_001543B7: ;
     ebp = edx;
-    MEM8(edx * 4 + 0x5891D2) = 0;
-    MEM16(edx * 4 + 0x5891D0) = LO16(eax);
+    /* Hurricane x2.1 (localization docs/32): a new entry written as a dword, which also clears its fourth byte
+     * (the Talisman of Rebirth switch), as the x2.1 lift has it */
+    ecx = ZX16(LO16(eax));
+    MEM32(edx * 4 + 0x5891D0) = ecx;
 
 loc_001543C9: ;
     edx = ebp * 4;
@@ -1487,7 +1490,7 @@ static void pos_tick(void)
         char path[1024];
         const char *dir = getenv("NGB_SAVE_DIR"), *home = getenv("HOME");
         if (dir) snprintf(path, sizeof path, "%s/ngb_positions.txt", dir);
-        else snprintf(path, sizeof path, "%s/.local/share/NinjaGaidenBlack/ngb_positions.txt", home ? home : ".");
+        else snprintf(path, sizeof path, "%s/.local/share/" NGB_DATA_NAME "/ngb_positions.txt", home ? home : ".");
         FILE *f = fopen(path, "a");
         if (f) {
             fprintf(f, "%.3f %.3f %.3f\n", MEMF(0x4B5710), MEMF(0x4B5714), MEMF(0x4B5718));
@@ -1523,15 +1526,17 @@ static void pos_tick(void)
 
 void ngb_aspect_frame_end(void);   /* src/pc_menu.c */
 
+void ngb_zh_font_tick(void);   /* src/hurricane_zh.c */
+
 void ngb_frame_tick(void)
 {
+    ngb_zh_font_tick();
     { extern void ngb_menu_frame(void); ngb_menu_frame(); }   /* src/menu_mouse.c: the frames, for the controls */
     { extern void ngb_tab_game_frame(void); ngb_tab_game_frame(); }   /* src/ingame_menu.c: the pause tab's page (#261) */
     { extern void ngb_camera_frame(void); ngb_camera_frame(); }   /* src/camera.c: which view the stick turns */
     { extern void ngb_quick_tick(void); ngb_quick_tick(); }
     { extern void ngb_render_list_frame(void); ngb_render_list_frame(); }   /* src/render_list.c: its nodes back */
     pos_tick();
-    { extern void ngb_intercept_frame(void); ngb_intercept_frame(); }   /* src/intercept.c: Ryu's Intercept moves */
     { extern void ngb_ut_charge_frame(void); ngb_ut_charge_frame(); }   /* src/ut_charge.c: Essence-Only Charging */
     { extern void ngb_responsive_frame(void); ngb_responsive_frame(); }   /* src/responsive.c: Responsive Menus */
     { extern void ngb_fps_tick(void); ngb_fps_tick(); }   /* src/fps_text.c: the frame counter's lettering */
@@ -1692,132 +1697,8 @@ void sub_001DB520(void)
     game_flag();
 }
 
-/* Talisman of Rebirth (Gameplay, setting 43): sub_002FD3E0 is asked, as Ryu's health reaches 0, whether he
- * dies (al 1); with a Talisman of Rebirth (item 0xFB, counted by sub_001542C0) it brings him back
- * (sub_002FD470) and takes one away (al 0). Off: never used, Ryu dies with them kept. */
-int ngb_pc_setting(int which);
-
-/**
- * sub_002FD3E0
- * Original: 0x002FD3E0 - 0x002FD46A (138 bytes, 55 insns)
- * CC: cdecl, 0 params, returns int_or_void
- * Frame: fpo_leaf
- */
-void sub_002FD3E0(void)
-{
-    RECOMP_ENTRY(0x002FD3E0u);
-    int _flags = 0; /* fallback flag var */
-    uint32_t _fa = 0, _fb = 0;
-    int32_t _fas = 0, _fbs = 0;
-    (void)_fa; (void)_fb; (void)_fas; (void)_fbs;
-
-loc_002FD3E0: ;
-    PUSH32(esp, ebx);
-    PUSH32(esp, esi);
-    esi = eax;
-    ecx = esi;
-    _fb = (uint32_t)(0x4B4E50) & 0xFFFFFFFFu; _fbs = (int32_t)(int32_t)(_fb); /* sub source, before the write */
-    ecx = ecx - 0x4B4E50;
-    _fa = (uint32_t)(ecx) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* sub result */
-    eax = 0x66666667;
-    { int64_t _r = (int64_t)(int32_t)eax * (int64_t)(int32_t)ecx;
-      eax = (uint32_t)_r; edx = (uint32_t)(_r >> 32); _fa = eax; _fas = (int32_t)eax; _fb = (_r != (int64_t)(int32_t)_r); }
-    edx = (uint32_t)(((int32_t)(int32_t)(edx)) >> ((0xC) & 31u));
-    _fa = (uint32_t)(edx) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* sar result */
-    eax = edx;
-    eax = eax >> 0x1F;
-    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* shift result */
-    _fb = (uint32_t)(edx) & 0xFFFFFFFFu; _fbs = (int32_t)(int32_t)(_fb); /* add source, before the write */
-    eax = eax + edx;
-    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* add result */
-    SET_LO8(ebx, 1);
-    if ((_fas < 0)) goto loc_002FD465; /* js: sign (negative) */
-
-loc_002FD401: ;
-    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fb = (uint32_t)(0x40) & 0xFFFFFFFFu;
-    _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp eax, 0x40 (32-bit) */
-    if (CMP_GE(_fas, _fbs)) goto loc_002FD465; /* jge: greater or equal (signed >=) */
-
-loc_002FD406: ;
-    PUSH32(esp, edi);
-    edi = ZX8(MEM8(esi + 0x27F0));
-    { int64_t _r = (int64_t)(int32_t)(edi) * (int64_t)(int32_t)(0x210);
-      edi = (uint32_t)_r;
-      _fa = (uint32_t)_r & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); _fb = (_r != (int64_t)(int32_t)_r); } /* imul */
-    _fb = (uint32_t)(0x58A3A0) & 0xFFFFFFFFu; _fbs = (int32_t)(int32_t)(_fb); /* add source, before the write */
-    edi = edi + 0x58A3A0;
-    _fa = (uint32_t)(edi) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* add result */
-    SET_LO8(ecx, MEM8(edi + 0x1F4));
-    _fa = (uint32_t)(LO8(ecx)) & 0xFFu; _fb = (uint32_t)(0) & 0xFFu;
-    _fas = (int32_t)(int8_t)(_fa); _fbs = (int32_t)(int8_t)(_fb); /* cmp LO8(ecx), 0 (8-bit) */
-    if (CMP_NE(_fa, _fb)) goto loc_002FD42A; /* jne: not equal / not zero */
-
-loc_002FD424: ;
-    POP32(esp, edi);
-    POP32(esp, esi);
-    SET_LO8(eax, 1);
-    POP32(esp, ebx);
-    esp += 4; return; /* ret */
-
-loc_002FD42A: ;
-    _fa = (uint32_t)(MEM16(edi + 0x1C6)) & 0xFFFFu; _fb = (uint32_t)(0) & 0xFFFFu;
-    _fas = (int32_t)(int16_t)(_fa); _fbs = (int32_t)(int16_t)(_fb); /* cmp MEM16(edi + 0x1C6), 0 (16-bit) */
-    if (CMP_BE(_fa, _fb)) goto loc_002FD43A; /* jbe: below or equal (unsigned <=) */
-
-loc_002FD434: ;
-    POP32(esp, edi);
-    POP32(esp, esi);
-    SET_LO8(eax, 0); /* xor self */
-    _fa = (uint32_t)(LO8(eax)) & 0xFFu; _fas = (int32_t)(int8_t)(_fa); /* xor result */
-    POP32(esp, ebx);
-    esp += 4; return; /* ret */
-
-loc_002FD43A: ;
-    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fb = (uint32_t)(0) & 0xFFFFFFFFu;
-    _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp eax, 0 (32-bit) */
-    if (CMP_NE(_fa, _fb)) goto loc_002FD424; /* jne: not equal / not zero */
-
-loc_002FD43E: ;
-    esi = 0xFB;
-    if (!ngb_pc_setting(43))                     /* Talisman of Rebirth Off: as if none were had -- Ryu dies */
-        goto loc_002FD45F;                       /* (bl still 1: dead) */
-    PUSH32(esp, 0x002FD448u); RECOMP_ABI_CALL(0x001542C0u, sub_001542C0); /* call 0x001542C0 */
-
-loc_002FD448: ;
-    _fa = (uint32_t)(eax) & 0xFFFFFFFFu; _fb = (uint32_t)(0) & 0xFFFFFFFFu;
-    _fas = (int32_t)(int32_t)(_fa); _fbs = (int32_t)(int32_t)(_fb); /* cmp eax, 0 (32-bit) */
-    if (CMP_EQ(_fa, _fb)) goto loc_002FD45F; /* je: equal / zero */
-
-loc_002FD44C: ;
-    ecx = edi;
-    PUSH32(esp, 0x002FD453u); RECOMP_ABI_CALL(0x002FD470u, sub_002FD470); /* call 0x002FD470 */
-
-loc_002FD453: ;
-    ebx = ebx | 0xFFFFFFFFu;
-    _fa = (uint32_t)(ebx) & 0xFFFFFFFFu; _fas = (int32_t)(int32_t)(_fa); /* or result */
-    eax = esi;
-    { uint32_t _icall_esp = g_esp;
-    PUSH32(esp, 0x002FD45Du); RECOMP_ICALL_SAFE(0x00154300u, _icall_esp); /* manual call 0x00154300 */
-    }
-
-loc_002FD45D: ;
-    SET_LO8(ebx, 0); /* xor self */
-    _fa = (uint32_t)(LO8(ebx)) & 0xFFu; _fas = (int32_t)(int8_t)(_fa); /* xor result */
-
-loc_002FD45F: ;
-    POP32(esp, edi);
-    POP32(esp, esi);
-    SET_LO8(eax, LO8(ebx));
-    POP32(esp, ebx);
-    esp += 4; return; /* ret */
-
-loc_002FD465: ;
-    POP32(esp, esi);
-    SET_LO8(eax, 1);
-    POP32(esp, ebx);
-    esp += 4; return; /* ret */
-
-}
+/* (Upstream's Talisman of Rebirth, a hand-written sub_002FD3E0, is not taken: x2.1 patches that function's call
+ * at 0x2FD443 for its own talisman switch, so it is lifted from x2.1's XBE. User 2026-11-16.) */
 
 
 /* Muramasa's scarab rewards (#247): the next one due, or 0x18A for none. Each reward in the table (4 bytes: the

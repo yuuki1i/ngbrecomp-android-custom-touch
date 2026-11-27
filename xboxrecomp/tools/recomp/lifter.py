@@ -436,7 +436,7 @@ _EFLAGS_PRESERVE = frozenset({
     "loop", "loope", "loopne",
     # pushfd READS the flags and leaves them alone, so it belongs here.
     # popfd does NOT -- see _FLAGS_UNDEFINED.
-    "pushfd", "pushal",
+    "pushfd", "pushal", "popal",   # popad restores registers only, never EFLAGS
     "sgdt", "ljmp", "sfence",
     # SSE scalar float
     "movss", "movsd",
@@ -1509,17 +1509,8 @@ class Lifter:
             return self._lift_push(insn, ops)
         if m == "pop":
             return self._lift_pop(insn, ops)
-        # PUSHAD/POPAD (capstone: pushal/popal): the eight registers, esp as it was before the first
-        # push; POPAD skips the saved esp. Hand-written assembly saves everything this way (Ninja Gaiden
-        # Black's arcade program: its CPU emulator's entry); as no-ops its registers came back wrong.
-        if m in ("pushal", "pushad"):
-            return ["{ uint32_t _sp0 = esp;",
-                    "  PUSH32(esp, eax); PUSH32(esp, ecx); PUSH32(esp, edx); PUSH32(esp, ebx);",
-                    "  PUSH32(esp, _sp0); PUSH32(esp, ebp); PUSH32(esp, esi); PUSH32(esp, edi); }"]
-        if m in ("popal", "popad"):
-            return ["{ uint32_t _skip;",
-                    "  POP32(esp, edi); POP32(esp, esi); POP32(esp, ebp); POP32(esp, _skip);",
-                    "  POP32(esp, ebx); POP32(esp, edx); POP32(esp, ecx); POP32(esp, eax); (void)_skip; }"]
+        if m in ("pushal", "popal", "pushfd", "popfd"):
+            return self._lift_push_pop_all(m)
 
         # ── Arithmetic ──
         if m in ("add", "sub", "and", "or", "xor"):
@@ -2013,6 +2004,25 @@ class Lifter:
             return [f"POP32(esp, {r});"]
         else:
             return [f"{{ uint32_t _tmp; POP32(esp, _tmp); {_fmt_operand_write(ops[0], '_tmp')} }}"]
+
+    def _lift_push_pop_all(self, m):
+        """pushad / popad / pushfd / popfd. Compiled game code has none of them, but patched-in code does:
+        a hook that saves everything (pushfd; pushad ... popad; popfd; ret). Left to RECOMP_UNIMPL they were
+        skipped, so the [esp+n] accesses between them hit the caller's frame and popad restored nothing.
+        pushad: eax ecx edx ebx, esp as it was before the pushes, ebp esi edi; popad pops them back in reverse,
+        dropping the saved esp. pushfd / popfd keep the stack shape only: flags are each lifted function's own
+        locals, so a callee's popfd has nothing of the caller's to restore, and after popfd the flags are
+        unknown to the tracker (_FLAGS_UNDEFINED). The pushed word is 0x202 (IF and the always-set bit 1)."""
+        if m == "pushal":
+            return ["{ uint32_t _pa_sp = esp; PUSH32(esp, eax); PUSH32(esp, ecx); PUSH32(esp, edx); "
+                    "PUSH32(esp, ebx); PUSH32(esp, _pa_sp); PUSH32(esp, ebp); PUSH32(esp, esi); "
+                    "PUSH32(esp, edi); } /* pushad */"]
+        if m == "popal":
+            return ["POP32(esp, edi); POP32(esp, esi); POP32(esp, ebp); esp += 4; "
+                    "POP32(esp, ebx); POP32(esp, edx); POP32(esp, ecx); POP32(esp, eax); /* popad */"]
+        if m == "pushfd":
+            return ["PUSH32(esp, 0x202u); /* pushfd: flags are not materialised */"]
+        return ["esp += 4; /* popfd: flags unknown afterwards */"]
 
     # ── ALU binary operations ──
 
@@ -4224,7 +4234,47 @@ def lift_basic_block(lifter, bb, flag_state=None):
                 if zf:
                     stmts.append(f"_flags = ({zf[0]}) ? 1 : 0;"
                                  " /* ZF in: a zero count keeps it */")
-        stmts.extend(results)
+        # A function that returns its flags (--flags-out: its last compare is the answer, e.g.
+        # `test ecx, ecx; popad; ret`, where redoing the compare in the caller would test the restored
+        # register): publish the compare's snapshot before each ret, for the caller to take back.
+        flags_out = getattr(lifter, "flags_out", {})
+        if curr.is_ret and lifter.func_start in flags_out:
+            stmts.append("g_flags_out_fa = _fa; g_flags_out_fb = _fb; g_flags_out_fas = _fas; "
+                         "g_flags_out_fbs = _fbs; /* flags out (--flags-out) */")
+        # A call whose callee reads the caller's ebp (--ebp-to-callee: patched-in code reading [ebp+n] of an
+        # FPO caller, whose ebp is a plain register here, not the frame the callee inherits through
+        # g_ebp / g_seh_ebp): the caller's ebp is the callee's for the call, the inherited ones put back after.
+        ebp_callee = getattr(lifter, "ebp_to_callee", {}).get(curr.address) if curr.is_call else None
+        if ebp_callee is not None:
+            if curr.call_target != ebp_callee:
+                raise SystemExit(f"--ebp-to-callee 0x{curr.address:08X}: calls "
+                                 f"0x{(curr.call_target or 0):08X}, not 0x{ebp_callee:08X}")
+            stmts.append("{ uint32_t _ebp_in = g_ebp, _seh_in = g_seh_ebp; g_ebp = g_seh_ebp = ebp; "
+                         "/* the caller's ebp for the callee (--ebp-to-callee) */")
+            stmts.extend(results)
+            stmts.append("g_ebp = _ebp_in; g_seh_ebp = _seh_in; }")
+        else:
+            stmts.extend(results)
+        if curr.is_call and curr.call_target in flags_out:
+            out_insn = flags_out[curr.call_target]
+            stmts.append(f"_fa = g_flags_out_fa; _fb = g_flags_out_fb; _fas = g_flags_out_fas; "
+                         f"_fbs = g_flags_out_fbs; /* flags as 0x{curr.call_target:08X} returned them: "
+                         f"{out_insn.mnemonic} {out_insn.op_str} */")
+            last_flag_setter, last_flag_ops = normalise_zero_test(out_insn.mnemonic, list(out_insn.operands))
+            i += 1
+            continue
+
+        # A call whose callee hands its flags back (patched-in code that ends `cmp ...; ret` for the
+        # caller's jcc): flags are each lifted function's own, so redo the callee's last compare here,
+        # from the registers and memory it left (--flags-after-call; cmp/test only, which change nothing).
+        after = getattr(lifter, "flags_after_call", {}).get(curr.address) if curr.is_call else None
+        if after is not None:
+            stmts.append(f"/* flags as 0x{curr.address:08X}'s callee left them: {after.mnemonic} "
+                         f"{after.op_str} */")
+            stmts.extend(lifter.lift_instruction(after))
+            last_flag_setter, last_flag_ops = normalise_zero_test(after.mnemonic, list(after.operands))
+            i += 1
+            continue
 
         # Track flag-setting instructions
         if (curr.mnemonic in _BARE_STRING_COMPARES
