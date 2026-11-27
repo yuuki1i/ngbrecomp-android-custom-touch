@@ -47,7 +47,7 @@ public class NgbSettingsMenu extends FrameLayout {
         "A 键", "B 键", "X 键", "Y 键", "LB", "RB", "LT", "RT", "返回", "开始",
         "左摇杆按下", "右摇杆按下", "不绑定",
     };
-    private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆整圈+Y"};
+    private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
     private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
 
     /* The picture, as the page's own words for it. */
@@ -69,7 +69,9 @@ public class NgbSettingsMenu extends FrameLayout {
 
     /* the pad, as the page reads and writes it */
     private float mAspect = 2.0f;
+    private int mStyle;            /* 0 hairline, 1 glass, 2 bold ring, 3 solid: the whole pad */
     private final float[] mX = new float[N], mY = new float[N], mR = new float[N], mAlpha = new float[N];
+    private final float[] mAsp = new float[N];
     private final int[] mColour = new int[N], mShape = new int[N], mAction = new int[N], mCombo = new int[N];
     private final boolean[] mShown = new boolean[N], mSkin = new boolean[N];
     private final boolean[] mIsButton = new boolean[N], mIsCombo = new boolean[N];
@@ -336,6 +338,15 @@ public class NgbSettingsMenu extends FrameLayout {
 
     private void buildPadRows() {
         addHead("按键");
+        addChoice("全部按键外观", "一套外观套在所有键上：细线 / 玻璃 / 粗边 / 实心。画面与按键两边同步。",
+                  new String[] {"细线", "玻璃", "粗边", "实心"}, mStyle, v -> {
+                      mStyle = v;
+                      pushPad();
+                  });
+        addChoice("菜单主题", "按键菜单（编辑器与设置页）自己的配色。", new String[] {"石墨", "暗青"},
+                  mActivity.getSharedPreferences("ngb_touch_editor", 0).getInt("menu_theme", 0), v -> {
+                      mActivity.getSharedPreferences("ngb_touch_editor", 0).edit().putInt("menu_theme", v).apply();
+                  });
         addChoice("这次改哪个键", "先选键，下面的每一项都是它的。", NAMES, mSel, v -> {
             mSel = v;
             mSub.setText("触控布局 · " + NAMES[mSel]);
@@ -367,7 +378,7 @@ public class NgbSettingsMenu extends FrameLayout {
             mAction[mSel] = v >= 12 ? -1 : v;
             pushPad();
         });
-        addChoice("组合键", "一次按下两个键（第 7 个是摇杆转整圈再按 Y）。", COMBOS, mCombo[mSel], v -> {
+        addChoice("组合键", "一次按下两个键。", COMBOS, mCombo[mSel], v -> {
             mCombo[mSel] = v;
             pushPad();
         });
@@ -575,6 +586,12 @@ public class NgbSettingsMenu extends FrameLayout {
                     } catch (Exception e) {
                     }
                 }
+                if (p.length >= 3) {
+                    try {
+                        mStyle = clamp(Integer.parseInt(p[2]), 0, 3);
+                    } catch (Exception e) {
+                    }
+                }
                 continue;
             }
             String[] p = line.split("\\s+");
@@ -594,6 +611,7 @@ public class NgbSettingsMenu extends FrameLayout {
                 mCombo[id] = clamp(Integer.parseInt(p[8]), 0, COMBOS.length - 1);
                 mShown[id] = Integer.parseInt(p[9]) != 0;
                 mSkin[id] = Integer.parseInt(p[10]) != 0;
+                if (p.length >= 12) { float av = Float.parseFloat(p[11]); mAsp[id] = av < 0.4f ? 0.4f : av > 4f ? 4f : av; }
             } catch (Exception e) {
             }
         }
@@ -603,12 +621,12 @@ public class NgbSettingsMenu extends FrameLayout {
 
     private void pushPad() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format(Locale.US, "V4 %.4f\n", mAspect));
+        sb.append(String.format(Locale.US, "V4 %.4f %d\n", mAspect, mStyle));
         for (int i = 0; i < N; i++)
-            sb.append(String.format(Locale.US, "%d %.5f %.5f %.5f %.5f %d %d %d %d %d %d\n", i, mX[i] / mAspect,
-                                    mY[i], mR[i], mAlpha[i], mColour[i], mShape[i],
+            sb.append(String.format(Locale.US, "%d %.5f %.5f %.5f %.5f %d %d %d %d %d %d %.3f\n", i,
+                                    mX[i] / mAspect, mY[i], mR[i], mAlpha[i], mColour[i], mShape[i],
                                     mIsButton[i] ? mAction[i] : -1, mCombo[i], mShown[i] ? 1 : 0,
-                                    mSkin[i] ? 1 : 0));
+                                    mSkin[i] ? 1 : 0, mAsp[i] > 0.35f ? mAsp[i] : 1f));
         try {
             mActivity.applyTouchLayout(sb.toString());
         } catch (Throwable e) {

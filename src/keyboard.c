@@ -170,17 +170,15 @@ int xbox_keyboard_map(const Uint8 *k, Uint32 mouse, XBOX_INPUT_STATE *st)
         for (int i = 0; i < 8; i++)
             if (t.Gamepad.bAnalogButtons[i] > st->Gamepad.bAnalogButtons[i])
                 st->Gamepad.bAnalogButtons[i] = t.Gamepad.bAnalogButtons[i];
-        /* (the menus take the pad as a pointer: the touch sticks press nothing there, or a stick left turned
-         * ran the menu's tab along until another touch reset it -- user 2026-11-27) */
-        if (!ngb_menu_up_controls()) {
-            if (tlx || tly) {
-                st->Gamepad.sThumbLX = tlx;
-                st->Gamepad.sThumbLY = tly;
-            }
-            if (trx || try_) {
-                st->Gamepad.sThumbRX = trx;
-                st->Gamepad.sThumbRY = try_;
-            }
+        /* (the touch sticks walk the menus as they always did: only the lift is cleared there, so a stick
+         * left turned cannot run the tab on -- see ngb_touch_event) */
+        if (tlx || tly) {
+            st->Gamepad.sThumbLX = tlx;
+            st->Gamepad.sThumbLY = tly;
+        }
+        if (trx || try_) {
+            st->Gamepad.sThumbRX = trx;
+            st->Gamepad.sThumbRY = try_;
         }
     }
 #endif

@@ -653,10 +653,15 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     (void)unused;
     /* Do not consume menu touches here: let SDL queue them so the
      * in-game menu can route them through its native hit-testing path. */
-    /* The menus take the touches themselves: one the controls never saw lifted -- a stick left turned under a
-     * finger that went up on a menu -- kept driving the menu's tab left and right until another touch reset it
-     * (user 2026-11-27). Every touch the menus take lets the controls go. */
-    if (ngb_menu_touch_blocked()) { clear_touch_state(); return 1; }
+    /* The menus take the touches themselves (their own hit-testing), and the controls must not press anything
+     * there. Only the lift is ours: a stick left turned under a finger that went up inside a menu kept driving
+     * the menu's tab left and right until another touch reset it -- and clearing everything on every touch
+     * left the pad's dpad unable to walk the menu at all, which read as the menu being frozen (user 2026-11-27). */
+    if (ngb_menu_touch_blocked()) {
+        if (ev->type == SDL_FINGERUP)
+            clear_touch_state();   /* (a finger up in a menu: nothing of the controls stays held) */
+        return 1;
+    }
     if(ev->type!=SDL_FINGERDOWN&&ev->type!=SDL_FINGERMOTION&&ev->type!=SDL_FINGERUP)return 0;
     if(ev->type!=SDL_FINGERUP&&xbox_InputControllerPresent())return 0;
     if(ev->type==SDL_FINGERDOWN&&!__atomic_load_n(&s_art_shown,__ATOMIC_ACQUIRE))return 0;

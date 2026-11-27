@@ -1,6 +1,7 @@
 package io.github.gamboozino.ngbrecomp;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -202,7 +203,7 @@ public class TouchLayoutEditor extends FrameLayout {
 
     private void applyThemeTo(View v) {
         if (v != null)
-            v.setBackground(glass(18, mTheme == 0 ? 0xE80E1014 : 0xE60A1A1E, 0x26FFFFFF, 1));
+            v.setBackground(glass(18, mTheme == 0 ? 0xB20E1014 : 0xB00A1A1E, 0x26FFFFFF, 1));
     }
 
     private int dp(float v) {
@@ -367,7 +368,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout top = new LinearLayout(mActivity);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setBackground(glass(18, 0xE80E1014, 0x26FFFFFF, 1));
+        top.setBackground(glass(18, mTheme == 0 ? 0xB20E1014 : 0xB00A1A1E, 0x26FFFFFF, 1));
         top.setPadding(dp(10), dp(8), dp(10), dp(8));
         FrameLayout.LayoutParams topParams =
             new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -391,27 +392,15 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(0, dp(40), 1f);
         menuParams.setMargins(dp(10), 0, dp(10), 0);
         top.addView(mMenu, menuParams);
-        Button theme = button("主题", 12, 0x26FFFFFF);
-        LinearLayout.LayoutParams themeParams = new LinearLayout.LayoutParams(dp(52), dp(40));
-        themeParams.setMargins(dp(6), 0, dp(6), 0);
-        top.addView(theme, themeParams);
-        theme.setOnClickListener(v -> {
-            mTheme = 1 - mTheme;
-            theme.setText(mTheme == 0 ? "主题·石墨" : "主题·暗青");
-            applyThemeTo(top);
-            if (mPanel != null)
-                mPanel.setBackground(glass(18, mTheme == 0 ? 0xF00D1014 : 0xF00A1A1E, 0x2EFFFFFF, 1));
-            mActivity.getSharedPreferences("ngb_touch_editor", 0).edit().putInt("menu_theme", mTheme).apply();
-        });
-        theme.setText(mTheme == 0 ? "主题·石墨" : "主题·暗青");
+        /* (the menu's own theme is chosen in the settings page outside, not here: user 2026-11-27) */
         Button save = button("保存", 14, 0x26FFFFFF);
         top.addView(save, new LinearLayout.LayoutParams(dp(72), dp(40)));
 
         /* ＋ 添加按键: one round button over the page, its list of controls a waterfall under it (no banner) */
         Button add = button("＋", 20, 0x33FFFFFF);
         FrameLayout.LayoutParams addParams = new FrameLayout.LayoutParams(dp(46), dp(46));
-        addParams.gravity = Gravity.TOP | Gravity.RIGHT;
-        addParams.setMargins(0, dp(58), dp(10), 0);
+        addParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+        addParams.setMargins(0, 0, dp(12), dp(14));
         add.setLayoutParams(addParams);
         add.setOnClickListener(v -> addControl());
 
@@ -439,7 +428,7 @@ public class TouchLayoutEditor extends FrameLayout {
         LinearLayout panel = new LinearLayout(mActivity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(12), dp(10), dp(12), dp(12));
-        panel.setBackground(glass(18, 0xF00D1014, 0x2EFFFFFF, 1));
+        panel.setBackground(glass(18, mTheme == 0 ? 0xF00D1014 : 0xF00A1A1E, 0x2EFFFFFF, 1));
         mPanel = panel;
 
         LinearLayout tools = new LinearLayout(mActivity);       /* the functions the master menu offers */
@@ -619,6 +608,10 @@ public class TouchLayoutEditor extends FrameLayout {
         TextView stretchTitle = label("拉长 / 宽度", 12, 0xC7B9C2D2, false);
         stretch.addView(stretchTitle);
         SeekBar bar = new SeekBar(mActivity);
+        bar.setProgressTintList(ColorStateList.valueOf(0xE6FFFFFF));
+        bar.setProgressBackgroundTintList(ColorStateList.valueOf(0x26FFFFFF));
+        bar.setThumbTintList(ColorStateList.valueOf(0xFFFFFFFF));
+        bar.setPadding(dp(2), 0, dp(2), 0);
         bar.setMax(360);                 /* (40% .. 400%, the editor's own limits) */
         bar.setProgress(Math.max(0, Math.min(360, Math.round((mAsp[mSelected] - 0.4f) * 100))));
         bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
