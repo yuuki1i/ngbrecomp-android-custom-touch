@@ -920,7 +920,10 @@ static enum Art art_now(void)
     static int standin;
     static uint64_t last;
     static uint32_t waited;
-    if (ngb_gp_touch && ngb_gp_touch("pad"))
+    /* The game's pieces only when the buttons read as well: a translation or a mod pack (x2.1) moves the code
+     * they are taken from, and a half-read table draws empty plates where the pad should be. */
+    if (ngb_gp_touch && ngb_gp_touch("pad") && ngb_gp_touch("button_a") && ngb_gp_touch("button_b") &&
+        ngb_gp_touch("button_x") && ngb_gp_touch("button_y"))
         return ART_GAME;
     if (standin)
         return ART_STANDIN;
@@ -1306,7 +1309,11 @@ static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float
     } else if (d_layout_skin[id] && user_skin(id)) { draw_sprite(user_skin(id), cx, cy, 2.5f*r*ar, 2.5f*r, a);
         if (c->label && c->label[0] && strlen(c->label) <= 4)
             plain_letter(c->label, cx, cy, 2.75f*r*ar, 1.9f*r, 255, 255, 255, fminf(1.f, a * 0.9f)); }
-    else draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
+    else {
+        draw_sprite(standin_button(id), cx, cy, 2.5f*r, 2.5f*r, a);
+        if (c->label && c->label[0] && strlen(c->label) <= 5)
+            plain_letter(c->label, cx, cy, 2.85f*r, 1.8f*r, 255, 255, 255, fminf(1.f, a + 0.3f));
+    }
 }
 
 static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, float a)
@@ -1324,7 +1331,13 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
             /* (the name stays readable on the picture, faint) */
             if (c->label && c->label[0] && strlen(c->label) <= 4)
                 plain_letter(c->label, cx, cy, w * 1.1f, h * 0.75f, 255, 255, 255, fminf(1.f, a * 0.9f));
-        } else draw_sprite(standin_button(id), cx, cy, (lit ? 2.6f : 2.5f) * r * d_layout_asp[id], (lit ? 2.6f : 2.5f) * r, a);
+        } else {
+            /* the stand-in picture: the name on it, or A, B, X and Y would be one picture (user 2026-11-27) */
+            float h = (lit ? 2.6f : 2.5f) * r, w = h * d_layout_asp[id];
+            draw_sprite(standin_button(id), cx, cy, w, h, a);
+            if (c->label && c->label[0] && strlen(c->label) <= 5)
+                plain_letter(c->label, cx, cy, w * 1.15f, h * 0.72f, 255, 255, 255, fminf(1.f, a + 0.3f));
+        }
         if (lit)
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
     }
@@ -1732,7 +1745,7 @@ void ngb_touch_layout_apply(const char *text)
                 else
                     s_layout_x[id] = fminf(aspect - 0.04f, fmaxf(0.04f, s_layout_x[id]));
                 s_layout_y[id] = fminf(.97f, fmaxf(.03f, y));
-                s_layout_r[id] = fminf(.25f, fmaxf(.035f, r));
+                s_layout_r[id] = fminf(.25f, fmaxf(.012f, r));
                 s_layout_alpha[id] = fminf(1.f, fmaxf(.15f, alpha));
                 s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
                 s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 8 ? 8 : shape);

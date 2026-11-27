@@ -1,0 +1,885 @@
+-- The C compiler identification is Clang 18.0.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found PkgConfig: /usr/bin/pkg-config (found version "1.8.1")
+-- Looking for __GLIBC__
+-- Looking for __GLIBC__ - not found
+-- Performing Test CHECK_CPU_ARCHITECTURE_X86
+-- Performing Test CHECK_CPU_ARCHITECTURE_X86 - Failed
+-- Performing Test CHECK_CPU_ARCHITECTURE_X64
+-- Performing Test CHECK_CPU_ARCHITECTURE_X64 - Failed
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM32
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM32 - Failed
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM64
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM64 - Success
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM64EC
+-- Performing Test CHECK_CPU_ARCHITECTURE_ARM64EC - Failed
+-- Performing Test CHECK_CPU_ARCHITECTURE_LOONGARCH64
+-- Performing Test CHECK_CPU_ARCHITECTURE_LOONGARCH64 - Failed
+-- Performing Test HAVE_GCC_WALL
+-- Performing Test HAVE_GCC_WALL - Success
+-- Performing Test HAVE_GCC_WUNDEF
+-- Performing Test HAVE_GCC_WUNDEF - Success
+-- Performing Test HAVE_GCC_NO_STRICT_ALIASING
+-- Performing Test HAVE_GCC_NO_STRICT_ALIASING - Success
+-- Performing Test HAVE_GCC_WDOCUMENTATION
+-- Performing Test HAVE_GCC_WDOCUMENTATION - Success
+-- Performing Test HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND
+-- Performing Test HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND - Success
+-- Performing Test HAVE_GCC_COMMENT_BLOCK_COMMANDS
+-- Performing Test HAVE_GCC_COMMENT_BLOCK_COMMANDS - Success
+-- Performing Test HAVE_GCC_WDECLARATION_AFTER_STATEMENT
+-- Performing Test HAVE_GCC_WDECLARATION_AFTER_STATEMENT - Success
+-- Performing Test HAVE_GCC_ATOMICS
+-- Performing Test HAVE_GCC_ATOMICS - Success
+-- Performing Test HAVE_GCC_FVISIBILITY
+-- Performing Test HAVE_GCC_FVISIBILITY - Success
+-- Performing Test HAVE_GCC_WSHADOW
+-- Performing Test HAVE_GCC_WSHADOW - Success
+-- Performing Test HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS
+-- Performing Test HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS - Success
+-- Performing Test HAVE_NO_UNDEFINED
+-- Performing Test HAVE_NO_UNDEFINED - Success
+-- Looking for immintrin.h
+-- Looking for immintrin.h - not found
+-- Performing Test HAVE_ALTIVEC_H_HDR
+-- Performing Test HAVE_ALTIVEC_H_HDR - Failed
+-- Performing Test CPU_SUPPORTS_ALTIVEC
+-- Performing Test CPU_SUPPORTS_ALTIVEC - Failed
+-- Looking for ctype.h
+-- Looking for ctype.h - found
+-- Looking for float.h
+-- Looking for float.h - found
+-- Looking for iconv.h
+-- Looking for iconv.h - found
+-- Looking for inttypes.h
+-- Looking for inttypes.h - found
+-- Looking for limits.h
+-- Looking for limits.h - found
+-- Looking for malloc.h
+-- Looking for malloc.h - found
+-- Looking for math.h
+-- Looking for math.h - found
+-- Looking for memory.h
+-- Looking for memory.h - found
+-- Looking for signal.h
+-- Looking for signal.h - found
+-- Looking for stdarg.h
+-- Looking for stdarg.h - found
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stdio.h
+-- Looking for stdio.h - found
+-- Looking for stdlib.h
+-- Looking for stdlib.h - found
+-- Looking for string.h
+-- Looking for string.h - found
+-- Looking for strings.h
+-- Looking for strings.h - found
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for wchar.h
+-- Looking for wchar.h - found
+-- Looking for 7 include files stddef.h, ..., float.h
+-- Looking for 7 include files stddef.h, ..., float.h - found
+-- Looking for M_PI
+-- Looking for M_PI - found
+-- Performing Test HAVE_MPROTECT
+-- Performing Test HAVE_MPROTECT - Success
+-- Looking for strtod
+-- Looking for strtod - found
+-- Looking for malloc
+-- Looking for malloc - found
+-- Looking for calloc
+-- Looking for calloc - found
+-- Looking for realloc
+-- Looking for realloc - found
+-- Looking for free
+-- Looking for free - found
+-- Looking for getenv
+-- Looking for getenv - found
+-- Looking for setenv
+-- Looking for setenv - found
+-- Looking for putenv
+-- Looking for putenv - found
+-- Looking for unsetenv
+-- Looking for unsetenv - found
+-- Looking for bsearch
+-- Looking for bsearch - found
+-- Looking for qsort
+-- Looking for qsort - found
+-- Looking for abs
+-- Looking for abs - found
+-- Looking for bcopy
+-- Looking for bcopy - found
+-- Looking for memset
+-- Looking for memset - found
+-- Looking for memcpy
+-- Looking for memcpy - found
+-- Looking for memmove
+-- Looking for memmove - found
+-- Looking for memcmp
+-- Looking for memcmp - found
+-- Looking for strlen
+-- Looking for strlen - found
+-- Looking for strlcpy
+-- Looking for strlcpy - found
+-- Looking for strlcat
+-- Looking for strlcat - found
+-- Looking for _strrev
+-- Looking for _strrev - not found
+-- Looking for _strupr
+-- Looking for _strupr - not found
+-- Looking for _strlwr
+-- Looking for _strlwr - not found
+-- Looking for index
+-- Looking for index - not found
+-- Looking for rindex
+-- Looking for rindex - not found
+-- Looking for strchr
+-- Looking for strchr - found
+-- Looking for strrchr
+-- Looking for strrchr - found
+-- Looking for strstr
+-- Looking for strstr - found
+-- Looking for strtok_r
+-- Looking for strtok_r - found
+-- Looking for itoa
+-- Looking for itoa - not found
+-- Looking for _ltoa
+-- Looking for _ltoa - not found
+-- Looking for _uitoa
+-- Looking for _uitoa - not found
+-- Looking for _ultoa
+-- Looking for _ultoa - not found
+-- Looking for strtol
+-- Looking for strtol - found
+-- Looking for strtoul
+-- Looking for strtoul - found
+-- Looking for _i64toa
+-- Looking for _i64toa - not found
+-- Looking for _ui64toa
+-- Looking for _ui64toa - not found
+-- Looking for strtoll
+-- Looking for strtoll - found
+-- Looking for strtoull
+-- Looking for strtoull - found
+-- Looking for atoi
+-- Looking for atoi - found
+-- Looking for atof
+-- Looking for atof - found
+-- Looking for strcmp
+-- Looking for strcmp - found
+-- Looking for strncmp
+-- Looking for strncmp - found
+-- Looking for _stricmp
+-- Looking for _stricmp - not found
+-- Looking for strcasecmp
+-- Looking for strcasecmp - found
+-- Looking for _strnicmp
+-- Looking for _strnicmp - not found
+-- Looking for strncasecmp
+-- Looking for strncasecmp - found
+-- Looking for strcasestr
+-- Looking for strcasestr - found
+-- Looking for wcscmp
+-- Looking for wcscmp - found
+-- Looking for _wcsdup
+-- Looking for _wcsdup - not found
+-- Looking for wcsdup
+-- Looking for wcsdup - found
+-- Looking for wcslcat
+-- Looking for wcslcat - found
+-- Looking for wcslcpy
+-- Looking for wcslcpy - found
+-- Looking for wcslen
+-- Looking for wcslen - found
+-- Looking for wcsncmp
+-- Looking for wcsncmp - found
+-- Looking for wcsstr
+-- Looking for wcsstr - found
+-- Looking for wcscasecmp
+-- Looking for wcscasecmp - found
+-- Looking for _wcsicmp
+-- Looking for _wcsicmp - not found
+-- Looking for wcsncasecmp
+-- Looking for wcsncasecmp - found
+-- Looking for _wcsnicmp
+-- Looking for _wcsnicmp - not found
+-- Looking for sscanf
+-- Looking for sscanf - found
+-- Looking for vsscanf
+-- Looking for vsscanf - found
+-- Looking for vsnprintf
+-- Looking for vsnprintf - found
+-- Looking for fopen64
+-- Looking for fopen64 - found
+-- Looking for fseeko
+-- Looking for fseeko - found
+-- Looking for fseeko64
+-- Looking for fseeko64 - found
+-- Looking for _Exit
+-- Looking for _Exit - found
+-- Looking for sigaction
+-- Looking for sigaction - found
+-- Looking for sigtimedwait
+-- Looking for sigtimedwait - found
+-- Looking for setjmp
+-- Looking for setjmp - found
+-- Looking for nanosleep
+-- Looking for nanosleep - found
+-- Looking for sysconf
+-- Looking for sysconf - found
+-- Looking for sysctlbyname
+-- Looking for sysctlbyname - not found
+-- Looking for getauxval
+-- Looking for getauxval - found
+-- Looking for elf_aux_info
+-- Looking for elf_aux_info - not found
+-- Looking for poll
+-- Looking for poll - found
+-- Looking for memfd_create
+-- Looking for memfd_create - not found
+-- Looking for posix_fallocate
+-- Looking for posix_fallocate - found
+-- Looking for pow in m
+-- Looking for pow in m - found
+-- Looking for atan
+-- Looking for atan - found
+-- Looking for atan2
+-- Looking for atan2 - found
+-- Looking for atanf
+-- Looking for atanf - found
+-- Looking for atan2f
+-- Looking for atan2f - found
+-- Looking for ceil
+-- Looking for ceil - found
+-- Looking for ceilf
+-- Looking for ceilf - found
+-- Looking for copysign
+-- Looking for copysign - found
+-- Looking for copysignf
+-- Looking for copysignf - found
+-- Looking for cos
+-- Looking for cos - found
+-- Looking for cosf
+-- Looking for cosf - found
+-- Looking for exp
+-- Looking for exp - found
+-- Looking for expf
+-- Looking for expf - found
+-- Looking for fabs
+-- Looking for fabs - found
+-- Looking for fabsf
+-- Looking for fabsf - found
+-- Looking for floor
+-- Looking for floor - found
+-- Looking for floorf
+-- Looking for floorf - found
+-- Looking for fmod
+-- Looking for fmod - found
+-- Looking for fmodf
+-- Looking for fmodf - found
+-- Looking for log
+-- Looking for log - found
+-- Looking for logf
+-- Looking for logf - found
+-- Looking for log10
+-- Looking for log10 - found
+-- Looking for log10f
+-- Looking for log10f - found
+-- Looking for lround
+-- Looking for lround - found
+-- Looking for lroundf
+-- Looking for lroundf - found
+-- Looking for pow
+-- Looking for pow - found
+-- Looking for powf
+-- Looking for powf - found
+-- Looking for round
+-- Looking for round - found
+-- Looking for roundf
+-- Looking for roundf - found
+-- Looking for scalbn
+-- Looking for scalbn - found
+-- Looking for scalbnf
+-- Looking for scalbnf - found
+-- Looking for sin
+-- Looking for sin - found
+-- Looking for sinf
+-- Looking for sinf - found
+-- Looking for sqrt
+-- Looking for sqrt - found
+-- Looking for sqrtf
+-- Looking for sqrtf - found
+-- Looking for tan
+-- Looking for tan - found
+-- Looking for tanf
+-- Looking for tanf - found
+-- Looking for acos
+-- Looking for acos - found
+-- Looking for acosf
+-- Looking for acosf - found
+-- Looking for asin
+-- Looking for asin - found
+-- Looking for asinf
+-- Looking for asinf - found
+-- Looking for trunc
+-- Looking for trunc - found
+-- Looking for truncf
+-- Looking for truncf - found
+-- Performing Test ICONV_IN_LIBC
+-- Performing Test ICONV_IN_LIBC - Success
+-- Performing Test ICONV_IN_LIBICONV
+-- Performing Test ICONV_IN_LIBICONV - Failed
+-- Looking for alloca.h
+-- Looking for alloca.h - found
+-- Looking for alloca
+-- Looking for alloca - found
+-- Looking for alloca
+-- Looking for alloca - found
+-- Looking for alloca
+-- Looking for alloca - not found
+-- Performing Test HAVE_SA_SIGACTION
+-- Performing Test HAVE_SA_SIGACTION - Success
+-- Looking for dlopen
+-- Looking for dlopen - found
+-- Performing Test HAVE_O_CLOEXEC
+-- Performing Test HAVE_O_CLOEXEC - Success
+-- Performing Test HAVE_ARM_MODE
+-- Performing Test HAVE_ARM_MODE - Failed
+-- The CXX compiler identification is Clang 18.0.3
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test VULKAN_PASSED_ANDROID_CHECKS
+-- Performing Test VULKAN_PASSED_ANDROID_CHECKS - Success
+-- Performing Test HAVE_PTHREADS
+-- Performing Test HAVE_PTHREADS - Success
+-- Performing Test HAVE_RECURSIVE_MUTEXES
+-- Performing Test HAVE_RECURSIVE_MUTEXES - Success
+-- Performing Test HAVE_PTHREADS_SEM
+-- Performing Test HAVE_PTHREADS_SEM - Success
+-- Performing Test HAVE_SEM_TIMEDWAIT
+-- Performing Test HAVE_SEM_TIMEDWAIT - Success
+-- Looking for include file pthread.h
+-- Looking for include file pthread.h - found
+-- Looking for include file pthread_np.h
+-- Looking for include file pthread_np.h - not found
+-- Performing Test HAVE_PTHREAD_SETNAME_NP
+-- Performing Test HAVE_PTHREAD_SETNAME_NP - Success
+-- Found Git: /usr/bin/git (found version "2.56.1")
+-- 
+-- SDL2 was configured with the following options:
+-- 
+-- Platform: Android-1
+-- 64-bit:   TRUE
+-- Compiler: /home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+-- Revision: SDL-release-2.32.10-0-g5d2495703
+-- 
+-- Subsystems:
+--   Atomic:	ON
+--   Audio:	ON
+--   Video:	ON
+--   Render:	ON
+--   Events:	ON
+--   Joystick:	ON
+--   Haptic:	ON
+--   Hidapi:	ON
+--   Power:	ON
+--   Threads:	ON
+--   Timers:	ON
+--   File:	ON
+--   Loadso:	ON
+--   CPUinfo:	ON
+--   Filesystem:	ON
+--   Sensor:	ON
+--   Locale:	ON
+--   Misc:	ON
+-- 
+-- Options:
+--   SDL2_DISABLE_INSTALL        (Wanted: OFF): OFF
+--   SDL2_DISABLE_SDL2MAIN       (Wanted: OFF): OFF
+--   SDL2_DISABLE_UNINSTALL      (Wanted: OFF): OFF
+--   SDL_3DNOW                   (Wanted: OFF): OFF
+--   SDL_ALSA                    (Wanted: OFF): OFF
+--   SDL_ALSA_SHARED             (Wanted: OFF): OFF
+--   SDL_ALTIVEC                 (Wanted: ON): OFF
+--   SDL_ARMNEON                 (Wanted: OFF): OFF
+--   SDL_ARMSIMD                 (Wanted: OFF): OFF
+--   SDL_ARTS                    (Wanted: OFF): OFF
+--   SDL_ARTS_SHARED             (Wanted: OFF): OFF
+--   SDL_ASAN                    (Wanted: OFF): OFF
+--   SDL_ASSEMBLY                (Wanted: ON): ON
+--   SDL_ASSERTIONS              (Wanted: auto): auto
+--   SDL_BACKGROUNDING_SIGNAL    (Wanted: OFF): OFF
+--   SDL_CCACHE                  (Wanted: ON): OFF
+--   SDL_CLOCK_GETTIME           (Wanted: ON): ON
+--   SDL_COCOA                   (Wanted: OFF): OFF
+--   SDL_DBUS                    (Wanted: OFF): OFF
+--   SDL_DIRECTFB                (Wanted: OFF): OFF
+--   SDL_DIRECTFB_SHARED         (Wanted: OFF): OFF
+--   SDL_DIRECTX                 (Wanted: OFF): OFF
+--   SDL_DISKAUDIO               (Wanted: ON): ON
+--   SDL_DUMMYAUDIO              (Wanted: ON): ON
+--   SDL_DUMMYVIDEO              (Wanted: ON): ON
+--   SDL_ESD                     (Wanted: OFF): OFF
+--   SDL_ESD_SHARED              (Wanted: OFF): OFF
+--   SDL_FOREGROUNDING_SIGNAL    (Wanted: OFF): OFF
+--   SDL_FUSIONSOUND             (Wanted: OFF): OFF
+--   SDL_FUSIONSOUND_SHARED      (Wanted: OFF): OFF
+--   SDL_GCC_ATOMICS             (Wanted: ON): ON
+--   SDL_HIDAPI                  (Wanted: ON): ON
+--   SDL_HIDAPI_JOYSTICK         (Wanted: ON): ON
+--   SDL_HIDAPI_LIBUSB           (Wanted: OFF): OFF
+--   SDL_IBUS                    (Wanted: OFF): OFF
+--   SDL_INSTALL_TESTS           (Wanted: OFF): OFF
+--   SDL_JACK                    (Wanted: OFF): OFF
+--   SDL_JACK_SHARED             (Wanted: OFF): OFF
+--   SDL_KMSDRM                  (Wanted: OFF): OFF
+--   SDL_KMSDRM_SHARED           (Wanted: OFF): OFF
+--   SDL_LASX                    (Wanted: OFF): OFF
+--   SDL_LIBC                    (Wanted: ON): ON
+--   SDL_LIBICONV                (Wanted: OFF): OFF
+--   SDL_LIBSAMPLERATE           (Wanted: OFF): OFF
+--   SDL_LIBSAMPLERATE_SHARED    (Wanted: OFF): OFF
+--   SDL_LIBUDEV                 (Wanted: ON): OFF
+--   SDL_LSX                     (Wanted: OFF): OFF
+--   SDL_METAL                   (Wanted: OFF): OFF
+--   SDL_MMX                     (Wanted: OFF): OFF
+--   SDL_NAS                     (Wanted: OFF): OFF
+--   SDL_NAS_SHARED              (Wanted: OFF): OFF
+--   SDL_OFFSCREEN               (Wanted: ON): ON
+--   SDL_OPENGL                  (Wanted: ON): OFF
+--   SDL_OPENGLES                (Wanted: ON): ON
+--   SDL_OSS                     (Wanted: OFF): OFF
+--   SDL_PIPEWIRE                (Wanted: OFF): OFF
+--   SDL_PIPEWIRE_SHARED         (Wanted: OFF): OFF
+--   SDL_PTHREADS                (Wanted: ON): ON
+--   SDL_PTHREADS_SEM            (Wanted: ON): ON
+--   SDL_PULSEAUDIO              (Wanted: OFF): OFF
+--   SDL_PULSEAUDIO_SHARED       (Wanted: OFF): OFF
+--   SDL_RENDER_D3D              (Wanted: OFF): OFF
+--   SDL_RENDER_METAL            (Wanted: OFF): OFF
+--   SDL_RPATH                   (Wanted: OFF): OFF
+--   SDL_RPI                     (Wanted: OFF): OFF
+--   SDL_SNDIO                   (Wanted: OFF): OFF
+--   SDL_SNDIO_SHARED            (Wanted: OFF): OFF
+--   SDL_SSE                     (Wanted: OFF): OFF
+--   SDL_SSE2                    (Wanted: OFF): OFF
+--   SDL_SSE3                    (Wanted: OFF): OFF
+--   SDL_SSEMATH                 (Wanted: OFF): OFF
+--   SDL_STATIC_PIC              (Wanted: OFF): OFF
+--   SDL_SYSTEM_ICONV            (Wanted: ON): ON
+--   SDL_TESTS                   (Wanted: OFF): OFF
+--   SDL_VENDOR_INFO             (Wanted: ): OFF
+--   SDL_VIRTUAL_JOYSTICK        (Wanted: ON): ON
+--   SDL_VIVANTE                 (Wanted: OFF): OFF
+--   SDL_VULKAN                  (Wanted: ON): ON
+--   SDL_WASAPI                  (Wanted: OFF): OFF
+--   SDL_WAYLAND                 (Wanted: OFF): OFF
+--   SDL_WAYLAND_LIBDECOR        (Wanted: OFF): OFF
+--   SDL_WAYLAND_LIBDECOR_SHARED (Wanted: OFF): OFF
+--   SDL_WAYLAND_QT_TOUCH        (Wanted: OFF): OFF
+--   SDL_WAYLAND_SHARED          (Wanted: OFF): OFF
+--   SDL_X11                     (Wanted: OFF): OFF
+--   SDL_X11_SHARED              (Wanted: OFF): OFF
+--   SDL_X11_XCURSOR             (Wanted: OFF): OFF
+--   SDL_X11_XDBE                (Wanted: OFF): OFF
+--   SDL_X11_XFIXES              (Wanted: OFF): OFF
+--   SDL_X11_XINPUT              (Wanted: OFF): OFF
+--   SDL_X11_XRANDR              (Wanted: OFF): OFF
+--   SDL_X11_XSCRNSAVER          (Wanted: OFF): OFF
+--   SDL_X11_XSHAPE              (Wanted: OFF): OFF
+--   SDL_XINPUT                  (Wanted: OFF): OFF
+-- 
+--  CFLAGS:        -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -idirafter "/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/src/SDL/src/video/khronos"
+--  EXTRA_CFLAGS:   -Wall -Wundef -fno-strict-aliasing -Wdocumentation -Wdocumentation-unknown-command -fcomment-block-commands=threadsafety -fcomment-block-commands=deprecated -Wdeclaration-after-statement -fvisibility=hidden -Wshadow -Wno-unused-local-typedefs -fcolor-diagnostics
+--  EXTRA_LDFLAGS:  -Wl,--no-undefined
+--  EXTRA_LIBS:    m;OpenSLES;dl;log;android;GLESv1_CM;GLESv2
+-- 
+--  Build Shared Library: ON
+--  Build Static Library: OFF
+-- 
+-- If something was not detected, although the libraries
+-- were installed, then make sure you have set the
+-- CFLAGS and LDFLAGS environment variables correctly.
+-- 
+-- Configuring done (12.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/build-SDL-arm64-v8a
+[1/266] Generating include/SDL2/SDL_assert.h
+[2/266] Generating include/SDL2/SDL_atomic.h
+[3/266] Generating include/SDL2/SDL_bits.h
+[4/266] Generating include/SDL2/SDL.h
+[5/266] Generating include/SDL2/SDL_audio.h
+[6/266] Generating include/SDL2/SDL_blendmode.h
+[7/266] Generating include/SDL2/SDL_clipboard.h
+[8/266] Generating include/SDL2/SDL_copying.h
+[9/266] Generating include/SDL2/SDL_endian.h
+[10/266] Generating include/SDL2/SDL_cpuinfo.h
+[11/266] Generating include/SDL2/SDL_egl.h
+[12/266] Generating include/SDL2/SDL_error.h
+[13/266] Generating include/SDL2/SDL_filesystem.h
+[14/266] Generating include/SDL2/SDL_gamecontroller.h
+[15/266] Generating include/SDL2/SDL_events.h
+[16/266] Generating include/SDL2/SDL_guid.h
+[17/266] Generating include/SDL2/SDL_haptic.h
+[18/266] Generating include/SDL2/SDL_gesture.h
+[19/266] Generating include/SDL2/SDL_hidapi.h
+[20/266] Generating include/SDL2/SDL_hints.h
+[21/266] Generating include/SDL2/SDL_loadso.h
+[22/266] Generating include/SDL2/SDL_locale.h
+[23/266] Generating include/SDL2/SDL_log.h
+[24/266] Generating include/SDL2/SDL_joystick.h
+[25/266] Generating include/SDL2/SDL_main.h
+[26/266] Generating include/SDL2/SDL_keycode.h
+[27/266] Generating include/SDL2/SDL_messagebox.h
+[28/266] Generating include/SDL2/SDL_metal.h
+[29/266] Generating include/SDL2/SDL_keyboard.h
+[30/266] Generating include/SDL2/SDL_mouse.h
+[31/266] Generating include/SDL2/SDL_name.h
+[32/266] Generating include/SDL2/SDL_misc.h
+[33/266] Generating include/SDL2/SDL_mutex.h
+[34/266] Generating include/SDL2/SDL_opengl.h
+[35/266] Generating include/SDL2/SDL_opengl_glext.h
+[36/266] Generating include/SDL2/SDL_opengles.h
+[37/266] Generating include/SDL2/SDL_opengles2.h
+[38/266] Generating include/SDL2/SDL_opengles2_gl2.h
+[39/266] Generating include/SDL2/SDL_opengles2_gl2ext.h
+[40/266] Generating include/SDL2/SDL_opengles2_gl2platform.h
+[41/266] Generating include/SDL2/SDL_opengles2_khrplatform.h
+[42/266] Generating include/SDL2/SDL_pixels.h
+[43/266] Generating include/SDL2/SDL_platform.h
+[44/266] Generating include/SDL2/SDL_quit.h
+[45/266] Generating include/SDL2/SDL_rect.h
+[46/266] Generating include/SDL2/SDL_power.h
+[47/266] Generating include/SDL2/SDL_rwops.h
+[48/266] Generating include/SDL2/SDL_render.h
+[49/266] Generating include/SDL2/SDL_shape.h
+[50/266] Generating include/SDL2/SDL_sensor.h
+[51/266] Generating include/SDL2/SDL_scancode.h
+[52/266] Generating include/SDL2/SDL_stdinc.h
+[53/266] Generating include/SDL2/SDL_system.h
+[54/266] Generating include/SDL2/SDL_syswm.h
+[55/266] Generating include/SDL2/SDL_surface.h
+[56/266] Generating include/SDL2/SDL_test.h
+[57/266] Generating include/SDL2/SDL_test_common.h
+[58/266] Generating include/SDL2/SDL_test_compare.h
+[59/266] Generating include/SDL2/SDL_test_assert.h
+[60/266] Generating include/SDL2/SDL_test_crc32.h
+[61/266] Generating include/SDL2/SDL_test_font.h
+[62/266] Generating include/SDL2/SDL_test_images.h
+[63/266] Generating include/SDL2/SDL_test_harness.h
+[64/266] Generating include/SDL2/SDL_test_memory.h
+[65/266] Generating include/SDL2/SDL_test_random.h
+[66/266] Generating include/SDL2/SDL_test_fuzzer.h
+[67/266] Generating include/SDL2/SDL_test_log.h
+[68/266] Generating include/SDL2/SDL_thread.h
+[69/266] Generating include/SDL2/SDL_test_md5.h
+[70/266] Generating include/SDL2/SDL_timer.h
+[71/266] Generating include/SDL2/SDL_touch.h
+[72/266] Generating include/SDL2/SDL_types.h
+[73/266] Generating include/SDL2/SDL_version.h
+[74/266] Generating include/SDL2/SDL_video.h
+[75/266] Generating include/SDL2/SDL_vulkan.h
+[76/266] Generating include/SDL2/begin_code.h
+[77/266] Generating include/SDL2/close_code.h
+[78/266] Building C object CMakeFiles/SDL2main.dir/src/main/android/SDL_android_main.c.o
+[79/266] Building C object CMakeFiles/SDL2.dir/src/SDL_error.c.o
+[80/266] Building C object CMakeFiles/SDL2.dir/src/SDL_guid.c.o
+[81/266] Building C object CMakeFiles/SDL2.dir/src/SDL_hints.c.o
+[82/266] Building C object CMakeFiles/SDL2.dir/src/SDL_utils.c.o
+[83/266] Building C object CMakeFiles/SDL2.dir/src/atomic/SDL_atomic.c.o
+[84/266] Building C object CMakeFiles/SDL2.dir/src/SDL_dataqueue.c.o
+[85/266] Building C object CMakeFiles/SDL2.dir/src/atomic/SDL_spinlock.c.o
+[86/266] Building C object CMakeFiles/SDL2.dir/src/SDL_log.c.o
+[87/266] Building C object CMakeFiles/SDL2.dir/src/SDL_list.c.o
+[88/266] Building C object CMakeFiles/SDL2.dir/src/SDL_assert.c.o
+[89/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_audiodev.c.o
+[90/266] Building C object CMakeFiles/SDL2.dir/src/SDL.c.o
+[91/266] Building C object CMakeFiles/SDL2.dir/src/cpuinfo/SDL_cpuinfo.c.o
+[92/266] Building C object CMakeFiles/SDL2.dir/src/dynapi/SDL_dynapi.c.o
+[93/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_wave.c.o
+[94/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_clipboardevents.c.o
+[95/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_mixer.c.o
+[96/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_displayevents.c.o
+[97/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_audiotypecvt.c.o
+[98/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_dropevents.c.o
+[99/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_keysym_to_scancode.c.o
+[100/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_audio.c.o
+[101/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_keyboard.c.o
+[102/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_quit.c.o
+[103/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_scancode_tables.c.o
+[104/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_gesture.c.o
+[105/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_events.c.o
+[106/266] Building C object CMakeFiles/SDL2.dir/src/events/imKStoUCS.c.o
+[107/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_touch.c.o
+[108/266] Building C object CMakeFiles/SDL2.dir/src/audio/SDL_audiocvt.c.o
+[109/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_windowevents.c.o
+[110/266] Building C object CMakeFiles/SDL2.dir/src/haptic/SDL_haptic.c.o
+[111/266] Building C object CMakeFiles/SDL2.dir/src/file/SDL_rwops.c.o
+[112/266] Building C object CMakeFiles/SDL2.dir/src/events/SDL_mouse.c.o
+[113/266] Building C object CMakeFiles/SDL2.dir/src/hidapi/SDL_hidapi.c.o
+[114/266] Building C object CMakeFiles/SDL2.dir/src/joystick/SDL_steam_virtual_gamepad.c.o
+[115/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_exp.c.o
+[116/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_atan2.c.o
+[117/266] Building C object CMakeFiles/SDL2.dir/src/joystick/controller_type.c.o
+[118/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_log.c.o
+[119/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_fmod.c.o
+[120/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_log10.c.o
+[121/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_rem_pio2.c.o
+[122/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_pow.c.o
+[123/266] Building C object CMakeFiles/SDL2.dir/src/libm/e_sqrt.c.o
+[124/266] Building C object CMakeFiles/SDL2.dir/src/libm/k_cos.c.o
+[125/266] Building C object CMakeFiles/SDL2.dir/src/libm/k_sin.c.o
+[126/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_copysign.c.o
+[127/266] Building C object CMakeFiles/SDL2.dir/src/libm/k_tan.c.o
+[128/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_atan.c.o
+[129/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_cos.c.o
+[130/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_scalbn.c.o
+[131/266] Building C object CMakeFiles/SDL2.dir/src/libm/k_rem_pio2.c.o
+[132/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_fabs.c.o
+[133/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_floor.c.o
+[134/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_sin.c.o
+[135/266] Building C object CMakeFiles/SDL2.dir/src/libm/s_tan.c.o
+[136/266] Building C object CMakeFiles/SDL2.dir/src/joystick/SDL_gamecontroller.c.o
+[137/266] Building C object CMakeFiles/SDL2.dir/src/locale/SDL_locale.c.o
+[138/266] Building C object CMakeFiles/SDL2.dir/src/misc/SDL_url.c.o
+[139/266] Building C object CMakeFiles/SDL2.dir/src/render/SDL_d3dmath.c.o
+[140/266] Building C object CMakeFiles/SDL2.dir/src/power/SDL_power.c.o
+[141/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d/SDL_render_d3d.c.o
+[142/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d11/SDL_shaders_d3d11.c.o
+[143/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d/SDL_shaders_d3d.c.o
+[144/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d11/SDL_render_d3d11.c.o
+[145/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d12/SDL_render_d3d12.c.o
+[146/266] Building C object CMakeFiles/SDL2.dir/src/render/opengl/SDL_shaders_gl.c.o
+[147/266] Building C object CMakeFiles/SDL2.dir/src/render/opengl/SDL_render_gl.c.o
+[148/266] Building C object CMakeFiles/SDL2.dir/src/render/direct3d12/SDL_shaders_d3d12.c.o
+[149/266] Building C object CMakeFiles/SDL2.dir/src/render/opengles2/SDL_shaders_gles2.c.o
+[150/266] Building C object CMakeFiles/SDL2.dir/src/joystick/SDL_joystick.c.o
+[151/266] Building C object CMakeFiles/SDL2.dir/src/render/SDL_yuv_sw.c.o
+[152/266] Building C object CMakeFiles/SDL2.dir/src/render/ps2/SDL_render_ps2.c.o
+[153/266] Building C object CMakeFiles/SDL2.dir/src/render/psp/SDL_render_psp.c.o
+[154/266] Building C object CMakeFiles/SDL2.dir/src/render/opengles/SDL_render_gles.c.o
+[155/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_drawline.c.o
+[156/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_drawpoint.c.o
+[157/266] Building C object CMakeFiles/SDL2.dir/src/render/opengles2/SDL_render_gles2.c.o
+[158/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_blendpoint.c.o
+[159/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_rotate.c.o
+[160/266] Building C object CMakeFiles/SDL2.dir/src/render/vitagxm/SDL_render_vita_gxm.c.o
+[161/266] Building C object CMakeFiles/SDL2.dir/src/render/vitagxm/SDL_render_vita_gxm_memory.c.o
+[162/266] Building C object CMakeFiles/SDL2.dir/src/render/vitagxm/SDL_render_vita_gxm_tools.c.o
+[163/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_blendfillrect.c.o
+[164/266] Building C object CMakeFiles/SDL2.dir/src/render/SDL_render.c.o
+[165/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_triangle.c.o
+[166/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_crc16.c.o
+[167/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_render_sw.c.o
+[168/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_crc32.c.o
+[169/266] Building C object CMakeFiles/SDL2.dir/src/sensor/SDL_sensor.c.o
+[170/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_iconv.c.o
+[171/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_malloc.c.o
+[172/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_getenv.c.o
+[173/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_mslibc.c.o
+[174/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_qsort.c.o
+[175/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_strtokr.c.o
+[176/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_stdlib.c.o
+[177/266] Building C object CMakeFiles/SDL2.dir/src/thread/SDL_thread.c.o
+[178/266] Building C object CMakeFiles/SDL2.dir/src/stdlib/SDL_string.c.o
+[179/266] Building C object CMakeFiles/SDL2.dir/src/timer/SDL_timer.c.o
+[180/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit.c.o
+[181/266] Building C object CMakeFiles/SDL2.dir/src/render/software/SDL_blendline.c.o
+[182/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_1.c.o
+[183/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_copy.c.o
+[184/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_0.c.o
+[185/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_A.c.o
+[186/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_N.c.o
+[187/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_RLEaccel.c.o
+[188/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_slow.c.o
+[189/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_clipboard.c.o
+[190/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_bmp.c.o
+[191/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_fillrect.c.o
+[192/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_rect.c.o
+[193/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_egl.c.o
+[194/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_stretch.c.o
+[195/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_pixels.c.o
+[196/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_shape.c.o
+[197/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_vulkan_utils.c.o
+[198/266] Building C object CMakeFiles/SDL2.dir/src/video/yuv2rgb/yuv_rgb_lsx.c.o
+[199/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_surface.c.o
+[200/266] Building C object CMakeFiles/SDL2.dir/src/audio/dummy/SDL_dummyaudio.c.o
+[201/266] Building C object CMakeFiles/SDL2.dir/src/video/yuv2rgb/yuv_rgb_sse.c.o
+[202/266] Building C object CMakeFiles/SDL2.dir/src/loadso/dlopen/SDL_sysloadso.c.o
+[203/266] Building C object CMakeFiles/SDL2.dir/src/audio/disk/SDL_diskaudio.c.o
+[204/266] Building C object CMakeFiles/SDL2.dir/src/joystick/virtual/SDL_virtualjoystick.c.o
+[205/266] Building C object CMakeFiles/SDL2.dir/src/video/dummy/SDL_nullevents.c.o
+[206/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_yuv.c.o
+[207/266] Building C object CMakeFiles/SDL2.dir/src/video/dummy/SDL_nullframebuffer.c.o
+[208/266] Building C object CMakeFiles/SDL2.dir/src/video/offscreen/SDL_offscreenevents.c.o
+[209/266] Building C object CMakeFiles/SDL2.dir/src/video/offscreen/SDL_offscreenopengles.c.o
+[210/266] Building C object CMakeFiles/SDL2.dir/src/video/offscreen/SDL_offscreenframebuffer.c.o
+[211/266] Building C object CMakeFiles/SDL2.dir/src/video/offscreen/SDL_offscreenvideo.c.o
+[212/266] Building C object CMakeFiles/SDL2.dir/src/video/yuv2rgb/yuv_rgb_std.c.o
+[213/266] Building C object CMakeFiles/SDL2.dir/src/video/dummy/SDL_nullvideo.c.o
+[214/266] Building C object CMakeFiles/SDL2.dir/src/video/offscreen/SDL_offscreenwindow.c.o
+[215/266] Building C object CMakeFiles/SDL2.dir/src/misc/android/SDL_sysurl.c.o
+[216/266] Building C object CMakeFiles/SDL2.dir/src/audio/android/SDL_androidaudio.c.o
+[217/266] Building C object CMakeFiles/SDL2.dir/home/runner/work/_temp/android-sdk/ndk/27.2.12479018/sources/android/cpufeatures/cpu-features.c.o
+[218/266] Building C object CMakeFiles/SDL2.dir/src/audio/openslES/SDL_openslES.c.o
+[219/266] Building C object CMakeFiles/SDL2.dir/src/filesystem/android/SDL_sysfilesystem.c.o
+[220/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_video.c.o
+[221/266] Building C object CMakeFiles/SDL2.dir/src/haptic/android/SDL_syshaptic.c.o
+[222/266] Building C object CMakeFiles/SDL2.dir/src/audio/aaudio/SDL_aaudio.c.o
+[223/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_combined.c.o
+[224/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_luna.c.o
+[225/266] Building C object CMakeFiles/SDL2.dir/src/core/android/SDL_android.c.o
+[226/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_gamecube.c.o
+[227/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_ps4.c.o
+[228/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_rumble.c.o
+[229/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_ps3.c.o
+[230/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_ps5.c.o
+[231/266] Building CXX object CMakeFiles/SDL2.dir/src/hidapi/android/hid.cpp.o
+[232/266] Building C object CMakeFiles/SDL2.dir/src/video/SDL_blit_auto.c.o
+[233/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_shield.c.o
+[234/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_steamdeck.c.o
+[235/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_stadia.c.o
+[236/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_xbox360.c.o
+[237/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_steam.c.o
+[238/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_xbox360w.c.o
+[239/266] Building C object CMakeFiles/SDL2.dir/src/joystick/android/SDL_sysjoystick.c.o
+[240/266] Building C object CMakeFiles/SDL2.dir/src/joystick/steam/SDL_steamcontroller.c.o
+[241/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_wii.c.o
+[242/266] Building C object CMakeFiles/SDL2.dir/src/power/android/SDL_syspower.c.o
+[243/266] Building C object CMakeFiles/SDL2.dir/src/timer/unix/SDL_systimer.c.o
+[244/266] Building C object CMakeFiles/SDL2.dir/src/sensor/android/SDL_androidsensor.c.o
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/src/SDL/src/sensor/android/SDL_androidsensor.c:56:26: warning: 'ASensorManager_getInstance' is deprecated: first deprecated in Android 26 - Use ASensorManager_getInstanceForPackage instead [-Wdeprecated-declarations]
+   56 |     SDL_sensor_manager = ASensorManager_getInstance();
+      |                          ^
+/home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/android/sensor.h:751:17: note: 'ASensorManager_getInstance' has been explicitly marked deprecated here
+  751 | ASensorManager* ASensorManager_getInstance()
+      |                 ^
+1 warning generated.
+[245/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_xboxone.c.o
+[246/266] Building C object CMakeFiles/SDL2.dir/src/locale/android/SDL_syslocale.c.o
+[247/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidclipboard.c.o
+[248/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidevents.c.o
+[249/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidmessagebox.c.o
+[250/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapijoystick.c.o
+[251/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidmouse.c.o
+[252/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidtouch.c.o
+[253/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidgl.c.o
+[254/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidkeyboard.c.o
+[255/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidvulkan.c.o
+[256/266] Building C object CMakeFiles/SDL2.dir/src/thread/pthread/SDL_sysmutex.c.o
+[257/266] Building C object CMakeFiles/SDL2.dir/src/thread/pthread/SDL_systhread.c.o
+[258/266] Building C object CMakeFiles/SDL2.dir/src/thread/pthread/SDL_syscond.c.o
+[259/266] Linking C static library libSDL2main.a
+[260/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidwindow.c.o
+[261/266] Building C object CMakeFiles/SDL2.dir/src/thread/pthread/SDL_systls.c.o
+[262/266] Building C object CMakeFiles/SDL2.dir/src/thread/pthread/SDL_syssem.c.o
+[263/266] Building C object CMakeFiles/SDL2.dir/src/joystick/hidapi/SDL_hidapi_switch.c.o
+[264/266] Building C object CMakeFiles/SDL2.dir/src/video/android/SDL_androidvideo.c.o
+[265/266] Linking CXX shared library libSDL2.so
+[265/266] Install the project...
+-- Install configuration: "Release"
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libSDL2.so
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libSDL2main.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2Targets.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2Targets-release.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/share/ndk-modules/SDL2/Android.mk
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2mainTargets.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2mainTargets-release.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/share/ndk-modules/SDL2main/Android.mk
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2Config.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/SDL2ConfigVersion.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/SDL2/sdlfind.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_assert.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_atomic.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_audio.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_bits.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_blendmode.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_clipboard.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_copying.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_cpuinfo.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_egl.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_endian.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_error.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_events.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_filesystem.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_gamecontroller.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_gesture.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_guid.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_haptic.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_hidapi.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_hints.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_joystick.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_keyboard.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_keycode.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_loadso.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_locale.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_log.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_main.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_messagebox.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_metal.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_misc.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_mouse.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_mutex.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_name.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengl.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengl_glext.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles2.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles2_gl2.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles2_gl2ext.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles2_gl2platform.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_opengles2_khrplatform.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_pixels.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_platform.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_power.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_quit.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_rect.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_render.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_rwops.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_scancode.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_sensor.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_shape.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_stdinc.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_surface.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_system.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_syswm.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_assert.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_common.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_compare.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_crc32.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_font.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_fuzzer.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_harness.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_images.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_log.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_md5.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_memory.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_test_random.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_thread.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_timer.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_touch.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_types.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_version.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_video.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_vulkan.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/begin_code.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/close_code.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_revision.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2/SDL_config.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/share/licenses/SDL2/LICENSE.txt
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/pkgconfig/sdl2.pc
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/bin/sdl2-config
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/share/aclocal/sdl2.m4

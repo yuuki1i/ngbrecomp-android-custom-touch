@@ -1,0 +1,570 @@
+ninja: Entering directory `/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-release/build'
+[0/2] Re-checking globbed directories...
+[1/246] Building C object xboxrecomp/src/platform/CMakeFiles/platform.dir/vcpu.c.o
+[2/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_core.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/apu/apu_core.c:40:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/apu/../kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[3/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_dsp.c.o
+[4/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_xaudio2.c.o
+[5/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_mmio_hook.c.o
+[6/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_sdl_out.c.o
+[7/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_path.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_path.c:15:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[8/246] Building C object xboxrecomp/src/platform/CMakeFiles/platform.dir/win32_compat.c.o
+[9/246] Building C object xboxrecomp/src/input/CMakeFiles/xbox_input.dir/xinput_device.c.o
+[10/246] Linking C static library xboxrecomp/src/platform/libplatform.a
+[11/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_pool.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_pool.c:11:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[12/246] Building C object xboxrecomp/src/apu/CMakeFiles/xbox_apu.dir/apu_vp.c.o
+[13/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_rtl.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:10:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:430:21: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+  429 |             fprintf(stderr, "  [CSWATCH] t%-6lu %s 0x%08X\n",
+      |                                           ~~~~~
+      |                                           %-6u
+  430 |                     GetCurrentThreadId(), what, va);
+      |                     ^~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:438:17: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+  437 |         fprintf(stderr, "  [CSTRACE] t%-6lu %-4s 0x%08X idx %d\n",
+      |                                       ~~~~~
+      |                                       %-6u
+  438 |                 GetCurrentThreadId(), what, va, idx);
+      |                 ^~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:445:13: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+  444 |     fprintf(stderr, "  [CSTRACE] t%-6lu %-4s lock %d\n",
+      |                                   ~~~~~
+      |                                   %-6u
+  445 |             GetCurrentThreadId(), what, idx);
+      |             ^~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:486:17: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+  484 |         fprintf(stderr, "  [CS] thread %lu waiting on guest lock 0x%08X"
+      |                                        ~~~
+      |                                        %u
+  485 |                         " (held by thread %lu)\n",
+  486 |                 GetCurrentThreadId(),
+      |                 ^~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:508:17: warning: format specifies type 'long' but the argument has type 'LONG' (aka 'int') [-Wformat]
+  507 |         fprintf(stderr, "  [CS] enters=%ld leaves=%ld (outstanding %ld)\n",
+      |                                        ~~~
+      |                                        %d
+  508 |                 g_cs_enters, g_cs_leaves, g_cs_enters - g_cs_leaves);
+      |                 ^~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:508:30: warning: format specifies type 'long' but the argument has type 'LONG' (aka 'int') [-Wformat]
+  507 |         fprintf(stderr, "  [CS] enters=%ld leaves=%ld (outstanding %ld)\n",
+      |                                                   ~~~
+      |                                                   %d
+  508 |                 g_cs_enters, g_cs_leaves, g_cs_enters - g_cs_leaves);
+      |                              ^~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:508:43: warning: format specifies type 'long' but the argument has type 'LONG' (aka 'int') [-Wformat]
+  507 |         fprintf(stderr, "  [CS] enters=%ld leaves=%ld (outstanding %ld)\n",
+      |                                                                    ~~~
+      |                                                                    %d
+  508 |                 g_cs_enters, g_cs_leaves, g_cs_enters - g_cs_leaves);
+      |                                           ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_rtl.c:516:17: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+  515 |         fprintf(stderr, "  [CS] thread %lu acquired 0x%08X\n",
+      |                                        ~~~
+      |                                        %u
+  516 |                 GetCurrentThreadId(),
+      |                 ^~~~~~~~~~~~~~~~~~~~
+9 warnings generated.
+[14/246] Generating fonts/ngb_font_cjk.c
+[15/246] Generating touch/ngb_png_touch_button_lit.c
+[16/246] Generating touch/ngb_png_touch_dpad.c
+[17/246] Generating touch/ngb_png_touch_dpad_east_lit.c
+[18/246] Generating touch/ngb_png_touch_dpad_north_lit.c
+[19/246] Generating touch/ngb_png_touch_dpad_south_lit.c
+[20/246] Generating touch/ngb_png_touch_dpad_west_lit.c
+[21/246] Generating touch/ngb_png_touch_nub.c
+[22/246] Generating touch/ngb_png_touch_nub_lit.c
+[23/246] Generating touch/ngb_png_touch_pad.c
+[24/246] Generating touch/ngb_png_touch_pad_lit.c
+[25/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_memory.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_memory.c:13:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[26/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_file.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_file.c:18:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[27/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_thread.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_thread.c:14:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[28/246] Generating fonts/ngb_font_label.c
+[29/246] Generating fonts/ngb_font_body.c
+[30/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_sync.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_sync.c:17:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[31/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_ob.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_ob.c:14:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[32/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_xbox.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_xbox.c:12:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[33/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_hal.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_hal.c:14:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_hal.c:326:13: warning: unused function 'xbox_update_tick_count' [-Wunused-function]
+  326 | static void xbox_update_tick_count(void)
+      |             ^~~~~~~~~~~~~~~~~~~~~~
+2 warnings generated.
+[34/246] Generating fonts/ngb_font_tab.c
+[35/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_io.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_io.c:12:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[36/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_crypto.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_crypto.c:19:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[37/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_thunks.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_thunks.c:20:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[38/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/icall_feedback.c.o
+[39/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/recomp_trace.c.o
+[40/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/recomp_capture.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/recomp_capture.c:34:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[41/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/nv2a_pb_scan.c.o
+[42/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/nv2a_vsh_interp.c.o
+[43/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/xbox_memory_layout.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:16:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:1931:17: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 1930 |         fprintf(stderr, "xbox_MemoryLayoutInit: CreateFileMapping failed (error %lu)\n",
+      |                                                                                 ~~~
+      |                                                                                 %u
+ 1931 |                 GetLastError());
+      |                 ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2478:39: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2477 |                     "(error %lu); pinned physical allocations will fault\n",
+      |                             ~~~
+      |                             %u
+ 2478 |                     XBOX_CONTIG_BASE, GetLastError());
+      |                                       ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2516:37: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2515 |                     "(error %lu); D3D register access will fault\n",
+      |                             ~~~
+      |                             %u
+ 2516 |                     XBOX_NV2A_BASE, GetLastError());
+      |                                     ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2622:37: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2621 |                     "(error %lu); USB/audio register access will fault\n",
+      |                             ~~~
+      |                             %u
+ 2622 |                     XBOX_MCPX_BASE, GetLastError());
+      |                                     ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2638:38: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2637 |                     "(error %lu); a title reading flash will fault\n",
+      |                             ~~~
+      |                             %u
+ 2638 |                     XBOX_FLASH_BASE, GetLastError());
+      |                                      ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2741:53: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2740 |                 fprintf(stderr, "  Mirror %d: FAILED at %p (error %lu)\n",
+      |                                                                   ~~~
+      |                                                                   %u
+ 2741 |                         m + 1, (void *)mirror_base, GetLastError());
+      |                                                     ^~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/xbox_memory_layout.c:2828:38: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 2826 |                     " (error %lu); rendering writes will fault"
+      |                              ~~~
+      |                              %u
+ 2827 |                     " (host %p: state %lx, allocation %p, region %zx)\n",
+ 2828 |                     XBOX_TILED_BASE, err, (void *)tiled_native,
+      |                                      ^~~
+8 warnings generated.
+[44/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/nv2a_combiner.c.o
+[45/246] Building C object xboxrecomp/src/audio/CMakeFiles/xbox_dsound.dir/wma_decoder.c.o
+[46/246] Linking C static library xboxrecomp/src/apu/libxbox_apu.a
+[47/246] Building C object xboxrecomp/src/audio/CMakeFiles/xbox_dsound.dir/dsound_device.c.o
+[48/246] Building C object xboxrecomp/src/nv2a/CMakeFiles/xbox_nv2a.dir/nv2a_core.c.o
+[49/246] Building C object xboxrecomp/src/nv2a/CMakeFiles/xbox_nv2a.dir/nv2a_pgraph_d3d11.c.o
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:75:9: warning: 'NV097_SET_BEGIN_END' macro redefined [-Wmacro-redefined]
+   75 | #define NV097_SET_BEGIN_END             0x17FC
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1159:12: note: previous definition is here
+ 1159 | #   define NV097_SET_BEGIN_END                                0x000017FC
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:76:9: warning: 'NV097_INLINE_ARRAY' macro redefined [-Wmacro-redefined]
+   76 | #define NV097_INLINE_ARRAY              0x1818
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1176:12: note: previous definition is here
+ 1176 | #   define NV097_INLINE_ARRAY                                 0x00001818
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:77:9: warning: 'NV097_CLEAR_SURFACE' macro redefined [-Wmacro-redefined]
+   77 | #define NV097_CLEAR_SURFACE             0x01D0
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1278:12: note: previous definition is here
+ 1278 | #   define NV097_CLEAR_SURFACE                                0x00001D94
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:78:9: warning: 'NV097_SET_COLOR_CLEAR_VALUE' macro redefined [-Wmacro-redefined]
+   78 | #define NV097_SET_COLOR_CLEAR_VALUE     0x01D4
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1277:12: note: previous definition is here
+ 1277 | #   define NV097_SET_COLOR_CLEAR_VALUE                        0x00001D90
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:79:9: warning: 'NV097_SET_CLEAR_RECT_HORIZONTAL' macro redefined [-Wmacro-redefined]
+   79 | #define NV097_SET_CLEAR_RECT_HORIZONTAL 0x01D8
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1286:12: note: previous definition is here
+ 1286 | #   define NV097_SET_CLEAR_RECT_HORIZONTAL                    0x00001D98
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:80:9: warning: 'NV097_SET_CLEAR_RECT_VERTICAL' macro redefined [-Wmacro-redefined]
+   80 | #define NV097_SET_CLEAR_RECT_VERTICAL   0x01DC
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1287:12: note: previous definition is here
+ 1287 | #   define NV097_SET_CLEAR_RECT_VERTICAL                      0x00001D9C
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:82:9: warning: 'NV097_SET_DEPTH_TEST_ENABLE' macro redefined [-Wmacro-redefined]
+   82 | #define NV097_SET_DEPTH_TEST_ENABLE     0x0354
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:937:12: note: previous definition is here
+  937 | #   define NV097_SET_DEPTH_TEST_ENABLE                        0x0000030C
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:83:9: warning: 'NV097_SET_BLEND_ENABLE' macro redefined [-Wmacro-redefined]
+   83 | #define NV097_SET_BLEND_ENABLE          0x0304
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:935:12: note: previous definition is here
+  935 | #   define NV097_SET_BLEND_ENABLE                             0x00000304
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:84:9: warning: 'NV097_SET_BLEND_FUNC_SFACTOR' macro redefined [-Wmacro-redefined]
+   84 | #define NV097_SET_BLEND_FUNC_SFACTOR    0x0344
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:958:12: note: previous definition is here
+  958 | #   define NV097_SET_BLEND_FUNC_SFACTOR                       0x00000344
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:85:9: warning: 'NV097_SET_BLEND_FUNC_DFACTOR' macro redefined [-Wmacro-redefined]
+   85 | #define NV097_SET_BLEND_FUNC_DFACTOR    0x0348
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:974:12: note: previous definition is here
+  974 | #   define NV097_SET_BLEND_FUNC_DFACTOR                       0x00000348
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:86:9: warning: 'NV097_SET_CULL_FACE_ENABLE' macro redefined [-Wmacro-redefined]
+   86 | #define NV097_SET_CULL_FACE_ENABLE      0x039C
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:936:12: note: previous definition is here
+  936 | #   define NV097_SET_CULL_FACE_ENABLE                         0x00000308
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:87:9: warning: 'NV097_SET_ALPHA_TEST_ENABLE' macro redefined [-Wmacro-redefined]
+   87 | #define NV097_SET_ALPHA_TEST_ENABLE     0x0300
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:934:12: note: previous definition is here
+  934 | #   define NV097_SET_ALPHA_TEST_ENABLE                        0x00000300
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:88:9: warning: 'NV097_SET_COLOR_MASK' macro redefined [-Wmacro-redefined]
+   88 | #define NV097_SET_COLOR_MASK            0x0358
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1000:12: note: previous definition is here
+ 1000 | #   define NV097_SET_COLOR_MASK                               0x00000358
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:89:9: warning: 'NV097_SET_SHADE_MODE' macro redefined [-Wmacro-redefined]
+   89 | #define NV097_SET_SHADE_MODE            0x0368
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1021:12: note: previous definition is here
+ 1021 | #   define NV097_SET_SHADE_MODE                               0x0000037C
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:91:9: warning: 'NV097_SET_VIEWPORT_OFFSET' macro redefined [-Wmacro-redefined]
+   91 | #define NV097_SET_VIEWPORT_OFFSET       0x0A20
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1081:12: note: previous definition is here
+ 1081 | #   define NV097_SET_VIEWPORT_OFFSET                          0x00000A20
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:92:9: warning: 'NV097_SET_VIEWPORT_SCALE' macro redefined [-Wmacro-redefined]
+   92 | #define NV097_SET_VIEWPORT_SCALE        0x0AF0
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1089:12: note: previous definition is here
+ 1089 | #   define NV097_SET_VIEWPORT_SCALE                           0x00000AF0
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:93:9: warning: 'NV097_SET_SURFACE_CLIP_HORIZONTAL' macro redefined [-Wmacro-redefined]
+   93 | #define NV097_SET_SURFACE_CLIP_HORIZONTAL 0x0200
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:863:12: note: previous definition is here
+  863 | #   define NV097_SET_SURFACE_CLIP_HORIZONTAL                  0x00000200
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:94:9: warning: 'NV097_SET_SURFACE_CLIP_VERTICAL' macro redefined [-Wmacro-redefined]
+   94 | #define NV097_SET_SURFACE_CLIP_VERTICAL 0x0204
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:866:12: note: previous definition is here
+  866 | #   define NV097_SET_SURFACE_CLIP_VERTICAL                    0x00000204
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:96:9: warning: 'NV097_SET_TEXTURE_OFFSET' macro redefined [-Wmacro-redefined]
+   96 | #define NV097_SET_TEXTURE_OFFSET        0x1B00  /* +0x40 per stage */
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1183:12: note: previous definition is here
+ 1183 | #   define NV097_SET_TEXTURE_OFFSET                           0x00001B00
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:97:9: warning: 'NV097_SET_TEXTURE_FORMAT' macro redefined [-Wmacro-redefined]
+   97 | #define NV097_SET_TEXTURE_FORMAT        0x1B04  /* +0x40 per stage */
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1184:12: note: previous definition is here
+ 1184 | #   define NV097_SET_TEXTURE_FORMAT                           0x00001B04
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:98:9: warning: 'NV097_SET_TEXTURE_CONTROL0' macro redefined [-Wmacro-redefined]
+   98 | #define NV097_SET_TEXTURE_CONTROL0      0x1B08  /* +0x40 per stage */
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_regs.h:1239:12: note: previous definition is here
+ 1239 | #   define NV097_SET_TEXTURE_CONTROL0                         0x00001B0C
+      |            ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:34:12: warning: unused variable 'g_textures_loaded' [-Wunused-variable]
+   34 | static int g_textures_loaded = 0;
+      |            ^~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:44:27: warning: unused function 'create_dxt5_texture' [-Wunused-function]
+   44 | static IDirect3DTexture8 *create_dxt5_texture(IDirect3DDevice8 *dev,
+      |                           ^~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pgraph_d3d11.c:116:17: warning: unused function 'nv2a_blend_to_d3d' [-Wunused-function]
+  116 | static uint32_t nv2a_blend_to_d3d(uint32_t nv) {
+      |                 ^~~~~~~~~~~~~~~~~
+24 warnings generated.
+[50/246] Building C object xboxrecomp/src/nv2a/CMakeFiles/xbox_nv2a.dir/nv2a_pb_replay.c.o
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pb_replay.c:284:32: warning: array index 7455 is past the end of the array (that has type 'const uint32_t[1]' (aka 'const unsigned int[1]')) [-Warray-bounds]
+  284 |             replay_pushbuffer(&menu_pushbuffer_data[CHYRON_END_DWORD],
+      |                                ^                    ~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/menu_pushbuffer_data.h:11:1: note: array 'menu_pushbuffer_data' declared here
+   11 | static const uint32_t menu_pushbuffer_data[] = { 0 };
+      | ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a/nv2a_pb_replay.c:69:12: warning: unused variable 'g_prev_menu' [-Wunused-variable]
+   69 | static int g_prev_menu = -1;
+      |            ^~~~~~~~~~~
+2 warnings generated.
+[51/246] Building C object xboxrecomp/src/nv2a/CMakeFiles/xbox_nv2a.dir/nv2a_mmio_hook.c.o
+[52/246] Building C object xboxrecomp/src/nv2a/CMakeFiles/xbox_nv2a.dir/nv2a_pb_test.c.o
+[53/246] Building C object xboxrecomp/src/usb/CMakeFiles/xbox_usb.dir/usb_gamepad.c.o
+[54/246] Linking C static library xboxrecomp/src/input/libxbox_input.a
+[55/246] Building C object xboxrecomp/src/video/CMakeFiles/xbox_video.dir/video_player.c.o
+[56/246] Building C object xboxrecomp/src/video/CMakeFiles/xbox_video.dir/video_pump.c.o
+[57/246] Building C object xboxrecomp/src/video/CMakeFiles/xbox_video.dir/fb_present.c.o
+[58/246] Building C object xboxrecomp/src/usb/CMakeFiles/xbox_usb.dir/ohci.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/usb/ohci.c:12:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/usb/../kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/usb/ohci.c:1369:61: warning: format specifies type 'unsigned long' but the argument has type 'DWORD' (aka 'unsigned int') [-Wformat]
+ 1368 |                 fprintf(stderr, "  OHCI: cannot trap 0x%08X (error %lu); "
+      |                                                                    ~~~
+      |                                                                    %u
+ 1369 |                                 "disabled\n", s_hc[i].base, GetLastError());
+      |                                                             ^~~~~~~~~~~~~~
+2 warnings generated.
+[59/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/nv2a_pb_exec.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/nv2a_pb_exec.c:33:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+1 warning generated.
+[60/246] Building C object xboxrecomp/src/kernel/CMakeFiles/xbox_kernel.dir/kernel_bridge.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:29:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:889:14: warning: unused variable 'zero_bits' [-Wunused-variable]
+  889 |     uint32_t zero_bits = STACK_ARG(1);
+      |              ^~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:4215:14: warning: unused variable 'protect' [-Wunused-variable]
+ 4215 |     uint32_t protect = STACK_ARG(2);
+      |              ^~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:4250:14: warning: '/*' within block comment [-Wcomment]
+ 4250 |  * src/kernel/*.c; only the wrapper that moves arguments off the simulated stack
+      |              ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:8247:38: warning: '/*' within block comment [-Wcomment]
+ 8247 |         /* Division by zero: report 0/*; Real hardware faults here. */
+      |                                      ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:9904:46: warning: '/*' within block comment [-Wcomment]
+ 9904 |  * values are per-title, not hardcoded. *base/*count are set to 0 if unavailable.
+      |                                              ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:9975:19: warning: comparison of integers of different signs: 'int' and 'uint32_t' (aka 'unsigned int') [-Wsign-compare]
+ 9975 |     for (i = 0; i < g_thunk_table_count; i++) {
+      |                 ~ ^ ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:2957:15: warning: unused function 'bridge_read_handle' [-Wunused-function]
+ 2957 | static HANDLE bridge_read_handle(uint32_t va)
+      |               ^~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:4238:13: warning: unused function 'bridge_generic_stub' [-Wunused-function]
+ 4238 | static void bridge_generic_stub(void)
+      |             ^~~~~~~~~~~~~~~~~~~
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel_bridge.c:6568:13: warning: unused function 'ke_shadow_remove' [-Wunused-function]
+ 6568 | static void ke_shadow_remove(uint32_t guest_va)
+      |             ^~~~~~~~~~~~~~~~
+10 warnings generated.
+[61/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0002.c.o
+[62/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0001.c.o
+[63/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0003.c.o
+[64/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0000.c.o
+[65/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0004.c.o
+[66/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0007.c.o
+[67/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0006.c.o
+[68/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0008.c.o
+[69/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0009.c.o
+[70/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0010.c.o
+[71/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0011.c.o
+[72/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0005.c.o
+[73/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0012.c.o
+[74/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0014.c.o
+[75/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0013.c.o
+[76/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0016.c.o
+[77/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0015.c.o
+[78/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0017.c.o
+[79/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0019.c.o
+[80/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0018.c.o
+[81/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0020.c.o
+[82/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0021.c.o
+[83/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0023.c.o
+[84/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0022.c.o
+[85/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0025.c.o
+[86/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0027.c.o
+[87/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0026.c.o
+[88/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0024.c.o
+[89/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0030.c.o
+[90/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0031.c.o
+[91/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0029.c.o
+[92/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0028.c.o
+[93/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0032.c.o
+[94/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0033.c.o
+[95/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0034.c.o
+[96/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0035.c.o
+[97/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0037.c.o
+[98/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0038.c.o
+[99/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0039.c.o
+[100/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0040.c.o
+[101/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0041.c.o
+[102/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0042.c.o
+[103/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0045.c.o
+[104/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_dispatch.c.o
+[105/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_stubs_unresolved.c.o
+[106/246] Building C object CMakeFiles/ngb_gen.dir/src/movie_skip.c.o
+[107/246] Building C object CMakeFiles/ngb_gen.dir/src/costume_menu.c.o
+[108/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0036.c.o
+[109/246] Building C object CMakeFiles/ngb_gen.dir/src/pc_menu.c.o
+[110/246] Building C object CMakeFiles/ngb_gen.dir/src/game_prompts.c.o
+[111/246] Building C object CMakeFiles/ngb_gen.dir/src/pause_tab.c.o
+[112/246] Building C object CMakeFiles/ngb_gen.dir/src/app_icon.c.o
+[113/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0044.c.o
+[114/246] Building C object CMakeFiles/ngb_gen.dir/src/menu_font.c.o
+[115/246] Building C object CMakeFiles/ngb_gen.dir/src/fps_text.c.o
+[116/246] Building C object CMakeFiles/ngb_gen.dir/src/ut_charge.c.o
+[117/246] Building C object CMakeFiles/ngb_gen.dir/src/recomp/gen/recomp_0043.c.o
+[118/246] Building C object CMakeFiles/ngb_gen.dir/src/cutscene_skip.c.o
+[119/246] Building C object CMakeFiles/ngb_gen.dir/src/fiber_delete.c.o
+[120/246] Building C object CMakeFiles/ngb_gen.dir/src/kitetsu_levels.c.o
+[121/246] Building C object CMakeFiles/ngb_gen.dir/src/responsive.c.o
+[122/246] Building C object CMakeFiles/ngb_gen.dir/src/sound_boot.c.o
+[123/246] Building C object CMakeFiles/ngb_gen.dir/src/hud.c.o
+[124/246] Building C object CMakeFiles/ngb_gen.dir/src/playtime.c.o
+[125/246] Building C object CMakeFiles/ngb_gen.dir/src/render_list.c.o
+[126/246] Building C object CMakeFiles/ngb_gen.dir/src/save_slots.c.o
+[127/246] Building C object CMakeFiles/ngb_gen.dir/src/d3d/gpu_regs.c.o
+[128/246] Building C object CMakeFiles/ngb_gen.dir/src/hurricane_hint.c.o
+[129/246] Building C object CMakeFiles/ngb_gen.dir/src/hurricane_flags.c.o
+[130/246] Building C object CMakeFiles/ngb_gen.dir/src/menu_mouse.c.o
+[131/246] Building C object CMakeFiles/ngb_gen.dir/src/hurricane_zh_data.c.o
+[132/246] Building C object CMakeFiles/ngb_gen.dir/src/quick_select.c.o
+[133/246] Building C object CMakeFiles/ngb_gen.dir/src/d3d/d3d.c.o
+[134/246] Building C object CMakeFiles/ngb_gen.dir/src/main_menu.c.o
+[135/246] Building C object CMakeFiles/ngb_gen.dir/src/d3d/d3d_hooks.c.o
+[136/246] Building C object CMakeFiles/ngb_gen.dir/src/cheats.c.o
+[137/246] Building C object CMakeFiles/ngb_gen.dir/src/audio/dsound.c.o
+[138/246] Building C object CMakeFiles/ngb_gen.dir/src/audio/dsound_hooks.c.o
+[139/246] Building C object CMakeFiles/ngb_gen.dir/src/camera.c.o
+[140/246] Building C object CMakeFiles/ngb_gen.dir/src/audio/dsound_orig.c.o
+[141/246] Building C object CMakeFiles/ngb_gen.dir/src/hurricane_zh.c.o
+[142/246] Building C object CMakeFiles/ngb_gen.dir/fonts/ngb_font_tab.c.o
+[143/246] Building C object CMakeFiles/ngb_gen.dir/fonts/ngb_font_cjk.c.o
+[144/246] Building C object CMakeFiles/ngb_gen.dir/fonts/ngb_font_body.c.o
+[145/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_dpad.c.o
+[146/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_button_lit.c.o
+[147/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_dpad_north_lit.c.o
+[148/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_dpad_east_lit.c.o
+[149/246] Building C object CMakeFiles/ngb_gen.dir/fonts/ngb_font_label.c.o
+[150/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_dpad_south_lit.c.o
+[151/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_dpad_west_lit.c.o
+[152/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_nub.c.o
+[153/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_nub_lit.c.o
+[154/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_pad.c.o
+[155/246] Building C object CMakeFiles/ngb_gen.dir/touch/ngb_png_touch_pad_lit.c.o
+[156/246] Building C object CMakeFiles/ngb_gen.dir/touch/touch_table.c.o
+[157/246] Building C object CMakeFiles/ngb_gen.dir/src/d3d/d3d_orig.c.o
+[158/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/hle.cpp.o
+[159/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/gpu/vertex.cpp.o
+[160/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/vk/spirv.cpp.o
+[161/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/gpu/shaders.cpp.o
+[162/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/gpu/texture.cpp.o
+[163/246] Building C object CMakeFiles/ninja_gaiden_black.dir/src/main.c.o
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/main.c:55:
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/include/xbox/xboxrecomp.h:46:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel/kernel.h:508:63: warning: '/*' within block comment [-Wcomment]
+  508 |  * Set during memory layout init from the XBE header. *xbox_va/*count are
+      |                                                               ^
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/main.c:163:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/host/nv2a_window.h:44:9: warning: 'NV2A_MOUSEID_SCRIPTED' macro redefined [-Wmacro-redefined]
+   44 | #define NV2A_MOUSEID_SCRIPTED ((uint32_t)-3)
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/host/nv2a_window.h:32:9: note: previous definition is here
+   32 | #define NV2A_MOUSEID_SCRIPTED 0x5C51u
+      |         ^
+2 warnings generated.
+[164/246] Building C object CMakeFiles/ninja_gaiden_black.dir/src/recomp_manual.c.o
+[165/246] Building C object CMakeFiles/ninja_gaiden_black.dir/src/fibers.c.o
+[166/246] Building C object CMakeFiles/ninja_gaiden_black.dir/src/launcher.c.o
+FAILED: [code=1] CMakeFiles/ninja_gaiden_black.dir/src/launcher.c.o 
+/home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang --target=aarch64-none-linux-android29 --sysroot=/home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot -DNGB_NV2A_VK -DNOMINMAX -DWIN32_LEAN_AND_MEAN -Dninja_gaiden_black_EXPORTS -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/recomp/gen -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/include -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/kernel -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/platform -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/d3d -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/audio -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/apu -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/input -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/usb -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/video -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/video/.. -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/shim/glib-lite -I/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/host -isystem /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include -isystem /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/SDL2 -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D__BIONIC_NO_PAGE_SIZE_MACRO -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O3 -DNDEBUG  -std=gnu11 -fPIC -pthread -MD -MT CMakeFiles/ninja_gaiden_black.dir/src/launcher.c.o -MF CMakeFiles/ninja_gaiden_black.dir/src/launcher.c.o.d -o CMakeFiles/ninja_gaiden_black.dir/src/launcher.c.o -c /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/launcher.c
+In file included from /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/launcher.c:25:
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/host/nv2a_window.h:44:9: warning: 'NV2A_MOUSEID_SCRIPTED' macro redefined [-Wmacro-redefined]
+   44 | #define NV2A_MOUSEID_SCRIPTED ((uint32_t)-3)
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/xboxrecomp/src/nv2a_vk/host/nv2a_window.h:32:9: note: previous definition is here
+   32 | #define NV2A_MOUSEID_SCRIPTED 0x5C51u
+      |         ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/launcher.c:255:16: error: no member named 'intercept' in 'struct NgbSettings'
+  255 |             s->intercept = atoi(val) < 0 ? 0 : atoi(val) > 2 ? 2 : atoi(val);
+      |             ~  ^
+/home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/src/launcher.c:333:39: error: no member named 'intercept' in 'struct NgbSettings'
+  333 |     fprintf(f, "intercept = %d\n", s->intercept);
+      |                                    ~  ^
+1 warning and 2 errors generated.
+[167/246] Building CXX object CMakeFiles/ngb_audio.dir/src/audio/dsound_hle.cpp.o
+[168/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/gpu/threaded.cpp.o
+[169/246] Building CXX object CMakeFiles/ngb_d3d.dir/src/d3d/vk/backend.cpp.o
+ninja: build stopped: subcommand failed.

@@ -1,0 +1,108 @@
+-- The C compiler identification is Clang 18.0.3
+-- The CXX compiler identification is Clang 18.0.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /home/runner/work/_temp/android-sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- spirv-tools not linked - illegal SPIRV may be generated for HLSL
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Check if compiler accepts -pthread
+-- Check if compiler accepts -pthread - yes
+-- Found Threads: TRUE
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/build-glslang-arm64-v8a
+[1/62] Building CXX object glslang/CMakeFiles/GenericCodeGen.dir/stub.cpp.o
+[2/62] Building CXX object glslang/CMakeFiles/MachineIndependent.dir/stub.cpp.o
+[3/62] Building CXX object SPIRV/CMakeFiles/SPIRV.dir/__/glslang/stub.cpp.o
+[4/62] Building CXX object glslang/OSDependent/Unix/CMakeFiles/OSDependent.dir/__/__/stub.cpp.o
+[5/62] Linking CXX static library glslang/libGenericCodeGen.a
+[6/62] Linking CXX static library SPIRV/libSPIRV.a
+[7/62] Linking CXX static library glslang/OSDependent/Unix/libOSDependent.a
+[8/62] Linking CXX static library glslang/libMachineIndependent.a
+[9/62] Building CXX object glslang/CMakeFiles/glslang-default-resource-limits.dir/ResourceLimits/resource_limits_c.cpp.o
+[10/62] Building CXX object glslang/CMakeFiles/glslang-default-resource-limits.dir/ResourceLimits/ResourceLimits.cpp.o
+[11/62] Linking CXX static library glslang/libglslang-default-resource-limits.a
+[12/62] Building CXX object glslang/CMakeFiles/glslang.dir/cmake_pch.hxx.pch
+[13/62] Building CXX object glslang/CMakeFiles/glslang.dir/GenericCodeGen/CodeGen.cpp.o
+[14/62] Building CXX object glslang/CMakeFiles/glslang.dir/OSDependent/Unix/ossource.cpp.o
+[15/62] Building CXX object glslang/CMakeFiles/glslang.dir/GenericCodeGen/Link.cpp.o
+[16/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/attribute.cpp.o
+[17/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/InfoSink.cpp.o
+[18/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/IntermTraverse.cpp.o
+[19/62] Building CXX object glslang/CMakeFiles/glslang.dir/CInterface/glslang_c_interface.cpp.o
+[20/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/Constant.cpp.o
+[21/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/ParseContextBase.cpp.o
+[22/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/Intermediate.cpp.o
+[23/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/RemoveTree.cpp.o
+[24/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/PoolAlloc.cpp.o
+[25/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/Scan.cpp.o
+[26/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/Initialize.cpp.o
+[27/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/iomapper.cpp.o
+[28/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/ShaderLang.cpp.o
+[29/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/SpirvIntrinsics.cpp.o
+[30/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/limits.cpp.o
+[31/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/intermOut.cpp.o
+[32/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/SymbolTable.cpp.o
+[33/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/parseConst.cpp.o
+[34/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/Versions.cpp.o
+[35/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpAtom.cpp.o
+[36/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/glslang_tab.cpp.o
+[37/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpContext.cpp.o
+[38/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/reflection.cpp.o
+[39/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/Pp.cpp.o
+[40/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpTokens.cpp.o
+[41/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslAttributes.cpp.o
+[42/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/preprocessor/PpScanner.cpp.o
+[43/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslOpMap.cpp.o
+[44/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslTokenStream.cpp.o
+[45/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslScanContext.cpp.o
+[46/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/propagateNoContraction.cpp.o
+[47/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/ParseHelper.cpp.o
+[48/62] Building CXX object glslang/CMakeFiles/glslang.dir/MachineIndependent/linkValidate.cpp.o
+[49/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/Logger.cpp.o
+[50/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslParseables.cpp.o
+[51/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/InReadableOrder.cpp.o
+[52/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/doc.cpp.o
+[53/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvTools.cpp.o
+[54/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslGrammar.cpp.o
+[55/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/CInterface/spirv_c_interface.cpp.o
+[56/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvPostProcess.cpp.o
+[57/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/disassemble.cpp.o
+[58/62] Building CXX object glslang/CMakeFiles/glslang.dir/HLSL/hlslParseHelper.cpp.o
+[59/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/SpvBuilder.cpp.o
+[60/62] Building CXX object glslang/CMakeFiles/glslang.dir/__/SPIRV/GlslangToSpv.cpp.o
+[61/62] Linking CXX static library glslang/libglslang.a
+[61/62] Install the project...
+-- Install configuration: "Release"
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libSPIRV.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/SPIRV/GlslangToSpv.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/SPIRV/disassemble.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/SPIRV/Logger.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/SPIRV/spirv.hpp11
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/SPIRV/SpvTools.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libOSDependent.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libglslang.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libMachineIndependent.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libGenericCodeGen.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Public/ResourceLimits.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Public/ShaderLang.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Public/resource_limits_c.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Include/glslang_c_interface.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Include/glslang_c_shader_types.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Include/ResourceLimits.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/Include/visibility.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/MachineIndependent/Versions.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/include/glslang/build_info.h
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/libglslang-default-resource-limits.a
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/glslang/glslang-targets.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/glslang/glslang-targets-release.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/glslang/glslang-config.cmake
+-- Installing: /home/runner/work/ngbrecomp-android-custom-touch/ngbrecomp-android-custom-touch/build/android-deps/arm64-v8a/lib/cmake/glslang/glslang-config-version.cmake

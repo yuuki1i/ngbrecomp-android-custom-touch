@@ -865,7 +865,7 @@ public class TouchLayoutEditor extends FrameLayout {
     }
 
     private void scale(float d) {
-        mR[mSelected] = Math.max(0.035f, Math.min(0.25f, mR[mSelected] + d));
+        mR[mSelected] = Math.max(0.012f, Math.min(0.25f, mR[mSelected] + d));
         refresh();
     }
 
@@ -1099,7 +1099,7 @@ public class TouchLayoutEditor extends FrameLayout {
                     float now = spread(ev);
                     if (mPinch > 0 && mDrag >= 0) {
                         float ratio = now / mPinch;
-                        mEditor.mR[mDrag] = Math.max(0.035f, Math.min(0.25f, mEditor.mR[mDrag] * ratio));
+                        mEditor.mR[mDrag] = Math.max(0.012f, Math.min(0.25f, mEditor.mR[mDrag] * ratio));
                         mPinch = now;
                         mEditor.refresh();
                     }
