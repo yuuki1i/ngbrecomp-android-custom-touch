@@ -3,7 +3,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.gamboozino.ngbrecomp"
     android:versionCode="1003"
-    android:versionName="1.0.3-ngb-touch">
+    android:versionName="1.0.2-ngb-touch">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="35" />
     <uses-feature android:name="android.hardware.vulkan.version" android:version="0x401000" android:required="true" />
