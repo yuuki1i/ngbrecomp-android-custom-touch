@@ -768,6 +768,7 @@ static float game_text(uint8_t *m, int w, int h, const char *s, float px, float 
 static float draw_text(uint8_t *m, int w, int h, const stbtt_fontinfo *f,
                        const char *s, float px, float sx, float x, float base)
 {
+    s = ngb_ui_zh(s);           /* (a word the table lacks, or one already Chinese, stays as it is) */
     if (ngb_ui_wide(s))         /* (the game's face and the Latin ones carry no hanzi: ui_zh.c's does) */
         return ngb_ui_text(m, w, h, s, px, sx, x, base);
     if (s_game_font)
@@ -800,6 +801,7 @@ static float draw_text(uint8_t *m, int w, int h, const stbtt_fontinfo *f,
 
 static float text_width(const stbtt_fontinfo *f, const char *s, float px, float sx)
 {
+    s = ngb_ui_zh(s);
     if (ngb_ui_wide(s))
         return ngb_ui_text(NULL, 0, 0, s, px, sx, 0, 0);
     if (s_game_font)
