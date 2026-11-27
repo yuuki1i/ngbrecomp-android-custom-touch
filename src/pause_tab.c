@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "xbox_memory_layout.h"   /* xbox_HeapAlloc, xbox_ContiguousAlloc */
 #include "launcher.h"                 /* ngb_vsync_name, ngb_vsync_step */
@@ -2569,6 +2570,30 @@ static int pt_ready(void)
 }
 
 static int pt_tabs(void) { return pt_ready() ? 7 : 6; }
+
+/* The page is up right now (the mouse's test, src/ingame_menu.c's tab_shown): the game's pause menu is
+ * running and the tab it shows is ours. Its own draw sets a 250 ms window, but in play that draw runs when
+ * the game switches to the tab, not every frame: the window expired while the page was still on screen, the
+ * taps were all dropped and nothing on the page could be clicked -- the freeze (user 2026-11-27). */
+static volatile uint64_t s_pt_ms;
+int ngb_pause_tab_live(void)
+{
+    static int off = -1;
+    extern volatile uint64_t ngb_menu_ran_ms;   /* src/menu_mouse.c: the engine's last menu frame */
+    if (off < 0)
+        off = getenv("NGB_NO_SETTINGS_TAB") != NULL;
+    if (off || !s_pt_ms)
+        return 0;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    uint64_t now = (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+    if (now - s_pt_ms > 30000 || now - ngb_menu_ran_ms > 800)
+        return 0;                               /* (our page long gone, or the game out of its menu) */
+    int32_t depth = (int32_t)MEM32(0xDA41C0);
+    if (depth < 0 || depth > 3)
+        return 0;                               /* (no menu open in play: the pad's touches are the pad's) */
+    return MEM8(0xDA41D1) == PT_TAB;            /* (the tab the game shows is ours) */
+}
 /* Exit's row: the last, so 5 without the seventh tab, 6 with. */
 #define EXIT_TAB (pt_tabs() == 7 ? 6u : 5u)
 
@@ -2813,6 +2838,11 @@ static void ctl_mouse(int r, int *row)
  * then the page. */
 static void pt_draw(void)
 {
+    {   /* (drawn: live for the mouse from here, src/ingame_menu.c's tab_shown) */
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        s_pt_ms = (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+    }
     if (!cat_shown(s_cat == CAT_UNL ? CAT_CHEAT : s_cat)) {   /* (on Cheats, now locked: the next one) */
         s_cat = CAT_CTL + 1; /* Controls is hidden; continue at Menu Options. */
         s_row = -1;

@@ -400,8 +400,14 @@ static void tab_mark(uint64_t now)
  * a "back" nobody pressed (#261). */
 static bool tab_shown(void)
 {
-    return mono_ms() - s_tab_seen < 250 ||
-           __atomic_load_n(&s_game_frames, __ATOMIC_ACQUIRE) - s_tab_seen_frame < 2;
+    if (mono_ms() - s_tab_seen < 250 ||
+        __atomic_load_n(&s_game_frames, __ATOMIC_ACQUIRE) - s_tab_seen_frame < 2)
+        return true;
+    {   /* In play the page's own draw runs on the switch to its tab, not every frame: the window above
+         * expired while the page was still on screen and every tap was dropped (user 2026-11-27). */
+        extern int ngb_pause_tab_live(void);   /* src/pause_tab.c: the game's menu is up on our tab */
+        return ngb_pause_tab_live() != 0;
+    }
 }
 
 static void tab_push(int k)
