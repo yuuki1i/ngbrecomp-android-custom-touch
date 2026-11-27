@@ -109,7 +109,8 @@ int ngb_menu_touch_blocked(void)
     /* While either settings surface is visible, leave finger events in the
      * SDL queue for ingame_menu.c to translate into menu mouse clicks.
      * touch_watch() must not consume them as gameplay input. */
-    return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) || tab_shown();
+    extern int ngb_quick_controls_active(void);   /* src/quick_ui.c: the PC settings page (Graphics, Display, ...) */
+    return __atomic_load_n(&s_open, __ATOMIC_ACQUIRE) || tab_shown() || ngb_quick_controls_active();
 }
 
 void ngb_menu_request_touch_editor(void)

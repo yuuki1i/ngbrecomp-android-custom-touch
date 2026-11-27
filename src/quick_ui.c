@@ -202,6 +202,11 @@ int ngb_quick_available(void)
 int ngb_quick_event(const void *event)
 {
     const SDL_Event *ev = event;
+    /* A finger is not ours: nv2a_window_event_hook (src/ingame_menu.c) turns it into the button event this
+     * page reads, and it only gets there if the finger is left in the queue. Swallowing it here is why the
+     * settings page showed its rows and took no touch at all (user 2026-11-27). */
+    if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERMOTION || ev->type == SDL_FINGERUP)
+        return 0;
     if (ev->type == SDL_KEYDOWN || ev->type == SDL_KEYUP)
     {
         unsigned sc = ev->key.keysym.scancode;
