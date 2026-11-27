@@ -2,6 +2,8 @@ package io.github.gamboozino.ngbrecomp;
 
 import android.content.Intent;
 import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
@@ -33,6 +35,7 @@ public class NgbActivity extends SDLActivity {
     private static final int PICK_DISC = 0x4E47;
     private static final int PICK_TOUCH_SKIN = 0x4E48;
     private static final int PICK_VIDEO_FILTER = 0x4E49;
+    private static final int PICK_TEX_REPLACE = 0x4E4A;
     static final String EXTRA_LIB = "io.github.gamboozino.ngbrecomp.LIB";
     static final String EXTRA_ENV = "io.github.gamboozino.ngbrecomp.ENV";
     private volatile String mPicked;
@@ -442,6 +445,84 @@ public class NgbActivity extends SDLActivity {
         }
     }
 
+    /* ---- the texture pack: shown as thumbnails, and a picture of the player's own put in one's place ---- */
+    private NgbTextureBrowser mTexBrowser;
+    private String mReplaceTarget;
+
+    public void openTextureBrowser() {
+        runOnUiThread(() -> {
+            String dir = texturePackPath();
+            if (dir == null || dir.length() == 0) {
+                Toast.makeText(this, "还没有贴图文件夹：进游戏跑一段、把「导出贴图」打开", Toast.LENGTH_LONG).show();
+                return;
+            }
+            File folder = new File(dir);
+            if (!folder.exists() && !folder.mkdirs()) {
+                Toast.makeText(this, "打不开贴图文件夹：" + dir, Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (mTexBrowser != null && mTexBrowser.getParent() != null)
+                ((android.view.ViewGroup) mTexBrowser.getParent()).removeView(mTexBrowser);
+            mTexBrowser = new NgbTextureBrowser(this, dir);
+            addContentView(mTexBrowser, new android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        });
+    }
+
+    /* A replacement: pick a picture, scale it to the texture's own size, write it over the old file. */
+    public void replaceTexture(String path) {
+        mReplaceTarget = path;
+        try {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(i, PICK_TEX_REPLACE);
+        } catch (Throwable e) {
+            Toast.makeText(this, "打不开相册", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void writeReplacement(final android.net.Uri uri) {
+        final String target = mReplaceTarget;
+        if (target == null || uri == null) return;
+        new Thread(() -> {
+            String said;
+            try {
+                String name = new File(target).getName();
+                int w = 0, h = 0;
+                int x = name.indexOf('x'), u = name.indexOf('_');
+                if (x > 0 && u > x) {
+                    w = Integer.parseInt(name.substring(0, x));
+                    h = Integer.parseInt(name.substring(x + 1, u));
+                }
+                java.io.InputStream in = getContentResolver().openInputStream(uri);
+                Bitmap src = BitmapFactory.decodeStream(in);
+                if (in != null) in.close();
+                if (src == null) throw new IllegalStateException("读不出这张图");
+                Bitmap outBmp = src;
+                if (w > 0 && h > 0 && (src.getWidth() != w || src.getHeight() != h))
+                    outBmp = Bitmap.createScaledBitmap(src, w, h, true);
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(target);
+                boolean ok = outBmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                fos.close();
+                if (outBmp != src) outBmp.recycle();
+                src.recycle();
+                said = ok ? "已换掉 " + name + "（" + w + "×" + h + "），回游戏点「重新读取贴图」"
+                          : "写不进去：" + target;
+            } catch (Throwable e) {
+                said = "替换失败：" + e;
+            }
+            final String message = said;
+            runOnUiThread(() -> {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                rescanTextures();
+                if (mTexBrowser != null) mTexBrowser.reload();
+            });
+        }).start();
+    }
+
     /* A filter the player brings: one PNG read as colour curves (src/touch_pad.c, ngb_video_curve). */
     public String videoFilterName() { return nativeVideoFilterName(); }
     public void clearVideoFilter() { nativeVideoFilterSet(null); }
@@ -517,6 +598,11 @@ public class NgbActivity extends SDLActivity {
                     mTouchSkinReady = true;
                 }
             }).start();
+            return;
+        }
+        if (request == PICK_TEX_REPLACE) {
+            final Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
+            if (uri != null) writeReplacement(uri);
             return;
         }
         if (request == PICK_VIDEO_FILTER) {

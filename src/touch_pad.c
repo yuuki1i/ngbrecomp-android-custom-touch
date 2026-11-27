@@ -758,6 +758,16 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
 
 /* The 360 key (combo 6), read beside the pad's state so the sweep and the Y go in after the bindings are
  * rebuilt -- a stick fed into that rebuild came out at zero, and the move with it. 1 while it has something. */
+/* The menus take the pad as a pointer: a 360 already under way would keep pressing Y into them, and a menu
+ * that keeps taking Y flickers and cannot be driven. The turn is dropped when the menu comes up. */
+void ngb_touch_360_cancel(void)
+{
+    pthread_mutex_lock(&s_lock);
+    memset(s_combo_active, 0, sizeof s_combo_active);
+    memset(s_combo_y_until, 0, sizeof s_combo_y_until);
+    pthread_mutex_unlock(&s_lock);
+}
+
 int ngb_touch_360(float *lx, float *ly, int *y_down)
 {
     int out = 0;

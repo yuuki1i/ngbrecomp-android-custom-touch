@@ -181,9 +181,12 @@ int xbox_keyboard_map(const Uint8 *k, Uint32 mouse, XBOX_INPUT_STATE *st)
         /* The 360 key, again after the remap: its stick's turn and its Y have to reach the game whatever the
          * bindings did to the state they were built into. */
         extern int ngb_touch_360(float *lx, float *ly, int *y_down);
+        extern void ngb_touch_360_cancel(void);
         float sx = 0, sy = 0;
         int y = 0;
-        if (ngb_touch_360(&sx, &sy, &y)) {
+        if (ngb_menu_up_controls()) {
+            ngb_touch_360_cancel();   /* (the menus: no Y pressed under the player's finger) */
+        } else if (ngb_touch_360(&sx, &sy, &y)) {
             st->Gamepad.sThumbLX = (SHORT)(sx * 32767.f);
             st->Gamepad.sThumbLY = (SHORT)(sy * 32767.f);
             if (y) st->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] = 255;

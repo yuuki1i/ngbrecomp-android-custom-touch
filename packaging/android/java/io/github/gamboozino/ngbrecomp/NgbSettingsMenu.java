@@ -274,6 +274,10 @@ public class NgbSettingsMenu extends FrameLayout {
             mActivity.rescanTextures();
             Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
         });
+        addAction("浏览与替换贴图", "把文件夹里的图排成缩略图，点一张就能从相册换掉它（自动缩放、原名覆盖）。", () -> {
+            close();
+            mActivity.openTextureBrowser();
+        });
         addAction("整理贴图文件夹", "把散在根目录的图按尺寸（512_plus / 256 / 128 / small）归进各自文件夹。",
                   () -> Toast.makeText(mActivity, mActivity.tidyTextureFolder(), Toast.LENGTH_LONG).show());
         addAction("生成本目录索引", "把这个文件夹里的图（按尺寸分组）排成一张网页 index.html，一次看全，找贴图快。",

@@ -585,11 +585,12 @@ public class TouchLayoutEditor extends FrameLayout {
         scrub_stairs(panel);
         scroll.addView(panel);
         mDrawer = scroll;
-        scroll.setSlide((dx, release) -> {
+        scroll.setSlide((dx, release, velocity) -> {
             float w = mDrawer.getWidth() > 0 ? mDrawer.getWidth() : dp(300);
             float room = drawerRoom();
             if (!release) {
                 /* Where the finger is, the drawer is: no snapping while it moves. */
+                mDrawer.animate().cancel();          /* (an opening slide must not fight the finger) */
                 mDrawer.setTranslationX(clampDrawer(mDrawerBase + dx, room));
                 return;
             }
@@ -599,8 +600,19 @@ public class TouchLayoutEditor extends FrameLayout {
                 closeDrawer();
                 return;
             }
+            /* A flick crosses the screen in one go: the hand does not have to carry the drawer the whole way. */
+            if (Math.abs(velocity) > 900) {
+                float step = velocity > 0 ? w : -w;
+                float target = clampDrawer(x + step, room);
+                mDrawerBase = target;
+                mDockLeft = target < -room / 3f;
+                mDrawer.animate().translationX(target).setDuration(200).start();
+                saveDrawer();
+                return;
+            }
             mDrawerBase = x;
             mDockLeft = x < -room / 3f;
+            saveDrawer();
         });
         FrameLayout.LayoutParams panelParams =
             new FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT);
@@ -715,9 +727,26 @@ public class TouchLayoutEditor extends FrameLayout {
         return Math.min(room + dp(340), Math.max(-room - dp(340) * 0.35f, x));
     }
 
+    /* Where the drawer was left, as a share of its room (-1 the far left, 1 the far right): the next time the
+     * editor opens, it is there again. */
+    private void saveDrawer() {
+        float room = drawerRoom();
+        if (room <= 0) return;
+        float share = Math.max(-1f, Math.min(1f, mDrawerBase / room));
+        mActivity.getSharedPreferences("ngb_touch_editor", 0).edit()
+                .putFloat("drawer_share", share).apply();
+    }
+
+    private void restoreDrawer() {
+        float share = mActivity.getSharedPreferences("ngb_touch_editor", 0).getFloat("drawer_share", 1f);
+        mDrawerBase = share * drawerRoom();
+        mDockLeft = share < 0f;
+    }
+
     private void openDrawer() {
         if (mDrawer == null) return;
         if (mScrim != null) mScrim.setVisibility(View.VISIBLE);
+        restoreDrawer();
         mDrawer.setVisibility(View.VISIBLE);
         mDrawer.setTranslationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)));
         mDrawer.animate().translationX(mDrawerBase).setDuration(180).start();
@@ -1188,12 +1217,14 @@ public class TouchLayoutEditor extends FrameLayout {
     /* A drawer that can be dragged sideways: a sideways swipe takes it (it parks on either edge), a
      * downward one still scrolls the rows inside. */
     static class DrawerScroll extends ScrollView {
-        interface Slide { void onSlide(float dx, boolean release); }
+        interface Slide { void onSlide(float dx, boolean release, float velocity); }
 
         private Slide mSlide;
         private float mDownX, mDownY;
         private boolean mDragging;
         private final int mSlop;
+        private android.view.VelocityTracker mTrack;
+        private float mLastX;
         private final float mDp;
         private final float mGrip;      /* (the strip at the drawer's edge that takes a drag at once) */
 
@@ -1202,6 +1233,7 @@ public class TouchLayoutEditor extends FrameLayout {
             mSlop = ViewConfiguration.get(c).getScaledTouchSlop();
             mDp = c.getResources().getDisplayMetrics().density;
             mGrip = 26 * mDp;
+            setLayerType(View.LAYER_TYPE_HARDWARE, null);   /* (moved every frame: kept on the GPU) */
         }
 
         /* A grip line at the drawer's edge: it says where to take hold of it. */
@@ -1227,15 +1259,24 @@ public class TouchLayoutEditor extends FrameLayout {
         public boolean onInterceptTouchEvent(MotionEvent e) {
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
-                    mDownX = e.getX();
+                    mDownX = mLastX = e.getX();
                     mDownY = e.getY();
                     mDragging = e.getX() <= mGrip;      /* (the grip takes a drag from the first pixel) */
-                    if (mDragging) return true;
+                    mTrack = android.view.VelocityTracker.obtain();
+                    if (mTrack != null) mTrack.addMovement(e);
+                    if (mDragging) {
+                        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                        return true;
+                    }
                     break;
                 case MotionEvent.ACTION_MOVE: {
                     float dx = e.getX() - mDownX, dy = e.getY() - mDownY;
-                    if (!mDragging && Math.abs(dx) > mSlop && Math.abs(dx) > Math.abs(dy)) {
+                    /* A sideways move is taken at once, and the drawer starts from here -- not from the
+                     * finger-down point, so it does not jump the slop's worth the moment it is caught. */
+                    if (!mDragging && Math.abs(dx) > mSlop * 0.5f && Math.abs(dx) > Math.abs(dy)) {
                         mDragging = true;
+                        mDownX = mLastX = e.getX();
+                        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                         return true;
                     }
                     break;
@@ -1252,10 +1293,19 @@ public class TouchLayoutEditor extends FrameLayout {
                 return super.onTouchEvent(e);
             int action = e.getActionMasked();
             boolean release = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL;
+            if (mTrack != null) mTrack.addMovement(e);
+            float vx = 0;
+            if (mTrack != null) {
+                mTrack.computeCurrentVelocity(1000);
+                vx = mTrack.getXVelocity();
+            }
+            if (mLastX != 0f && !release) mLastX = e.getX();
             if (mSlide != null)
-                mSlide.onSlide(e.getX() - mDownX, release);
-            if (release)
+                mSlide.onSlide(e.getX() - mDownX, release, vx);
+            if (release) {
                 mDragging = false;
+                if (mTrack != null) { mTrack.recycle(); mTrack = null; }
+            }
             return true;
         }
     }
