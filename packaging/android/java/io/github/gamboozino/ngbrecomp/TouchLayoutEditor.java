@@ -37,17 +37,19 @@ import java.util.Locale;
  * <combo> <shown> <skin>", x and y the control's centre across and down the screen (0..1), r its radius
  * down the screen (0..1). Saving sends the whole layout back in one go. */
 public class TouchLayoutEditor extends FrameLayout {
-    private static final int N = 22;                  /* (the controls of src/touch_pad.c: LSTICK..CUSTOM4) */
-    private static final int SWAP = 15;               /* (the pad's layout button, kept out of the list) */
+    private static final int N = 23;                  /* (the controls of src/touch_pad.c: LSTICK..OPACITY) */
+    private static final int SWAP = 15;               /* (the pad's layout button: moved and sized, never hidden) */
+    private static final int OPACITY = 22;            /* (the pad's % button, beside it: the same) */
 
     private static final String[] NAMES = {
         "左摇杆", "右摇杆", "十字键", "A 键", "B 键", "X 键", "Y 键", "LB 键", "RB 键",
         "LT 键（格挡）", "RT 键（镜头）", "返回键", "开始键", "左摇杆按下", "右摇杆按下", "布局按钮",
         "忍法组合", "风驱组合", "自定义组合 1", "自定义组合 2", "自定义组合 3", "自定义组合 4",
+        "不透明度",
     };
     private static final String[] SHORT = {
         "摇杆", "摇杆", "十字", "A", "B", "X", "Y", "LB", "RB", "LT", "RT", "返回", "开始",
-        "LS", "RS", "布局", "忍法", "风驱", "C1", "C2", "C3", "C4",
+        "LS", "RS", "<>", "忍法", "风驱", "C1", "C2", "C3", "C4", "%",
     };
     /* The pad button each virtual button may press: src/touch_pad.c's PA_* order, then none. */
     private static final String[] ACTIONS = {
@@ -92,6 +94,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private static final String[] LONG_NAMES = {
         "左摇杆", "右摇杆", "十字键", "A 键", "B 键", "X 键", "Y 键", "LB", "RB", "LT", "RT",
         "返回", "开始", "左摇杆按下", "右摇杆按下", "布局按钮", "忍法", "风驱", "组合 1", "组合 2", "组合 3", "组合 4",
+        "不透明度按钮",
     };
     private int mSelected = 0;
     int mTheme;                  /* the menu's own look: 0 graphite, 1 dark teal */
@@ -119,12 +122,12 @@ public class TouchLayoutEditor extends FrameLayout {
     private void load() {
         for (int i = 0; i < N; i++) {
             mButton[i] = i >= 3 && i <= 14;
-            mComboKind[i] = i >= 16;
+            mComboKind[i] = i >= 16 && i <= 21;   /* (the opacity button is no combo) */
             mColour[i] = 0;
             mShape[i] = 0;
             mAction[i] = 12;
             mCombo[i] = 0;
-            mShown[i] = i < 18;
+            mShown[i] = i < 18 || i == OPACITY;   /* (the layout and the opacity buttons are on every pad) */
             mAsp[i] = 1f;
         }
         String text = null;
@@ -728,7 +731,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private int stepShown(int dir) {
         for (int n = 0; n < N; n++) {
             mSelected = (mSelected + dir + N) % N;
-            if (mSelected != SWAP && mShown[mSelected])
+            if (mShown[mSelected])
                 return mSelected;
         }
         return mSelected;
@@ -739,7 +742,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private void addControl() {
         int id = -1;
         for (int i = 16; i < N; i++)                         /* (the combos and the customs first) */
-            if (i != SWAP && !mShown[i]) { id = i; break; }
+            if (i != SWAP && i != OPACITY && !mShown[i]) { id = i; break; }
         if (id < 0)
             for (int i = 0; i < 16; i++)
                 if (!mShown[i]) { id = i; break; }
@@ -759,8 +762,8 @@ public class TouchLayoutEditor extends FrameLayout {
 
     /* - : the selected key leaves the pad (it can be added back with +). */
     private void deleteControl() {
-        if (mSelected == SWAP) {
-            mHint.setText("布局按钮不能删");
+        if (mSelected == SWAP || mSelected == OPACITY) {
+            mHint.setText("布局按钮和不透明度按钮不能删");
             return;
         }
         mShown[mSelected] = false;
@@ -1093,7 +1096,7 @@ public class TouchLayoutEditor extends FrameLayout {
             }
 
             for (int id = 0; id < N; id++) {
-                if (id == SWAP || !mEditor.mShown[id])
+                if (!mEditor.mShown[id])
                     continue;
                 float cx = mLeft + mEditor.mX[id] * mWidth;
                 float cy = mTop + mEditor.mY[id] * mHeight;
@@ -1283,7 +1286,7 @@ public class TouchLayoutEditor extends FrameLayout {
             int best = -1;
             float bestD = 1e9f;
             for (int id = 0; id < N; id++) {
-                if (id == SWAP || !mEditor.mShown[id])
+                if (!mEditor.mShown[id])
                     continue;
                 float cx = mLeft + mEditor.mX[id] * mWidth;
                 float cy = mTop + mEditor.mY[id] * mHeight;
