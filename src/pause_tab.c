@@ -244,6 +244,8 @@ static int cat_count(int c)
 static void value_text(int row, char *out, size_t n)
 {
     int v = ngb_pc_setting(row);
+    if (row == S_FXTRAIL) { snprintf(out, n, "%d%%", v); return; }
+    if (row == S_FXDUMP) { snprintf(out, n, "%s", v ? "On" : "Off"); return; }
     switch (row) {
     case S_RENDER:  snprintf(out, n, "%dx %dx%d", v, 720 * v, 480 * v); break;   /* the game's 720x480 times it (#105) */
     case S_TEXTURE:
@@ -284,6 +286,12 @@ static void value_text(int row, char *out, size_t n)
 static void change(int row, int step)
 {
     int v = ngb_pc_setting(row);
+    if (row == S_FXTRAIL) {                              /* 0..200 in 25s: 9 stops, 100 the game's */
+        int i = (v / 25 + step + 9) % 9;
+        ngb_pc_set_setting(row, i * 25);
+        return;
+    }
+    if (row == S_FXDUMP) { ngb_pc_set_setting(row, !v); return; }
     switch (row) {
     case S_RENDER:
         v += step;
@@ -365,12 +373,26 @@ static void change(int row, int step)
 #define NGB_MENU_TOUCH_ROWS 4
 /* The unified Android menu has one Controls centre, not the legacy bindings tab.
  * Visible tabs: Graphics, Display, Sound, Gameplay, Cheats, Menu Options, Touch. */
-int ngb_menu_tab_count(void) { return CATS; }
-const char *ngb_menu_tab_name(int tab) {
-    if (tab == CATS - 1) return "Touch";
-    int actual = tab >= CAT_CTL ? tab + 1 : tab;
-    return tab >= 0 && actual < CATS ? s_cat_name[actual] : "";
+#define MENU_TABS (CATS + 1)   /* the six categories, Effects, Touch */
+/* The category a tab opens: CATS is the Effects page (rows of its own, NGB_MENU_FX_BASE), -1 Touch. */
+static int menu_tab_cat(int tab)
+{
+    if (tab < 0 || tab >= MENU_TABS)
+        return -2;
+    if (tab == MENU_TABS - 1)
+        return -1;
+    if (tab == MENU_TABS - 2)
+        return CATS;
+    return tab >= CAT_CTL ? tab + 1 : tab;
 }
+int ngb_menu_tab_count(void) { return MENU_TABS; }
+const char *ngb_menu_tab_name(int tab) {
+    int c = menu_tab_cat(tab);
+    if (c == -1) return "Touch";
+    if (c == CATS) return "Effects";
+    return c >= 0 && c < CATS ? s_cat_name[c] : "";
+}
+#define NGB_MENU_FX_BASE 1200   /* the unified menu's Effects page: Trail Density, Effect Capture */
 #define NGB_MENU_CTL_BASE 50
 #define NGB_MENU_CTL_MOUSE 55
 #define NGB_MENU_CTL_PROMPTS 56
@@ -385,10 +407,11 @@ void ngb_touch_bind_capture(int action) { if (action >= 0 && action < A_COUNT) n
 int ngb_touch_bind_capturing(void) { return ngb_bind_capturing(); }
 
 int ngb_menu_tab_row_count(int tab) {
-    if (tab == CATS - 1) return NGB_MENU_TOUCH_ROWS;
-    int actual = tab >= CAT_CTL ? tab + 1 : tab;
-    if (actual < 0 || actual >= CATS) return 0;
-    tab = actual;
+    int c = menu_tab_cat(tab);
+    if (c == -1) return NGB_MENU_TOUCH_ROWS;
+    if (c == CATS) return 2;                 /* Effects: the trail, the capture */
+    if (c < 0 || c >= CATS) return 0;
+    tab = c;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
         int u = 0; while (u < CAT_ROWS && s_cat_rows[CAT_UNL][u] >= 0) u++;
@@ -398,10 +421,11 @@ int ngb_menu_tab_row_count(int tab) {
     return n;
 }
 int ngb_menu_tab_row(int tab, int index) {
-    if (tab == CATS - 1) return index >= 0 && index < NGB_MENU_TOUCH_ROWS ? NGB_MENU_TOUCH_BASE + index : -1;
-    int actual = tab >= CAT_CTL ? tab + 1 : tab;
-    if (actual < 0 || actual >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
-    tab = actual;
+    int c = menu_tab_cat(tab);
+    if (c == -1) return index >= 0 && index < NGB_MENU_TOUCH_ROWS ? NGB_MENU_TOUCH_BASE + index : -1;
+    if (c == CATS) return index >= 0 && index < 2 ? NGB_MENU_FX_BASE + index : -1;
+    if (c < 0 || c >= CATS || index < 0 || index >= ngb_menu_tab_row_count(tab)) return -1;
+    tab = c;
     if (tab == CAT_CHEAT) {
         int n = 0; while (n < CAT_ROWS && s_cat_rows[tab][n] >= 0 && s_cat_rows[tab][n] != S_UNLOCKS) n++;
         return index < n ? s_cat_rows[tab][index] : s_cat_rows[CAT_UNL][index - n];
@@ -414,6 +438,8 @@ const char *ngb_menu_row_label(int row) {
     };
     if (row >= NGB_MENU_TOUCH_BASE && row < NGB_MENU_TOUCH_BASE + NGB_MENU_TOUCH_ROWS)
         return touch[row - NGB_MENU_TOUCH_BASE];
+    if (row >= NGB_MENU_FX_BASE && row < NGB_MENU_FX_BASE + 2)
+        return s_label[S_FXTRAIL + (row - NGB_MENU_FX_BASE)];
     static const char *const ctl[] = { "Invert Camera X", "Invert Camera Y", "Invert First-Person X",
         "Start in Third Person", "Start+Back Reset", "Camera Sensitivity", "Button Prompts" };
     if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) return ctl[row - NGB_MENU_CTL_BASE];
@@ -457,6 +483,10 @@ void ngb_menu_row_value(int row, char *out, size_t n) {
     static const char *const presets[] = { "Default", "Classic", "Custom" };
     static const char *const combos[] = { "A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y" };
     if (!n) return;
+    if (row >= NGB_MENU_FX_BASE && row < NGB_MENU_FX_BASE + 2) {
+        value_text(S_FXTRAIL + (row - NGB_MENU_FX_BASE), out, n);
+        return;
+    }
     if (row == NGB_MENU_TOUCH_BASE) { snprintf(out, n, "OPEN"); return; }
     if (row == NGB_MENU_TOUCH_BASE + 1) {
         int v = ngb_pc_setting(48);
@@ -494,6 +524,10 @@ void ngb_menu_row_value(int row, char *out, size_t n) {
     else out[0] = 0;
 }
 void ngb_menu_row_change(int row, int dir) {
+    if (row >= NGB_MENU_FX_BASE && row < NGB_MENU_FX_BASE + 2) {
+        change(S_FXTRAIL + (row - NGB_MENU_FX_BASE), dir);
+        return;
+    }
     if (row == NGB_MENU_TOUCH_BASE + 1) {
         int v = (ngb_pc_setting(48) + dir + 3) % 3;
         ngb_pc_set_setting(48, v);
@@ -506,6 +540,10 @@ void ngb_menu_row_change(int row, int dir) {
     else if (row != NGB_MENU_ROW_TOUCH && row >= 0 && row < S_COUNT) change(row, dir);
 }
 void ngb_menu_row_set(int row, int value) {
+    if (row >= NGB_MENU_FX_BASE && row < NGB_MENU_FX_BASE + 2) {
+        ngb_pc_set_setting(S_FXTRAIL + (row - NGB_MENU_FX_BASE), value);
+        return;
+    }
     if (row == NGB_MENU_TOUCH_BASE + 1) { ngb_pc_set_setting(48, value); }
     else if (row == NGB_MENU_TOUCH_BASE + 2 || row == NGB_MENU_TOUCH_BASE + 3) { ngb_touch_menu_set(row - NGB_MENU_TOUCH_BASE, value); }
     else if (row >= NGB_MENU_CTL_BASE && row < NGB_MENU_CTL_BASE + 5) {
