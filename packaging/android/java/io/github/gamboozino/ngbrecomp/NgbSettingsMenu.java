@@ -343,6 +343,11 @@ public class NgbSettingsMenu extends FrameLayout {
                       mStyle = v;
                       pushPad();
                   });
+        addChoice("按键主题", "整套按键换成哪台主机的样子：Xbox 的 A/B/X/Y、Switch 的 A 在右 B 在下，"
+                  + "或 PlayStation 的 ✕ ○ □ △。玻璃灰白，全部按键统一。",
+                  new String[] {"Xbox", "Switch", "PlayStation"}, mActivity.getPadTheme(), v -> {
+                      mActivity.setPadTheme(v);
+                  });
         addChoice("菜单主题", "按键菜单（编辑器与设置页）自己的配色。", new String[] {"石墨", "暗青"},
                   mActivity.getSharedPreferences("ngb_touch_editor", 0).getInt("menu_theme", 0), v -> {
                       mActivity.getSharedPreferences("ngb_touch_editor", 0).edit().putInt("menu_theme", v).apply();

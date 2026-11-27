@@ -54,6 +54,8 @@ public class NgbActivity extends SDLActivity {
     private native void nativeTouchSkinPick(int id);
     private native void nativeTouchSkinSetPath(int id, String path);
     private native int nativeVideoGet(int which);
+    private native int nativePadThemeGet();
+    private native void nativePadThemeSet(int value);
     private native void nativeVideoSet(int which, int value);
     private native String nativeTextureDir();
     private native void nativeTextureRescan();
@@ -363,6 +365,8 @@ public class NgbActivity extends SDLActivity {
 
     /* The picture: brightness and gamma in per cent, tint as an index (src/d3d/hle.cpp). */
     public int getVideoValue(int which) { return nativeVideoGet(which); }
+    public int getPadTheme() { return nativePadThemeGet(); }
+    public void setPadTheme(int value) { nativePadThemeSet(value); }
     public void setVideoValue(int which, int value) { nativeVideoSet(which, value); }
 
     public void showTouchEditor() {

@@ -316,6 +316,10 @@ static float s_layout_asp[NCTRL], d_layout_asp[NCTRL];   /* how much wider than 
  * 1 the glass (a dark plate under the name). (user 2026-11-27: all the keys in one of two styles, not each its
  * own.) */
 static uint8_t s_pad_style;
+/* Which console's pad the keys are drawn as: 0 Xbox (A B X Y where they are), 1 Switch (A at the right, B at
+ * the bottom, L / R / ZL / ZR, - and +), 2 PlayStation (its four marks, L1 / R1 / L2 / R2, SHARE / OPT).
+ * Held in the layout, like the style (user 2026-11-27: three glass themes, every key replaced). */
+static int s_pad_theme;
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 /* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
  * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
@@ -365,7 +369,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"STYLE ")){int st=0;if(sscanf(line,"# STYLE %d",&st)==1)s_pad_style=(uint8_t)(st<0?0:st>3?3:st);}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"STYLE ")){int st=0;if(sscanf(line,"# STYLE %d",&st)==1)s_pad_style=(uint8_t)(st<0?0:st>3?3:st);}else if(strstr(line,"THEME ")){int th=0;if(sscanf(line,"# THEME %d",&th)==1)s_pad_theme=th<0?0:th>2?2:th;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
@@ -378,6 +382,7 @@ static void layout_save(void) {
     FILE *fp=fopen(s_layout_path,"w");if(!fp)return;
     fprintf(fp,"# NGB_TOUCH_LAYOUT_V5 %d %d\n",s_haptics?1:0,s_camera_swipe?1:0);
     fprintf(fp,"# STYLE %d\n",s_pad_style?1:0);
+    fprintf(fp,"# THEME %d\n",s_pad_theme);
     for(int i=0;i<NCTRL;i++)if(s_skin_path[i][0])fprintf(fp,"# SKIN %d %s\n",i,s_skin_path[i]);
     if (s_filter_path[0]) fprintf(fp,"# FILTER %s\n", s_filter_path);
     fprintf(fp,"# TEXDUMP %d\n", ngb_texture_dump_on);
@@ -430,6 +435,13 @@ static int s_standin_places;   /* the stand-ins shown (under s_lock; d_standin t
 
 static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
 {
+    if (s_pad_theme == 1) {   /* (Switch's A is at the right and its B at the bottom; X above Y) */
+        int ci = (int)(c - s_ctrl);
+        if (ci == BA) c = &s_ctrl[BB];
+        else if (ci == BB) c = &s_ctrl[BA];
+        else if (ci == BX) c = &s_ctrl[BY];
+        else if (ci == BY) c = &s_ctrl[BX];
+    }
     if (standin && (c == &s_ctrl[LB] || c == &s_ctrl[RB]))
         c = &s_ctrl[c == &s_ctrl[LB] ? RB : LB];
     int ci=(int)(c-s_ctrl); bool custom=s_layout_custom[ci]; Place p=custom?(Place){s_layout_x[ci],s_layout_y[ci],s_layout_r[ci]}:(Place){c->x,c->y,c->r};
@@ -1230,6 +1242,63 @@ static void plain_letter(const char *t, float cx, float cy, float maxw, float ma
     }
 }
 
+/* The word a key wears for the theme: the pad's own on Xbox, the console's on the others. */
+static const char *theme_label(int id, const char *own)
+{
+    if (s_pad_theme == 1) {
+        switch (id) {
+        case LB: return "L";
+        case RB: return "R";
+        case LT: return "ZL";
+        case RT: return "ZR";
+        case BACK: return "-";
+        case START: return "+";
+        }
+    } else if (s_pad_theme == 2) {
+        switch (id) {
+        case LB: return "L1";
+        case RB: return "R1";
+        case LT: return "L2";
+        case RT: return "R2";
+        case BACK: return "SHARE";
+        case START: return "OPT";
+        }
+    }
+    return own;
+}
+
+/* PlayStation's four marks, drawn: a cross, a circle, a square, a triangle (ids as the pad has them). */
+static void mark_shape(int id, float cx, float cy, float r, uint8_t cr, uint8_t cg, uint8_t cb, float a)
+{
+    float th = fmaxf(1.4f, r * 0.26f);
+    int x0 = (int)floorf(cx - r - 2), x1 = (int)ceilf(cx + r + 2);
+    int y0 = (int)floorf(cy - r - 2), y1 = (int)ceilf(cy + r + 2);
+    over_box(x0, y0, x1 + 1, y1 + 1);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            float dx = x + 0.5f - cx, dy = y + 0.5f - cy, d, band;
+            if (id == BA) {                       /* the cross */
+                if (fmaxf(fabsf(dx), fabsf(dy)) > r) continue;
+                d = fabsf(fabsf(dx) - fabsf(dy)) * 0.70710678f;
+                band = th * 0.5f;
+            } else if (id == BB) {                /* the circle */
+                d = fabsf(hypotf(dx, dy) - r * 0.82f);
+                band = th * 0.45f;
+            } else if (id == BX) {                /* the square */
+                d = fabsf(fmaxf(fabsf(dx), fabsf(dy)) - r * 0.76f);
+                band = th * 0.45f;
+            } else {                              /* the triangle, point up */
+                float ay = cy - r, by = cy + r * 0.72f;
+                float t = (y + 0.5f - ay) / (by - ay);
+                if (t < 0.f || t > 1.f || t > 0.92f) continue;
+                d = fabsf(fabsf(dx) - r * 1.05f * t);
+                band = th * 0.45f;
+            }
+            if (d <= band)
+                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf(fminf(1.f, a) * 255));
+        }
+}
+
 static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
 {
     const Ctrl *c = &s_ctrl[id];
@@ -1266,8 +1335,10 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
             if (d > -edge)                                                                    /* its ring */
                 badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 1.f : 0.88f) * a * 255));
         }
-    if (c->label)
-        plain_letter(c->label, cx, cy, hw * 1.6f, hh * 0.90f, cr, cg, cb, fminf(1.f, a + 0.2f));
+    if (s_pad_theme == 2 && id >= BA && id <= BY)
+        mark_shape(id, cx, cy, fminf(hw, hh) * 0.52f, cr, cg, cb, fminf(1.f, a + 0.2f));
+    else if (c->label)
+        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.6f, hh * 0.90f, cr, cg, cb, fminf(1.f, a + 0.2f));
 }
 
 static void draw_badge_text(const char *label, int centre, int y0, int bw);
@@ -1308,13 +1379,15 @@ static void draw_button(const Ctrl *c, bool lit, float cx, float cy, float r, fl
             draw_sprite(skin, cx, cy, w, h, a);
             /* (the name stays readable on the picture, faint) */
             if (c->label && c->label[0] && strlen(c->label) <= 4)
-                plain_letter(c->label, cx, cy, w * 1.1f, h * 0.75f, 255, 255, 255, fminf(1.f, a * 0.9f));
+                plain_letter(theme_label(id, c->label), cx, cy, w * 1.1f, h * 0.75f, 255, 255, 255,
+                             fminf(1.f, a * 0.9f));
         } else {
             /* the stand-in picture: the name on it, or A, B, X and Y would be one picture (user 2026-11-27) */
             float h = (lit ? 2.6f : 2.5f) * r, w = h * d_layout_asp[id];
             draw_sprite(standin_button(id), cx, cy, w, h, a);
             if (c->label && c->label[0] && strlen(c->label) <= 5)
-                plain_letter(c->label, cx, cy, w * 1.15f, h * 0.72f, 255, 255, 255, fminf(1.f, a + 0.3f));
+                plain_letter(theme_label(id, c->label), cx, cy, w * 1.15f, h * 0.72f, 255, 255, 255,
+                             fminf(1.f, a + 0.3f));
         }
         if (lit)
             draw("touch_button_lit", cx, cy, 2.3f * r, 2.3f * r, 0.9f);
@@ -1353,7 +1426,8 @@ static void draw_idle(void)
                 float h2 = 2.5f * r, w2 = h2 * d_layout_asp[i];
                 draw_sprite(sk, cx, cy, w2, h2, a1);
                 if (c->label && c->label[0] && strlen(c->label) <= 4)
-                    plain_letter(c->label, cx, cy, w2 * 1.1f, h2 * 0.75f, 255, 255, 255, fminf(1.f, a1 * 0.9f));
+                    plain_letter(theme_label(i, c->label), cx, cy, w2 * 1.1f, h2 * 0.75f, 255, 255, 255,
+                                 fminf(1.f, a1 * 0.9f));
             } else
                 draw_plain(i, cx, cy, r, a1, false);
         }
@@ -1917,6 +1991,26 @@ void ngb_settings_open(void)
     if(method)(*env)->CallVoidMethod(env,activity,method);
     if(cls)(*env)->DeleteLocalRef(env,cls);
 }
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativePadThemeGet(
+    JNIEnv *env, jobject activity) {
+    (void)env;
+    (void)activity;
+    return (jint)s_pad_theme;
+}
+
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativePadThemeSet(
+    JNIEnv *env, jobject activity, jint value) {
+    (void)env;
+    (void)activity;
+    pthread_mutex_lock(&s_lock);
+    layout_load();
+    s_pad_theme = value < 0 ? 0 : value > 2 ? 2 : (int)value;
+    layout_save();
+    s_layout_revision++;
+    s_serial++;
+    pthread_mutex_unlock(&s_lock);
+}
+
 JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVideoGet(
     JNIEnv *env, jobject activity, jint which) {
     (void)env; (void)activity;
