@@ -859,7 +859,9 @@ static const Sprite *sprite(const char *name)
 enum Art { ART_NONE, ART_GAME, ART_STANDIN };
 static enum Art s_art;   /* (the picture being drawn's) */
 
-#define STANDIN_AFTER_MS 20000   /* frames without the game's art, the stand-ins then */
+/* (user 2026-11-27: the pad has to be there as the game opens -- in the hurricane build the art never reads,
+ * and twenty seconds with nothing on the glass looked like the controls were broken) */
+#define STANDIN_AFTER_MS 200
 
 /* The presenter's, each frame it asks for the picture: the game's pieces once there (saved by an earlier start, or
  * made); the stand-ins after STANDIN_AFTER_MS of frames without them (each frame counted at most 0.1 s, so a long
