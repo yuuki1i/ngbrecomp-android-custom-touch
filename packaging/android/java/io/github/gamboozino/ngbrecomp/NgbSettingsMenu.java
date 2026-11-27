@@ -254,37 +254,35 @@ public class NgbSettingsMenu extends FrameLayout {
         });
 
         final String filter = mActivity.videoFilterName();
-        addAction("贴图包文件夹", "这个文件夹里的同名 PNG 顶替游戏里的贴图，改完点下面「重新读取」。",
-                  () -> showTextureFolder());
-        addAction("打开贴图文件夹", "用手机自带的文件管理器把那个文件夹打开，看看里面到底有什么。",
-                  () -> mActivity.openTextureFolder());
-        addAction("写入一张测试图", "在那个文件夹里放一张红方块。放得进去说明权限没问题，放不进会说出原因。",
+
+        /* The pack, in the order one uses it: see what is there, swap a picture, have the game read it again,
+         * then the housekeeping. */
+        addAction("浏览与替换贴图", "缩略图一格格排开，点一张就能从相册换掉它（自动缩放到原尺寸、原名覆盖）。",
+                  () -> {
+                      close();
+                      mActivity.openTextureBrowser();
+                  });
+        addAction("贴图包文件夹", "文件夹在哪、已经导出了多少张；也能直接打开它。", () -> showTextureFolder());
+        addAction("重新读取贴图", "换好贴图之后点这里，不必重启游戏。", () -> {
+            mActivity.rescanTextures();
+            Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
+        });
+        addToggle("导出贴图", "开着会一边玩一边把游戏贴图写进那个文件夹（会卡，尤其开场 CG）。平时关掉。",
+                  mTexDump, v -> {
+                      mTexDump = v == 0;      /* (the toggle's 0 is 开) */
+                      mActivity.setVideoValue(5, mTexDump ? 1 : 0);
+                  });
+        addAction("整理贴图文件夹", "把散在根目录的图按尺寸（512_plus / 256 / 128 / small）归进各自文件夹。",
+                  () -> Toast.makeText(mActivity, mActivity.tidyTextureFolder(), Toast.LENGTH_LONG).show());
+        addAction("生成目录索引", "把这个文件夹里的图（按尺寸分组）排成一张网页 index.html，电脑上看最方便。",
+                  () -> Toast.makeText(mActivity, mActivity.makeTextureIndex(), Toast.LENGTH_LONG).show());
+        addAction("写入一张测试图", "在那个文件夹里放一张红方块：放得进去说明权限没问题，放不进会说出原因。",
                   () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());
         if (!mActivity.hasAllFiles())
             addAction("打开所有文件访问", "让它能读写手机存储里的 /NGB 文件夹（Android 11 以后要这一项）。", () -> {
                 mActivity.askAllFiles();
                 Toast.makeText(mActivity, "允许后回到游戏，贴图位置就是 /sdcard/NGB", Toast.LENGTH_LONG).show();
             });
-        addToggle("导出贴图", "开着会一边玩一边把游戏贴图写进那个文件夹（会卡，尤其开场 CG）。平时关掉。",
-                  mTexDump, v -> {
-                      mTexDump = v == 0;      /* (the toggle's 0 is 开) */
-                      mActivity.setVideoValue(5, mTexDump ? 1 : 0);
-                  });
-        addAction("重新读取贴图", "放好或换掉贴图之后重扫一遍，不必重启游戏。", () -> {
-            mActivity.rescanTextures();
-            Toast.makeText(mActivity, "贴图已重新读取", Toast.LENGTH_SHORT).show();
-        });
-        addAction("浏览与替换贴图", "把文件夹里的图排成缩略图，点一张就能从相册换掉它（自动缩放、原名覆盖）。", () -> {
-            close();
-            mActivity.openTextureBrowser();
-        });
-        addAction("整理贴图文件夹", "把散在根目录的图按尺寸（512_plus / 256 / 128 / small）归进各自文件夹。",
-                  () -> Toast.makeText(mActivity, mActivity.tidyTextureFolder(), Toast.LENGTH_LONG).show());
-        addAction("生成本目录索引", "把这个文件夹里的图（按尺寸分组）排成一张网页 index.html，一次看全，找贴图快。",
-                  () -> Toast.makeText(mActivity, mActivity.makeTextureIndex(), Toast.LENGTH_LONG).show());
-        addAction("写一张测试图", "往文件夹里写一张纯色小图，确认真的能写进去、也能在文件管理器里看到。",
-                  () -> Toast.makeText(mActivity, mActivity.writeTextureProbe(), Toast.LENGTH_LONG).show());
-        addAction("打开贴图文件夹", "用手机自带的文件管理器跳到那个文件夹。", () -> mActivity.openTextureFolder());
         addAction(filter.length() == 0 ? "导入滤镜（.cube）" : "换一个滤镜（现在：" + filter + "）",
                   "选一个 .cube 调色表（PS、达芬奇的 LUT 都导得出来），整幅画面就按它调色；PNG 渐变也能用。",
                   () -> mActivity.pickVideoFilter());
@@ -314,7 +312,10 @@ public class NgbSettingsMenu extends FrameLayout {
                             .setPrimaryClip(android.content.ClipData.newPlainText("贴图包", shown));
                     Toast.makeText(mActivity, "已复制", Toast.LENGTH_SHORT).show();
                 })
-                .setNeutralButton("打开", (d, w) -> mActivity.openTextureFolder())
+                .setNeutralButton("浏览替换", (d, w) -> {
+                    close();
+                    mActivity.openTextureBrowser();
+                })
                 .setNegativeButton("关闭", null)
                 .show();
     }
