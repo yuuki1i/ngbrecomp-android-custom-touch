@@ -4,6 +4,10 @@
 
 **A PC port of Ninja Gaiden Black by static recompilation.**
 
+> **This branch: the Hurricane x2.1 Chinese build, on Android, with touch controls** — a full-screen virtual
+> pad in three glass themes (Xbox, Switch, PlayStation), a layout editor down to each key, the pause menu's
+> settings in Chinese, and an Effects page (trail density, effect capture). Ships as an installable APK.
+
 A native Linux and Windows version of *Ninja Gaiden Black* (Xbox, 2005), with an Android
 one, made by statically
 recompiling the game's own code to run directly on a PC — not an emulator. It draws with its own

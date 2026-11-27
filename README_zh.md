@@ -2,6 +2,11 @@
 
 [English](README.md) · [ngbrecomp 原版说明（英文）](docs/README-ngbrecomp.md)
 
+> **安卓触屏版（本分支）**：在飓风版之上重做了触屏操作 —— 全屏虚拟手柄（Xbox / Switch / PlayStation 三套玻璃主题，
+> 所有按键贴图重绘）、布局编辑器（逐键位置、大小、形状、颜色、透明度、连发、组合键、皮肤），
+> 暂停菜单里的设置页整页中文，并新增「特效」页（残影浓度、特效抓取）。
+> 产物是可直接安装的 `忍龙黑-飓风x2.1-触屏版.apk`，不需要 PC。
+
 把哈雅布撒的汉化补丁 **「忍者龙剑传 黑之章 飓风版[中英] vb-zh-x2.1」** 移植到 Windows PC，
 基于 gamboozino 的 [ngbrecomp](https://github.com/gamboozino/ngbrecomp)。
 游戏代码（含 x2.1 补丁的全部改动）从打过补丁的 `default.xbe` 静态重编译成原生程序，不是模拟器。
