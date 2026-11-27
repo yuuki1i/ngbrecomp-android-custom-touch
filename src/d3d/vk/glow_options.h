@@ -40,6 +40,20 @@ inline std::string GlowStrengthHlsl(std::string src) {
     return src;
 }
 
+/* The trail: the afterimages and the weapon's trails are drawn into a small colour target of the
+   frame (256x128 and up, below the display's own 640x448) and then blended back over the picture by
+   one full-screen quad. Scaling that blend is the trail's density, exactly as the glow's strength
+   scales the bloom's. Additive passes carry their strength in the colour, so the colour is what is
+   scaled; an alpha blend carries it in alpha. At 100% the shader is left alone. */
+inline std::string TrailStrengthHlsl(std::string src, float k, bool additive) {
+    const std::string needle="return outc;";
+    size_t at=src.find(needle);
+    if (at==std::string::npos) return src;   // not the expected shader: the blend stands as the game made it
+    src.replace(at,needle.size(),std::string("outc.") + (additive ? "rgb" : "a") + " *= " + std::to_string(k) +
+                                "f;\n    return outc;");
+    return src;
+}
+
 inline bool GlowQuad(const Assembled& a, uint32_t count, uint32_t w, uint32_t h) {
     if (!a.pretransformed || count!=4 || !(a.regs&1)) return false;
     const auto& e=a.elements[0];

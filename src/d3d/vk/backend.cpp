@@ -9,6 +9,8 @@
 // NGB_D3D_DUMP=dir writes each presented frame (and NGB_D3D_DUMP_FROM=n, NGB_D3D_DUMP_COUNT=n
 // choose which) as dir/frame_NNNNN.ppm.
 #include "port.h"
+
+extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
 #ifdef __ANDROID__
 #include <sys/resource.h>
 #endif
@@ -3861,6 +3863,41 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         if (told++<2) std::fprintf(stderr,"[GLOW] Off: the glow's %ux%u not added over %ux%u\n",glow_desc.width,glow_desc.height,rt->gw,rt->gh);
         async_now_ = false;   // (as below: the backend's own passes after this make their shaders at once)
         return;
+    }
+    /* The trail reads its share: an effect target's picture blended back over the frame. Same quad the
+       glow's is, a different target -- not the 128x128 glow, not the display's own. */
+    TextureDesc trail_desc{};
+    const int trail_pct = ngb_fx_trail();
+    bool trail_pass = !glow_pass && trail_pct != 100 && rt && a.pretransformed && !prog && !s.ps && count == 4 &&
+        from_target[0] && !info[0].shadow && k.blend && !k.zen && k.wmask == 15 &&
+        ((k.src == 1 && k.dst == 1) || (k.src == 5 && k.dst == 6)) &&
+        s.tss[0][kTssColorOp] == 5 && s.tss[0][kTssColorArg1] == 2 && s.tss[0][kTssColorArg2] == 3 &&
+        Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
+        trail_desc.width < 640;
+    if (trail_pass) {
+        const auto& element = a.elements[0];
+        trail_pass = element.buffer < a.buffer_count;
+        if (trail_pass) {
+            const auto& buffer = a.buffers[element.buffer];
+            trail_pass = buffer.src && buffer.stride && size_t(element.offset) + size_t(buffer.stride)*3 + 8 <= buffer.bytes;
+            if (trail_pass) {   /* the quad must cover the whole target: a corner-less piece is not a blend-back */
+                float x0=1e10f,y0=1e10f,x1=-1e10f,y1=-1e10f;
+                for (int i=0;i<4;++i) {
+                    float xy[2]; std::memcpy(xy,buffer.src+size_t(i)*buffer.stride+element.offset,8);
+                    x0=std::min(x0,xy[0]); y0=std::min(y0,xy[1]); x1=std::max(x1,xy[0]); y1=std::max(y1,xy[1]);
+                }
+                trail_pass = std::abs(x0) <= 0.5f && std::abs(y0) <= 0.5f &&
+                    std::abs(x1-float(rt->gw)) <= 0.5f && std::abs(y1-float(rt->gh)) <= 0.5f;
+            }
+        }
+    }
+    if (trail_pass) {
+        async_now_ = false;
+        const bool additive = k.dst == 1;
+        pkey ^= 0x674C4F5753540200ull ^ uint64_t(trail_pct / 5) ^ (additive ? 0x10000ull : 0);
+        k.ps = pkey;
+        const float kscale = float(trail_pct) / 100.f;
+        pmod = Module(pkey,[&] {return TrailStrengthHlsl(PixelHlsl(pk), kscale, additive);},false);
     }
     if (glow_pass && ContinuousGlowEnabled() && GlowStrength()<1.0f) {
         async_now_=false;
