@@ -320,10 +320,18 @@ static uint8_t s_pad_style;
  * the bottom, L / R / ZL / ZR, - and +), 2 PlayStation (its four marks, L1 / R1 / L2 / R2, SHARE / OPT).
  * Held in the layout, like the style (user 2026-11-27: three glass themes, every key replaced). */
 static int s_pad_theme;
+static int theme_action(int id, int act);   /* (drawn and sent further down) */
 static uint8_t s_layout_color[NCTRL], d_layout_color[NCTRL], s_layout_shape[NCTRL], d_layout_shape[NCTRL], s_layout_skin[NCTRL], d_layout_skin[NCTRL], s_layout_combo[NCTRL], d_layout_combo[NCTRL], s_layout_enabled[NCTRL], d_layout_enabled[NCTRL];
 /* The pad button a virtual button presses (PA_* below; PA_NONE: the one it was drawn for). Editable, so a
  * player can put Attack on the right-hand side and Guard where the thumb rests, as the phone suits them. */
 enum { PA_A, PA_B, PA_X, PA_Y, PA_BLACK, PA_WHITE, PA_LT, PA_RT, PA_BACK, PA_START, PA_LS, PA_RS, PA_COUNT, PA_NONE = -1 };
+
+/* What each virtual button presses of its own: its own place on the pad, before anything was rebound. */
+static const int own[NCTRL] = {
+    [BA]=PA_A, [BB]=PA_B, [BX]=PA_X, [BY]=PA_Y, [LB]=PA_BLACK, [RB]=PA_WHITE,
+    [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
+    [SWAP]=PA_NONE,
+};
 static int s_layout_action[NCTRL];
 static Uint32 s_combo_started[NCTRL], s_combo_y_until[NCTRL];
 static bool s_combo_active[NCTRL];
@@ -347,12 +355,6 @@ static int s_art_shown;                       /* the controls drawn (the last pi
 #define MAX_FINGERS 10
 static struct { SDL_FingerID id; Uint32 down_timestamp; int ctrl; bool used, moved, was_selected; float x0, y0; } s_finger[MAX_FINGERS];
 static void layout_defaults(void) {
-    /* What each virtual button pressed before the layout was editable: its own place on the pad. */
-    static const int own[NCTRL] = {
-        [BA]=PA_A, [BB]=PA_B, [BX]=PA_X, [BY]=PA_Y, [LB]=PA_BLACK, [RB]=PA_WHITE,
-        [LT]=PA_LT, [RT]=PA_RT, [BACK]=PA_BACK, [START]=PA_START, [LS]=PA_LS, [RS]=PA_RS,
-        [SWAP]=PA_NONE,
-    };
     for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_asp[i]=1.f; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP || i==OPACITY;   /* (1.0.3: the opacity button shows by default) */   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
     /* The combos the pad starts with: NINPO and WIND RUN (user 2026-11-27: the 360 sweep and its Y are gone). */
     s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
@@ -435,13 +437,6 @@ static int s_standin_places;   /* the stand-ins shown (under s_lock; d_standin t
 
 static Place place_at(const Ctrl *c, float aspect, int standin, int layout)
 {
-    if (s_pad_theme == 1) {   /* (Switch's A is at the right and its B at the bottom; X above Y) */
-        int ci = (int)(c - s_ctrl);
-        if (ci == BA) c = &s_ctrl[BB];
-        else if (ci == BB) c = &s_ctrl[BA];
-        else if (ci == BX) c = &s_ctrl[BY];
-        else if (ci == BY) c = &s_ctrl[BX];
-    }
     if (standin && (c == &s_ctrl[LB] || c == &s_ctrl[RB]))
         c = &s_ctrl[c == &s_ctrl[LB] ? RB : LB];
     int ci=(int)(c-s_ctrl); bool custom=s_layout_custom[ci]; Place p=custom?(Place){s_layout_x[ci],s_layout_y[ci],s_layout_r[ci]}:(Place){c->x,c->y,c->r};
@@ -775,10 +770,11 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
     for (int i = 0; i < NCTRL; i++) {
         if (!s_down[i] || s_layout_action[i] == PA_NONE)
             continue;
-        if (s_layout_action[i] < 8)
-            st->Gamepad.bAnalogButtons[analog_of[s_layout_action[i]]] = 255;
-        else if (s_layout_action[i] < PA_COUNT)
-            b |= digital_of[s_layout_action[i] - 8];
+        int act = theme_action(i, s_layout_action[i]);
+        if (act < 8)
+            st->Gamepad.bAnalogButtons[analog_of[act]] = 255;
+        else if (act < PA_COUNT)
+            b |= digital_of[act - 8];
     }
     st->Gamepad.wButtons = b;
     static const int combo_buttons[6][2] = {
@@ -1242,11 +1238,29 @@ static void plain_letter(const char *t, float cx, float cy, float maxw, float ma
     }
 }
 
+/* The button a key presses, as the theme names it: on Switch the two pairs trade, unless the player bound
+ * that key himself (then his binding is the one that stands). */
+static int theme_action(int id, int act)
+{
+    if (s_pad_theme != 1 || act != own[id]) return act;
+    switch (act) {
+    case PA_A: return PA_B;
+    case PA_B: return PA_A;
+    case PA_X: return PA_Y;
+    case PA_Y: return PA_X;
+    }
+    return act;
+}
+
 /* The word a key wears for the theme: the pad's own on Xbox, the console's on the others. */
 static const char *theme_label(int id, const char *own)
 {
     if (s_pad_theme == 1) {
-        switch (id) {
+        switch (id) {   /* (Switch's A is where the pad has B, its X where the pad has Y) */
+        case BA: return "B";
+        case BB: return "A";
+        case BX: return "Y";
+        case BY: return "X";
         case LB: return "L";
         case RB: return "R";
         case LT: return "ZL";
