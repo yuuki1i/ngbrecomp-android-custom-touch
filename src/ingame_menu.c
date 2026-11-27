@@ -1294,8 +1294,11 @@ static bool game_mouse(const SDL_Event *ev)
         s_move_seq++;
         s_move_ms = mono_ms();
     }
-    if (s_open || !ngb_menu_up_controls())   /* (by the frames, as the keys and pad: #218) */
+    if (s_open)
         return false;
+    /* The Options page is ours, not the game's: it is clicked whatever ngb_menu_up_controls() says. That reads
+     * the game's own frames (#218) and the hurricane title's rebuilt .text made it read "not in a menu" -- so
+     * the page drew and took no click at all, which looked like a freeze (user 2026-11-27). */
     if (tab_shown()) {                    /* the pause menu's Options page */
         float gx, gy;
         int zone, row = -1;
@@ -1372,6 +1375,8 @@ static bool game_mouse(const SDL_Event *ev)
         if (s_tab_focus)                  /* the page has the pad */
             return ev->type == SDL_MOUSEBUTTONDOWN;
     }
+    if (!ngb_menu_up_controls())   /* (by the frames, as the keys and pad: #218) */
+        return false;
     if (ev->type == SDL_MOUSEMOTION) {
         float gx, gy;
         game_point(ev->motion.windowID, ev->motion.x, ev->motion.y, &gx, &gy);
@@ -1443,7 +1448,8 @@ void nv2a_window_event_hook(const void *sdl_event)
     if (ev->type == SDL_FINGERDOWN || ev->type == SDL_FINGERMOTION ||
         ev->type == SDL_FINGERUP) {
         if (ev->type == SDL_FINGERDOWN) {
-            if (menu_finger != (SDL_FingerID)-1) return;
+            /* A new finger takes the page: a lift lost while the page was opening (a window change, a
+             * rebuild) used to leave this held for good, and every later touch was ignored -- the freeze. */
             menu_finger = ev->tfinger.fingerId;
         } else if (ev->tfinger.fingerId != menu_finger) {
             return;
