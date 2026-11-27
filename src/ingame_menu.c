@@ -169,6 +169,8 @@ int ngb_glow_step(int v, int step)
 }
 
 /* Effects: read at every draw, so a flag rather than a setting lookup (src/fx_dump.c, src/d3d/hle.cpp) */
+int ngb_pc_setting(int which);
+void ngb_pc_set_setting(int which, int value);
 volatile int ngb_fx_dump_on;
 int ngb_fx_trail(void) { return ngb_pc_setting(50); }
 int ngb_fx_dump(void) { return ngb_pc_setting(51); }
