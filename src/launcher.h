@@ -37,6 +37,7 @@ typedef struct NgbSettings {
     int touch_opacity;      /* Android: the touch controls' opacity, percent, 30..100 (their button, #285) */
     int fx_trail;           /* Effects > Trail Density: the afterimages' and weapon trails' share of their strength, percent, 0..200 (100 the game's) */
     int fx_dump;            /* Effects > Effect Capture: record the effect draws to fx-dump.txt, once per press (the tuning of the trails) */
+    int fx_on;              /* Effects > the trails' own switch: 0 draws none of them at all (default 1) */
     int fx_r, fx_g, fx_b;   /* Effects > Trail Colour: what the afterimages and trails are tinted with, percent each (100 the game's) */
     int fx_alpha;           /* Effects > Trail Opacity: their alpha, percent, 0..200 (100 the game's) */
     int fx_glow;            /* Effects > Trail Glow: their brightness, percent, 0..300 (100 the game's) */

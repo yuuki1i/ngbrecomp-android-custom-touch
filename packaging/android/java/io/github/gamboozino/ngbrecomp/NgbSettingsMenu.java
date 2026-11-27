@@ -342,6 +342,12 @@ public class NgbSettingsMenu extends FrameLayout {
     }
 
     private void buildEffectsRows() {
+        addHead("总开关");
+        addToggle("残影总开关", "关掉就完全没有残影、刀光和蓄力光效；开就是游戏本来的样子。",
+                  mFxOn != 0, v -> {                       /* (the sink hands over a choice index: 0 开, 1 关) */
+                      mFxOn = v == 0 ? 1 : 0;
+                      mActivity.setFxValue(8, mFxOn);
+                  });
         addHead("特效");
         addChoice("残影浓度", "残影与武器拖影的强弱，按比例缩放。100% 为游戏原本，0 则完全消失。",
                   percents(0, 200, 25), mFxTrail / 25, v -> {
@@ -379,6 +385,23 @@ public class NgbSettingsMenu extends FrameLayout {
                   mFxDump != 0, v -> {                       /* (the sink hands over a choice index: 0 开, 1 关) */
                       mFxDump = v == 0 ? 1 : 0;
                       mActivity.setFxValue(1, mFxDump);
+                  });
+        addHead("重置");
+        addAction("恢复默认", "把这一页每一格都放回游戏本来的样子：总开关开、其余 100%。",
+                  () -> {
+                      mFxOn = 1;
+                      mFxTrail = 100;
+                      mFxR = mFxG = mFxB = mFxA = mFxGlow = 100;
+                      mFxDump = 0;
+                      mActivity.setFxValue(8, 1);
+                      mActivity.setFxValue(0, 100);
+                      mActivity.setFxValue(1, 0);
+                      mActivity.setFxValue(2, 100);
+                      mActivity.setFxValue(3, 100);
+                      mActivity.setFxValue(4, 100);
+                      mActivity.setFxValue(5, 100);
+                      mActivity.setFxValue(6, 100);
+                      fillRows();
                   });
         addHead("诊断");
         addAction("本帧的混合绘制", "挥一刀、放个忍术，再进来点这里：这一帧所有半透明绘制的种类。哪一条像残影，告诉我它那行。",
@@ -700,9 +723,11 @@ public class NgbSettingsMenu extends FrameLayout {
     }
 
     private int mFxTrail = 100, mFxDump, mFxR = 100, mFxG = 100, mFxB = 100, mFxA = 100, mFxGlow = 100;
+    private int mFxOn = 1;
 
     private void loadPicture() {
         try {
+            mFxOn = mActivity.getFxValue(8);
             mFxTrail = mActivity.getFxValue(0) / 25 * 25;
             mFxDump = mActivity.getFxValue(1);
             mFxR = mActivity.getFxValue(2) / 25 * 25;

@@ -12,6 +12,7 @@
 
 extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
 extern "C" int ngb_fx_tint(int which);   /* src/ingame_menu.c: its r, g, b, alpha and glow, percent */
+extern "C" int ngb_fx_on(void);          /* src/ingame_menu.c: the trails' own switch */
 extern "C" volatile int ngb_fx_hits;     /* src/fx_dump.c: how many draws the trail's pass took */
 extern "C" volatile int ngb_fx_dump_on;  /* src/fx_dump.c: Effects > Effect Capture */
 extern "C" void ngb_fx_note(unsigned code, unsigned tex, unsigned blend, unsigned src, unsigned dst,
@@ -3883,8 +3884,9 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
     /* The trail reads its share: an effect target's picture blended back over the frame. Same quad the
        glow's is, a different target -- not the 128x128 glow, not the display's own. */
     TextureDesc trail_desc{};
-    const int trail_pct = ngb_fx_trail();
-    const bool trail_default = trail_pct == 100 && ngb_fx_tint(0) == 100 && ngb_fx_tint(1) == 100 &&
+    const int fx_on = ngb_fx_on();
+    const int trail_pct = fx_on ? ngb_fx_trail() : 0;   /* the switch off leaves none of them */
+    const bool trail_default = fx_on && trail_pct == 100 && ngb_fx_tint(0) == 100 && ngb_fx_tint(1) == 100 &&
         ngb_fx_tint(2) == 100 && ngb_fx_tint(3) == 100 && ngb_fx_tint(4) == 100;
     bool trail_pass = !glow_pass && !trail_default && rt && a.pretransformed && !prog && !s.ps && count == 4 &&
         from_target[0] && !info[0].shadow && k.blend && !k.zen && k.wmask == 15 &&

@@ -193,6 +193,7 @@ typedef struct { unsigned key; int n; } NgFxBucket;  /* src/d3d/vk/backend.cpp: 
 extern NgFxBucket ngb_fx_last[24];
 extern int ngb_fx_last_n;
 int ngb_fx_tint(int which);                        /* src/ingame_menu.c: the trail's r, g, b, alpha, glow */
+int ngb_fx_on(void);                               /* src/ingame_menu.c: the trails' own switch */
 void ngb_fx_tint_set(int which, int value);
 int ngb_fx_dump(void);                             /* src/ingame_menu.c: 51 what the game draws, written out */
 enum { NGB_SET_FXTRAIL = 50, NGB_SET_FXDUMP = 51 };   /* (src/pause_tab.c: the two settings' numbers) */
@@ -2172,6 +2173,7 @@ JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxG
     if (which == 0) return (jint)ngb_fx_trail();
     if (which == 1) return (jint)ngb_fx_dump();
     if (which == 7) return (jint)ngb_fx_hits;
+    if (which == 8) return (jint)ngb_fx_on();
     return (jint)ngb_fx_tint((int)which - 2);   /* 2 R, 3 G, 4 B, 5 alpha, 6 glow */
 }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxSet(
@@ -2182,6 +2184,9 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxS
         ngb_pc_set_setting(NGB_SET_FXTRAIL, v);
     } else if (which == 1) {
         ngb_pc_set_setting(NGB_SET_FXDUMP, value != 0);
+    } else if (which == 8) {
+        extern int ngb_fx_on_set(int on);
+        ngb_fx_on_set(value != 0);
     } else {
         ngb_fx_tint_set((int)which - 2, (int)value);
     }

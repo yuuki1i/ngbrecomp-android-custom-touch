@@ -163,7 +163,8 @@ void ngb_settings_load(NgbSettings *s)
     s->touch_opacity = 100;     /* (the touch controls as 1.0.2 drew them) */
     s->fx_trail = 100;          /* the effects as the game has them */
     s->fx_dump = 0;
-    s->fx_r = s->fx_g = s->fx_b = 100;   /* (the trails as the game draws them) */
+    s->fx_on = 1;                        /* (the trails there, as the game draws them) */
+    s->fx_r = s->fx_g = s->fx_b = 100;
     s->fx_alpha = 100;
     s->fx_glow = 100;
     s->touch_layout = 1;        /* Classic (#285) */
@@ -240,6 +241,8 @@ void ngb_settings_load(NgbSettings *s)
             s->fx_trail = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
         } else if (!strcmp(key, "fx_dump")) {
             s->fx_dump = atoi(val) != 0;
+        } else if (!strcmp(key, "fx_on")) {
+            s->fx_on = atoi(val) != 0;
         } else if (!strcmp(key, "fx_r")) {
             s->fx_r = atoi(val) < 0 ? 0 : atoi(val) > 200 ? 200 : atoi(val);
         } else if (!strcmp(key, "fx_g")) {
@@ -360,6 +363,7 @@ void ngb_settings_save(const NgbSettings *s)
     fprintf(f, "shuriken_icon = %d\n", s->shuriken_icon);
     fprintf(f, "fx_trail = %d\n", s->fx_trail);
     fprintf(f, "fx_dump = %d\n", s->fx_dump);
+    fprintf(f, "fx_on = %d\n", s->fx_on);
     fprintf(f, "fx_r = %d\n", s->fx_r);
     fprintf(f, "fx_g = %d\n", s->fx_g);
     fprintf(f, "fx_b = %d\n", s->fx_b);

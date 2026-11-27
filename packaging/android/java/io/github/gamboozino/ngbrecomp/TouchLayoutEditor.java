@@ -1180,32 +1180,33 @@ public class TouchLayoutEditor extends FrameLayout {
                 float cy = mTop + mEditor.mY[id] * mHeight;
                 float radius = mEditor.mR[id] * mHeight;
                 float asp = Math.max(0.4f, Math.min(4f, mEditor.mAsp[id]));
+                final float keyA = Math.max(0f, Math.min(1f, mEditor.mAlpha[id]));   /* (the key's own opacity, drawn) */
                 int rgb = COLOUR_RGB[mEditor.mColour[id]];
                 outline(mPath, cx, cy, radius, asp, mEditor.mShape[id]);
                 /* (the same wash the game puts under a key: src/touch_pad.c draw_plain's 8,10,14 plate -- the
                  * editor showed a white one, and the pad changed colour on the way into the game) */
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(mEditor.mStyle == 3 ? 0xF00A0B0E
-                               : mEditor.mStyle == 1 ? 0x9E0A0B0E
-                               : mEditor.mStyle == 2 ? 0x000A0B0E
-                               : 0x170A0B0E);   /* (solid / glass / ring / hairline: the game's draw_plain) */
+                mPaint.setColor(withAlpha(mEditor.mStyle == 3 ? 0xF00A0B0E
+                                         : mEditor.mStyle == 1 ? 0x9E0A0B0E
+                                         : mEditor.mStyle == 2 ? 0x000A0B0E
+                                         : 0x170A0B0E, keyA));   /* (solid / glass / ring / hairline: the game's draw_plain) */
                 canvas.drawPath(mPath, mPaint);
                 mPaint.setStyle(Paint.Style.STROKE);
                 mPaint.setStrokeWidth(id == mEditor.mSelected ? 3f
                                      : (mEditor.mStyle == 2 ? 3f : mEditor.mStyle == 3 || mEditor.mStyle == 1 ? 2f : 1.2f));
-                mPaint.setColor(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xCC000000));
+                mPaint.setColor(withAlpha(id == mEditor.mSelected ? 0xFFFFFFFF : ((rgb & 0x00FFFFFF) | 0xCC000000), keyA));
                 canvas.drawPath(mPath, mPaint);
                 if (id == 0 || id == 1) {   /* (a stick: one look for both, a cap the thumb can see) */
                     mPaint.setStyle(Paint.Style.STROKE);
                     mPaint.setStrokeWidth(Math.max(1.5f, 1.4f * mEditor.mDp));
-                    mPaint.setColor(0x73FFFFFF);
+                    mPaint.setColor(withAlpha(0x73FFFFFF, keyA));
                     canvas.drawCircle(cx, cy, radius * 0.66f, mPaint);
                     mPaint.setStyle(Paint.Style.FILL);
-                    mPaint.setColor(0xB3E8ECF3);
+                    mPaint.setColor(withAlpha(0xB3E8ECF3, keyA));
                     canvas.drawCircle(cx, cy, radius * 0.36f, mPaint);
                 }
                 mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(0xF0F0F3F9);   /* (white on the plate, the ring keeps the key's colour) */
+                mPaint.setColor(withAlpha(0xF0F0F3F9, keyA));   /* (white on the plate, the ring keeps the key's colour) */
                 mPaint.setTextAlign(Paint.Align.CENTER);
                 mPaint.setTextSize(Math.max(10 * mEditor.mDp, radius * 0.32f));
                 /* (the game writes the key's own name, not the name of the action it was bound to -- a rebind
@@ -1234,7 +1235,12 @@ public class TouchLayoutEditor extends FrameLayout {
         }
 
         /* (the cross, the circle, the square, the triangle -- Canvas shapes, since the pad's font is letters) */
-        private void psMark(Canvas canvas, int id, float cx, float cy, float r, Paint p) {
+        private static int withAlpha(int color, float k) {
+        int a = Math.round(((color >>> 24) & 0xFF) * Math.max(0f, Math.min(1f, k)));
+        return (a << 24) | (color & 0xFFFFFF);
+    }
+
+    private void psMark(Canvas canvas, int id, float cx, float cy, float r, Paint p) {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeWidth(Math.max(2f, r * 0.26f));
             p.setStrokeJoin(Paint.Join.ROUND);
