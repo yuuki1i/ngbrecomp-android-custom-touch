@@ -1520,6 +1520,23 @@ static void draw_style_outline(float cx, float cy, float r, float asp, int color
 }
 
 
+static void fill_disc(float cx, float cy, float r, uint8_t cr, uint8_t cg, uint8_t cb, float a)
+{
+    if (r < 0.5f)
+        return;
+    int x0 = (int)floorf(cx - r - 1), x1 = (int)ceilf(cx + r + 1);
+    int y0 = (int)floorf(cy - r - 1), y1 = (int)ceilf(cy + r + 1);
+    over_box(x0, y0, x1 + 1, y1 + 1);
+    float r2 = (r + 0.5f) * (r + 0.5f);
+    uint8_t aa = (uint8_t)lroundf(fminf(1.f, a) * 255.f);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
+            if (dx * dx + dy * dy <= r2)
+                badge_pixel(x, y, cr, cg, cb, aa);
+        }
+}
+
 static void draw_badge_text(const char *label, int centre, int y0, int bw)
 {
     const int bh = 18, x0 = centre - bw / 2;
@@ -1615,28 +1632,28 @@ static void draw_all(void)
             !(d_layout_skin[i] && user_skin(i))) {
             draw_plain(i, cx, cy, r, fmaxf(d_layout_alpha[i], 0.78f), true);   /* (the plate lit under the thumb) */
         } else if (c->kind == STICK) {
+            /* (the ring is in the idle picture; only the knob moves, a disc in the key's own colour -- the grey
+             * Kenney pad and nub were the one thing on the pad that did not match, user 2026-11-27) */
             int s = i == RSTICK;
-            float nx = cx + d_stick[s][0] * r * 0.55f, ny = cy + d_stick[s][1] * r * 0.55f;
-            nx = roundf(nx - r / 2) + r / 2;   /* (moved by whole pixels: its picture at this size made once) */
-            ny = roundf(ny - r / 2) + r / 2;
-            draw_piece("nub", nx, ny, r, r, on ? 0.95f : IDLE + 0.2f);
-            if (on) {
-                draw_piece("pad_lit", cx, cy, 2 * r, 2 * r, 0.9f);
-                draw_piece("nub_lit", nx, ny, r, r, 0.9f);
-            }
+            uint8_t kr, kg, kb;
+            plain_tint(d_layout_color[i], &kr, &kg, &kb);
+            float nx = cx + d_stick[s][0] * r * 0.52f, ny = cy + d_stick[s][1] * r * 0.52f;
+            fill_disc(nx, ny, r * (on ? 0.24f : 0.20f), kr, kg, kb, on ? 0.90f : 0.45f);
+            if (on)
+                draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false, 0.90f);
         } else if (c->kind == DPAD && on) {
-            static const struct { int bit; const char *lit; float dx, dy; } arms[] = {
-                { XBOX_GAMEPAD_DPAD_UP, "dpad_north_lit", 0, -1 },
-                { XBOX_GAMEPAD_DPAD_DOWN, "dpad_south_lit", 0, 1 },
-                { XBOX_GAMEPAD_DPAD_LEFT, "dpad_west_lit", -1, 0 },
-                { XBOX_GAMEPAD_DPAD_RIGHT, "dpad_east_lit", 1, 0 },
+            static const struct { int bit; float dx, dy; } arms[] = {
+                { XBOX_GAMEPAD_DPAD_UP, 0, -1 },
+                { XBOX_GAMEPAD_DPAD_DOWN, 0, 1 },
+                { XBOX_GAMEPAD_DPAD_LEFT, -1, 0 },
+                { XBOX_GAMEPAD_DPAD_RIGHT, 1, 0 },
             };
-            float size = 2.2f * r;   /* (the picture's arms are a third of it each) */
-            draw_piece("dpad", cx, cy, size, size, 0.45f);   /* (over the untouched one: less see-through) */
+            uint8_t kr, kg, kb;
+            plain_tint(d_layout_color[i], &kr, &kg, &kb);
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, 0.55f);
             for (int a = 0; a < 4; a++)
                 if (d_dpad & arms[a].bit)
-                    draw_piece(arms[a].lit, cx + arms[a].dx * size / 3, cy + arms[a].dy * size / 3, size / 2,
-                               size / 2, 0.95f);
+                    fill_disc(cx + arms[a].dx * r * 0.55f, cy + arms[a].dy * r * 0.55f, r * 0.17f, kr, kg, kb, 0.95f);
         } else if (c->kind == COMBO && on) {
             draw_combo(c, i, cx, cy, r, fmaxf(d_layout_alpha[i], 0.85f));
             draw("touch_button_lit", cx, cy, 2.1f*r, 2.1f*r, 0.9f);
@@ -1644,7 +1661,13 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_asp[i],d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected,(d_edit_mode&&i==d_selected)?1.f:(float)d_layout_alpha[i]); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i];
+        if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) { Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); draw("touch_button_lit",p.x*u,p.y*u,2.2f*p.r*u,2.2f*p.r*u,0.30f); }
+        /* (the rings live in the idle picture: drawing them again every frame cost the pad real time -- user
+         * 2026-11-27. Only the one the editor has selected is drawn here, over the picture) */
+        if (d_edit_mode && i == d_selected) { Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout);
+            draw_style_outline(p.x*u,p.y*u,p.r*u,d_layout_asp[i],d_layout_color[i],d_layout_shape[i],true,1.f); }
+    }
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
