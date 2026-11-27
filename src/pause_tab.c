@@ -46,6 +46,7 @@
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+#include "ui_zh.h"
 
 extern const unsigned char ngb_font_tab[], ngb_font_body[], ngb_font_label[];
 extern const unsigned int ngb_font_tab_len, ngb_font_body_len;
@@ -767,6 +768,8 @@ static float game_text(uint8_t *m, int w, int h, const char *s, float px, float 
 static float draw_text(uint8_t *m, int w, int h, const stbtt_fontinfo *f,
                        const char *s, float px, float sx, float x, float base)
 {
+    if (ngb_ui_wide(s))         /* (the game's face and the Latin ones carry no hanzi: ui_zh.c's does) */
+        return ngb_ui_text(m, w, h, s, px, sx, x, base);
     if (s_game_font)
         return game_text(m, w, h, s, px, sx, x, base);
     float scale = stbtt_ScaleForPixelHeight(f, px), x0 = x;
@@ -797,6 +800,8 @@ static float draw_text(uint8_t *m, int w, int h, const stbtt_fontinfo *f,
 
 static float text_width(const stbtt_fontinfo *f, const char *s, float px, float sx)
 {
+    if (ngb_ui_wide(s))
+        return ngb_ui_text(NULL, 0, 0, s, px, sx, 0, 0);
     if (s_game_font)
         return game_text(NULL, 0, 0, s, px, sx, 0, 0);
     float scale = stbtt_ScaleForPixelHeight(f, px), x = 0;
@@ -820,8 +825,13 @@ static void tab_word(uint8_t *m, int mw, int mh, float cx, float cy, float bw, f
     {   /* always the typeface: it looks like the other plates' lettering */
         int game = s_game_font;
         s_game_font = 0;
-        float a = draw_text(tmp, 400, 160, &s_font_tab, "S", cap, sx, 6, base);
-        draw_text(tmp, 400, 160, &s_font_tab, "ettings", rest, sx, 6 + a - 2, base);
+        const char *word = ngb_ui_zh("Settings");
+        if (ngb_ui_wide(word))
+            draw_text(tmp, 400, 160, &s_font_tab, word, 54, 1.0f, 6, base);
+        else {
+            float a = draw_text(tmp, 400, 160, &s_font_tab, "S", cap, sx, 6, base);
+            draw_text(tmp, 400, 160, &s_font_tab, "ettings", rest, sx, 6 + a - 2, base);
+        }
         s_game_font = game;
     }
     int x0 = 400, y0 = 160, x1 = -1, y1 = -1;
@@ -1023,6 +1033,7 @@ static void page_fill(uint32_t *px, float x, float y, float w, float h,
 static void page_text_sx(uint32_t *px, uint8_t *m, const char *s, float x, float base,
                          float size, uint32_t rgb, int align, float min_sx)
 {
+    s = ngb_ui_zh(s);           /* (the pages are Chinese; a word the table lacks stays as it is) */
     const float k = (float)PAGE_TW / PAGE_W;
     float sx = 1.0f, w = text_width(&s_font_body, s, size * k, 1.0f);
     float room = (align == 2 ? x : align == 1 ? 2 * fminf(x, PAGE_W - x) : PAGE_W - x) - 4;
@@ -1122,6 +1133,7 @@ static void page_text_fit(uint32_t *px, uint8_t *m, const char *t, float x, floa
                           uint32_t rgb, int align, float maxw)
 {
     const float k = (float)PAGE_TW / PAGE_W;
+    t = ngb_ui_zh(t);
     float w = text_width(&s_font_body, t, size * k, 1.0f) / k;
     if (w > maxw)
         size *= maxw / w;
@@ -1295,7 +1307,7 @@ static void draw_page(int focused, int cat, int row)
         int shown = 0;
         for (int c = 0; c < CATS; c++)
             if (cat_shown(c)) {
-                words += text_width(&s_font_body, s_cat_name[c], fs * k, 1.0f) / k;
+                words += text_width(&s_font_body, ngb_ui_zh_ctx("cat", s_cat_name[c]), fs * k, 1.0f) / k;
                 shown++;
             }
         gap = (440 - 2 * STRIP_X0 - words) / (shown - 1);
@@ -1310,11 +1322,11 @@ static void draw_page(int focused, int cat, int row)
             s_cat_x[c][0] = s_cat_x[c][1] = -1;     /* (no place for the mouse either) */
             continue;
         }
-        float w = text_width(&s_font_body, s_cat_name[c], fs * k, 1.0f) / k;
+        float w = text_width(&s_font_body, ngb_ui_zh_ctx("cat", s_cat_name[c]), fs * k, 1.0f) / k;
         int on = c == (cat == CAT_UNL ? CAT_CHEAT : cat), sel = focused && row < 0 && on;
         if (sel)
             page_fill(px, x - 6, STRIP_Y + 3, w + 12, STRIP_H - 6, 0x6E64DC, 0.75f, 0.75f);
-        page_text(px, m, s_cat_name[c], x, STRIP_Y + 19, fs,
+        page_text(px, m, ngb_ui_zh_ctx("cat", s_cat_name[c]), x, STRIP_Y + 19, fs,
                   sel ? 0xFFFFFF : on ? 0xC8C4FF : 0x8C8C96, 0);
         s_cat_x[c][0] = x - 6;
         s_cat_x[c][1] = x + w + 6;
@@ -1349,7 +1361,7 @@ static void draw_page(int focused, int cat, int row)
     }
     if (focused && row >= 0 && row < n)
         {   /* a help of two lines: split at its \n */
-            const char *h = s_help[s_cat_rows[cat][row]], *nl = strchr(h, '\n');
+            const char *h = ngb_ui_zh(s_help[s_cat_rows[cat][row]]), *nl = strchr(h, '\n');
             const int hy = n > 8 ? 4 : 0;
             char first[160];
             if (nl && (size_t)(nl - h) < sizeof first) {

@@ -1,0 +1,243 @@
+/*
+ * ui_zh_text.c -- the recomp's own words in Chinese: the settings pages (src/pause_tab.c), the pause menu's
+ * pages and the editor's titles. contexts: "cat" the strip's categories, "ctl" the bindings' rows, "" the rest.
+ * tools/ makes the font's subset from this file's characters (tools/ui_zh_subset.py).
+ */
+#include <string.h>
+
+#include "ui_zh.h"
+
+typedef struct {
+    const char *ctx, *en, *zh;
+} UiZh;
+
+static const UiZh s_tab[] = {
+    /* ---- the strip's categories (src/pause_tab.c s_cat_name) ---- */
+    { "cat", "Graphics", "画面" },
+    { "cat", "Display", "显示" },
+    { "cat", "Sound", "声音" },
+    { "cat", "Gameplay", "玩法" },
+    { "cat", "Cheats", "作弊" },
+    { "cat", "Controls", "操作" },
+    { "cat", "Menu Options", "菜单" },
+
+    /* ---- the settings' rows (s_label) ---- */
+    { "", "Render Resolution", "渲染分辨率" },
+    { "", "Anisotropic Filtering", "各向异性过滤" },
+    { "", "Shadow Resolution", "阴影分辨率" },
+    { "", "Display", "显示模式" },
+    { "", "V-Sync", "垂直同步" },
+    { "", "FPS Counter", "帧率显示" },
+    { "", "Window Size", "窗口尺寸" },
+    { "", "Aspect Ratio", "画面比例" },
+    { "", "Skip Intros", "跳过片头" },
+    { "", "Settings at Startup", "启动先进设置" },
+    { "", "Anti-Aliasing (MSAA)", "抗锯齿 (MSAA)" },
+    { "", "Infinite Health", "无限生命" },
+    { "", "Infinite Ninpo", "无限忍法" },
+    { "", "Infinite Essence", "无限金钱" },
+    { "", "All Difficulties", "全难度" },
+    { "", "Golden Scarabs", "金甲虫全满" },
+    { "", "All Costumes", "全服装" },
+    { "", "Extra Costume", "额外服装" },
+    { "", "Bloom", "泛光" },
+    { "", "Quick Menu Pause", "快捷菜单暂停" },
+    { "", "Quick Menu", "快捷菜单" },
+    { "", "Infinite Items", "无限道具" },
+    { "", "Infinite Projectiles", "无限忍具" },
+    { "", "Positional Audio", "定位音效" },
+    { "", "HUD", "界面显示" },
+    { "", "Audio Output", "音频输出" },
+    { "", "Missions", "任务模式" },
+    { "", "Arcade Ninja Gaiden", "街机忍龙" },
+    { "", "Movie Theater", "影院" },
+    { "", "Lower Detail Under Load", "负载降细节" },
+    { "", "Multithreaded Renderer", "多线程渲染" },
+    { "", "Intercept", "格挡" },
+    { "", "All Weapons", "全武器" },
+    { "", "Essence-Only Charging", "仅吸魂蓄力" },
+    { "", "Skip Any Cutscene", "跳过所有过场" },
+    { "", "Responsive Menus", "菜单更灵敏" },
+    { "", "All Armlets", "全护腕" },
+    { "", "All Scrolls", "全卷轴" },
+    { "", "One Hit Kill", "一击必杀" },
+    { "", "Unlocks", "解锁内容" },
+    { "", "HUD Style", "界面样式" },
+    { "", "HUD Aspect", "界面比例" },
+    { "", "Talisman of Rebirth", "复活护符" },
+    { "", "Bow Crosshair", "弓箭准星" },
+    { "", "Frame Interpolation", "插帧" },
+    { "", "Shuriken Icon", "手里剑图标" },
+
+    /* ---- their help (s_help): two lines where the English has a \n ---- */
+    { "", "Draws the game at a multiple of the console's resolution.", "以主机分辨率的倍数绘制画面。" },
+    { "", "Keeps textures sharp at an angle. Off: the console's filtering.", "斜看时纹理也保持清晰。\n关闭：主机原本的过滤。" },
+    { "", "The detail of the characters' shadows; 1x is the console's.", "角色阴影的细节；\n1x 即主机原样。" },
+    { "", "A window, the whole screen, or a window without a frame.", "窗口、整屏，或无边框的窗口。" },
+    { "", "No tearing. Mailbox: least delay. FIFO: steadiest. Adaptive: a late frame goes at once.",
+          "不撕屏。邮箱：延迟最低。\nFIFO：最稳。自适应：迟到的帧立刻送出。" },
+    { "", "Frames per second, in the corner of the screen.", "屏幕角落显示帧率。" },
+    { "", "The size of the window when not full screen.", "非全屏时的窗口大小。" },
+    { "", "The shape of the picture and the window sizes offered.", "画面形状与可选的窗口尺寸。" },
+    { "", "Starts at the title screen. From the next start.", "从标题画面开始。\n下次启动生效。" },
+    { "", "The settings screen before the game. From the next start.", "进游戏前的设置页。\n下次启动生效。" },
+    { "", "Smooths the edges of the 3D: 2x to 8x samples a pixel.", "柔化 3D 边缘：\n每个像素 2x 到 8x 采样。" },
+    { "", "Ryu's health stays full. For this session only.", "龙的生命值保持全满。\n仅本次运行有效。" },
+    { "", "Ninpo is always ready. For this session only.", "忍法随时可用。\n仅本次运行有效。" },
+    { "", "As much essence as can be held. For this session only.", "金钱保持上限。\n仅本次运行有效。" },
+    { "", "Every difficulty at New Game, Ninja Dog to Master Ninja.", "新游戏可选全部难度，\n忍者犬到忍之大师。" },
+    { "", "All 50: Muramasa gives every reward. For this session only.", "全部 50 只：村正给出所有奖励。\n仅本次运行有效。" },
+    { "", "Every costume at the Costume Selection, and three it never offers.",
+          "服装选择里可选全部服装，\n另有三种原本不提供的。" },
+    { "", "Costumes in the game it never offers. From the next area.", "游戏原本不提供的服装。\n下个区域生效。" },
+    { "", "The game's glow around bright things, steady and even at any resolution.",
+          "亮处周围的辉光，\n任何分辨率下都均匀稳定。" },
+    { "", "The game pauses while the quick menu is open (once Ryu's action ends).",
+          "快捷菜单打开时游戏暂停\n（龙的动作结束后）。" },
+    { "", "A d-pad menu of weapons, Ninpo and items (Up and Down open it), at this size.",
+          "十字键菜单：武器、忍法与道具\n（上下键打开），此尺寸。" },
+    { "", "Healing items, talismans and jewels are not used up. For this session only.",
+          "回复道具、护符与宝石不消耗。\n仅本次运行有效。" },
+    { "", "Shuriken, smoke bombs, arrows and spears are not used up. For this session only.",
+          "手里剑、烟弹、箭与长枪不消耗。\n仅本次运行有效。" },
+    { "", "Sounds placed around you. Console: as on the Xbox. Mixed: brighter, easier to place. Clear: by level only.",
+          "四周的音源。主机：同 Xbox。\n混合：更亮，好定位。清晰：仅按关卡。" },
+    { "", "The health and Ninpo bar, weapons and the rest drawn over play. Off: a clear screen.",
+          "生命与忍法槽、武器等叠在画面上。\n关闭：干净的画面。" },
+    { "", "Speakers. Auto: 5.1 when the output device has 5.1 or 7.1 channels, else stereo. Needs a restart of the game.",
+          "扬声器。自动：输出有 5.1 或 7.1\n声道时用 5.1，否则立体声。需重启游戏。" },
+    { "", "MISSIONS in the main menu without earning it.", "主菜单的 MISSIONS 无需解锁。" },
+    { "", "ARCADE NINJA GAIDEN in the main menu without earning it.", "主菜单的街机忍龙无需解锁。" },
+    { "", "MOVIE THEATER in the main menu without earning it.", "主菜单的影院无需解锁。" },
+    { "", "Eases off detail when busy, as on the Xbox; Ryu's shadow may flicker.",
+          "繁忙时降低细节，同 Xbox；\n龙的影子可能闪烁。" },
+    { "", "Drawing on a thread of its own, for slower CPUs. Needs restart.", "用独立线程绘制，适合较慢的\n CPU。需重启。" },
+    { "", "Tap guard as a hit lands to turn it aside (the Hurricane Pack's move Black left out).",
+          "受击瞬间按格挡将其格开\n（飓风包的招式，黑之章删掉了）。" },
+    { "", "Every weapon, at Level 1 or at its highest level, with its ammunition. Turned off, they are taken back.",
+          "全部武器，一级或满级，含弹药。\n关闭则收回。" },
+    { "", "Holding attack no longer charges an Ultimate Technique: only absorbing essence does.",
+          "按住攻击不再蓄必杀技：\n只有吸魂才蓄。" },
+    { "", "Start skips any movie or in-game cutscene, watched before or not. Off: as on the Xbox.",
+          "开始键跳过任何影片或过场，\n看过与否。关闭：同 Xbox。" },
+    { "", "Start at the title, in a cutscene's opening wait and after equipping in the pause menu works at once.",
+          "标题、过场开场等待、\n暂停菜单装备后立即响应。" },
+    { "", "Every armlet and band. Turned off, they are taken back.", "全部护腕与带子。\n关闭则收回。" },
+    { "", "The Izuna Drop, Counter Attack and Guillotine Throw scrolls. Turned off, they are taken back.",
+          "饭纲落、反击与风车斩的卷轴。\n关闭则收回。" },
+    { "", "Any hit that hurts an enemy or a boss kills it. For this session only.",
+          "任何打中敌人或首领的攻击\n都将其一击击杀。仅本次运行有效。" },
+    { "", "Difficulties, costumes and the main menu's extras (saved); weapons, armlets and scrolls (this session).",
+          "难度、服装与主菜单附加内容\n（存档）；武器、护腕与卷轴（本次）。" },
+    { "", "Compact: the health bar, weapon and karma window smaller and nearer the screen's corners.",
+          "紧凑：生命槽、武器与业窗口\n更小、更靠屏幕角落。" },
+    { "", "Corrected: the HUD in its own shape on a wide screen, not stretched across it.",
+          "修正：宽屏下界面保持自身比例，\n不被拉伸。" },
+    { "", "Off: a Talisman of Rebirth is never used; at no health Ryu dies, the talismans kept.",
+          "关闭：复活护符永不消耗；\n生命归零即死，护符保留。" },
+    { "", "On: a dot in the middle of the screen while aiming a bow in first person.",
+          "开启：第一人称瞄准弓箭时\n屏幕中心有点。" },
+    { "", "Experimental. Pictures between the game's frames, on a 120 Hz or faster display.",
+          "实验性。在游戏帧之间插入画面，\n需 120Hz 或更快的屏幕。" },
+    { "", "On: the HUD shows the Shuriken or Windmill Shuriken when one is equipped.",
+          "开启：装备手里剑或风车手里剑时\n界面显示图标。" },
+
+    /* ---- the bindings' rows and their help (s_ctl_toggle_name, s_ctl_toggle_help) ---- */
+    { "", "Invert Camera X", "反转镜头左右" },
+    { "", "Invert Camera Y", "反转镜头上下" },
+    { "", "Invert First-Person X", "反转第一人称左右" },
+    { "", "Start in Third Person", "起始第三人称" },
+    { "", "D-Pad Camera While Charging", "蓄力时十字转镜头" },
+    { "", "Start+Back Reset", "开始+返回重置" },
+    { "", "Turns the third-person camera the other way left and right (play only).",
+          "第三人称镜头左右反向\n（仅游戏中）。" },
+    { "", "Turns the third-person camera the other way up and down (play only).",
+          "第三人称镜头上下反向\n（仅游戏中）。" },
+    { "", "Turns the first-person view the other way left and right (play only).",
+          "第一人称视角左右反向\n（仅游戏中）。" },
+    { "", "After loading, the right stick turns the camera instead of looking in first person.",
+          "读档后右摇杆转镜头，\n而非切第一人称。" },
+    { "", "While charging an Ultimate Technique the d-pad turns the camera; the left stick still aims the release.",
+          "蓄必杀技时十字键转镜头；\n左摇杆仍决定出手方向。" },
+    { "", "Holding Start and Back (Select) goes back to the title screen. Off: the game ignores it.",
+          "按住开始+返回回到标题画面。\n关闭则无效。" },
+    { "", "Camera Sensitivity", "镜头灵敏度" },
+    { "", "Button Prompts", "按键提示" },
+    { "", "Button Resolution", "按键贴图精度" },
+    { "", "Default Controls", "默认操作" },
+    { "", "Keyboard / Mouse", "键盘 / 鼠标" },
+    { "", "Controller", "手柄" },
+    { "", "Touch Layout Editor", "触屏布局编辑器" },
+    { "", "OPEN", "打开" },
+
+    /* ---- the exit page ---- */
+    { "", "Return to Game", "回到游戏" },
+    { "", "Return to Main Menu", "回到主菜单" },
+    { "", "Exit Game", "退出游戏" },
+    { "", "Closes this menu.", "关闭此菜单。" },
+    { "", "Back to the main menu. Unsaved progress is lost.", "回到主菜单。\n未保存的进度会丢失。" },
+    { "", "Closes the game. Unsaved progress is lost.", "关闭游戏。\n未保存的进度会丢失。" },
+    { "", "Return to the Main Menu?", "回到主菜单？" },
+    { "", "Exit Game?", "退出游戏？" },
+
+    /* ---- words of value, plate and page ---- */
+    { "", "1x (console)", "1x（主机）" },
+    { "", "On", "开" },
+    { "", "Off", "关" },
+    { "", "Yes", "是" },
+    { "", "No", "否" },
+    { "", "Auto", "自动" },
+    { "", "Windowed", "窗口" },
+    { "", "Fullscreen", "全屏" },
+    { "", "Borderless", "无边框" },
+    { "", "Stereo", "立体声" },
+    { "", "Mixed", "混合" },
+    { "", "Clear", "清晰" },
+    { "", "Console", "主机" },
+    { "", "Compact", "紧凑" },
+    { "", "Original", "原始" },
+    { "", "Corrected", "修正" },
+    { "", "Stretched", "拉伸" },
+    { "", "Full Rate", "全速" },
+    { "", "Half Rate", "半速" },
+    { "", "Max Level", "满级" },
+    { "", "Level 1", "一级" },
+    { "", "Hurricane", "飓风" },
+    { "", "Black", "黑之章" },
+    { "", "Default", "默认" },
+    { "", "Classic", "经典" },
+    { "", "Custom", "自定义" },
+    { "", "Settings", "设置" },
+    { "", "Controls", "操作" },
+    { "", "Return", "返回" },
+    { "", "OPEN", "打开" },
+};
+
+#define TAB_N ((int)(sizeof s_tab / sizeof s_tab[0]))
+
+const char *ngb_ui_zh_ctx(const char *ctx, const char *en)
+{
+    static const char *last_en, *last_zh;
+    static const char *last_ctx;
+    if (!en || !*en)
+        return en;
+    if (en == last_en && (ctx == last_ctx || (ctx && last_ctx && !strcmp(ctx, last_ctx))))
+        return last_zh;
+    const char *zh = NULL;
+    for (int i = 0; i < TAB_N; i++)          /* the context's own word first, the plain table after it */
+        if (!strcmp(s_tab[i].en, en) && ctx && *ctx && !strcmp(ctx, s_tab[i].ctx)) {
+            zh = s_tab[i].zh;
+            break;
+        }
+    for (int i = 0; i < TAB_N && !zh; i++)
+        if (!strcmp(s_tab[i].en, en) && !*s_tab[i].ctx)
+            zh = s_tab[i].zh;
+    if (!zh)
+        return en;
+    last_en = en;
+    last_ctx = ctx;
+    last_zh = zh;
+    return zh;
+}
+
+const char *ngb_ui_zh(const char *en) { return ngb_ui_zh_ctx("", en); }

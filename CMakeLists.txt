@@ -87,7 +87,8 @@ set(NGB_FONTS
     "EBGaramond-ExtraBoldItalic.ttf\;ngb_font_tab"
     "LiberationSerif-Regular.ttf\;ngb_font_body"
     "LiberationSerif-Bold.ttf\;ngb_font_label"
-    "NGBHanzi-Bold.ttf\;ngb_font_cjk")    # Hurricane x2.1: Source Han Sans CN Bold, cut (tools/hurricane/make_zh.py)
+    "NGBHanzi-Bold.ttf\;ngb_font_cjk"     # Hurricane x2.1: Source Han Sans CN Bold, cut (tools/hurricane/make_zh.py)
+    "NgbUiZh.ttf\;ngb_ui_font")           # the pages' Chinese: Noto Sans CJK SC Black, cut (tools/ui_zh_subset.py)
 set(NGB_FONT_SOURCES)
 foreach(entry ${NGB_FONTS})
     list(GET entry 0 file)
@@ -171,6 +172,9 @@ add_library(ngb_gen OBJECT ${RECOMP_GEN_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_flags.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_zh.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hurricane_zh_data.c
+    # The recomp's own pages in Chinese (src/pause_tab.c): the words and the face.
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui_zh.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui_zh_text.c
     # The Direct3D hooks (docs/renderer.md, tools/take_d3d.py).
     ${CMAKE_CURRENT_SOURCE_DIR}/src/d3d/d3d.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cheats.c
