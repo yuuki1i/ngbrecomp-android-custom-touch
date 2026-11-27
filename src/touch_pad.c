@@ -1412,10 +1412,10 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
         }
     /* (white on the dark plate, as the console's own keys have it -- the key's colour stays on its ring) */
     if (s_pad_theme == 2 && id >= BA && id <= BY)
-        mark_shape(id, cx, cy, fminf(hw, hh) * 0.42f, 240, 243, 249, fminf(1.f, a + 0.2f));
+        mark_shape(id, cx, cy, fminf(hw, hh) * 0.36f, 240, 243, 249, fminf(1.f, a + 0.2f));
     else if (c->label)
-        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.3f, hh * 0.55f, 240, 243, 249,
-                     fminf(1.f, a + 0.25f));   /* (smaller again: a key's name is a mark, not a poster -- user) */
+        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.15f, hh * 0.46f, 240, 243, 249,
+                     fminf(1.f, a + 0.25f));   /* (small again: a key's name is a mark, not a poster -- user) */
 }
 
 static void draw_badge_text(const char *label, int centre, int y0, int bw);
@@ -1509,17 +1509,19 @@ static void draw_idle(void)
                 draw_plain(i, cx, cy, r, a1, false);
         }
         else if (c->kind == STICK) {
-            /* (the same ring the keys wear, in the same colour: the stick was a grey Kenney disc beside white
-             * keys -- user 2026-11-27) */
-            draw_style_outline(cx, cy, r, 1.f, 0, 7, false, dim);
-            draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, dim * 0.45f);   /* (one look for both) */
-            draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false, dim);
+            /* (the same ring the keys wear, in the same colour -- and the key's own opacity, which the rings
+             * used to ignore: 58% is the pad's default, 0 leaves nothing, user 2026-11-27) */
+            float la = fminf(1.f, fmaxf(0.f, d_layout_alpha[i] / 0.58f));
+            draw_style_outline(cx, cy, r, 1.f, 0, 7, false, dim * la);
+            draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, dim * 0.45f * la);   /* (one look for both) */
+            draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false, dim * la);
         } else if (c->kind == DPAD) {
-            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim);
+            float la = fminf(1.f, fmaxf(0.f, d_layout_alpha[i] / 0.58f));
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim * la);
             for (int q = 0; q < 4; q++) {
                 float dx = q == 0 ? 0 : q == 1 ? 0 : q == 2 ? -0.55f : 0.55f;
                 float dy = q == 2 || q == 3 ? 0 : q == 0 ? -0.55f : 0.55f;
-                draw_style_outline(cx + dx * r, cy + dy * r, r * 0.16f, 1.f, d_layout_color[i], 7, false, dim);
+                draw_style_outline(cx + dx * r, cy + dy * r, r * 0.16f, 1.f, d_layout_color[i], 7, false, dim * la);
             }
         }
         else if (c->kind == COMBO)
@@ -1691,9 +1693,10 @@ static void draw_all(void)
             int s = i == RSTICK;
             float nx = cx + d_stick[s][0] * r * 0.52f, ny = cy + d_stick[s][1] * r * 0.52f;
             /* (the centre was a pinhead -- user 2026-11-27: a stick's cap is most of its inside) */
-            fill_disc(nx, ny, r * (on ? 0.42f : 0.36f), 232, 236, 243, on ? 0.95f : 0.70f);
+            float la = fminf(1.f, fmaxf(0.f, d_layout_alpha[i] / 0.58f));   /* the cap follows the key too */
+            fill_disc(nx, ny, r * (on ? 0.42f : 0.36f), 232, 236, 243, fminf(1.f, (on ? 0.95f : 0.70f) * la));
             if (on)
-                draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, 0.90f);
+                draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, fminf(1.f, 0.90f * la));
         } else if (c->kind == DPAD && on) {
             static const struct { int bit; float dx, dy; } arms[] = {
                 { XBOX_GAMEPAD_DPAD_UP, 0, -1 },

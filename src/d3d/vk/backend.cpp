@@ -13,6 +13,9 @@
 extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
 extern "C" int ngb_fx_tint(int which);   /* src/ingame_menu.c: its r, g, b, alpha and glow, percent */
 extern "C" volatile int ngb_fx_hits;     /* src/fx_dump.c: how many draws the trail's pass took */
+extern "C" volatile int ngb_fx_dump_on;  /* src/fx_dump.c: Effects > Effect Capture */
+extern "C" void ngb_fx_note(unsigned code, unsigned tex, unsigned blend, unsigned src, unsigned dst,
+                            unsigned count, unsigned vs, unsigned node);
 
 /* What a frame's blended draws look like, one bucket a kind: the blend, whether the picture comes from a
    target, whether it is a quad, and whether the target is an effect's own (256x128 and up, below the
@@ -3910,8 +3913,10 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         from_target[0] && !info[0].shadow &&
         Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
         trail_desc.width < 640;
-    {   /* one bucket a kind of blended draw, for the phone's 诊断 row */
+    {   /* one bucket a kind of blended draw, and the capture watching every draw, for the phone's 诊断 row */
         TextureDesc sd{};
+        if (ngb_fx_dump_on)   /* (the capture had only been wired to the D3D layer: on Android nothing was written) */
+            ngb_fx_note(0xEEEEu, Describe(s.textures[0], sd) ? sd.data : 0u, k.blend, k.src, k.dst, count, 0u, 0u);
         unsigned bkey = unsigned(k.src & 0xFu) | (unsigned(k.dst & 0xFu) << 4) | (k.blend ? 0x100u : 0u) |
                         (from_target[0] ? 0x200u : 0u) | (a.pretransformed ? 0x400u : 0u) |
                         (Describe(s.textures[0], sd) && sd.width >= 256 && sd.width < 640 ? 0x800u : 0u);
