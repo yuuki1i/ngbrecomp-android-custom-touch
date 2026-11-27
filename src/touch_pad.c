@@ -1403,10 +1403,10 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
         }
     /* (white on the dark plate, as the console's own keys have it -- the key's colour stays on its ring) */
     if (s_pad_theme == 2 && id >= BA && id <= BY)
-        mark_shape(id, cx, cy, fminf(hw, hh) * 0.56f, 240, 243, 249, fminf(1.f, a + 0.2f));
+        mark_shape(id, cx, cy, fminf(hw, hh) * 0.48f, 240, 243, 249, fminf(1.f, a + 0.2f));
     else if (c->label)
-        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.7f, hh * 0.94f, 240, 243, 249,
-                     fminf(1.f, a + 0.25f));
+        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.4f, hh * 0.66f, 240, 243, 249,
+                     fminf(1.f, a + 0.25f));   /* (smaller: a key's name is a mark, not a poster -- user) */
 }
 
 static void draw_badge_text(const char *label, int centre, int y0, int bw);

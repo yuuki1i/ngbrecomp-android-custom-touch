@@ -1207,14 +1207,14 @@ public class TouchLayoutEditor extends FrameLayout {
                 mPaint.setStyle(Paint.Style.FILL);
                 mPaint.setColor(0xF0F0F3F9);   /* (white on the plate, the ring keeps the key's colour) */
                 mPaint.setTextAlign(Paint.Align.CENTER);
-                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.62f));
+                mPaint.setTextSize(Math.max(11 * mEditor.mDp, radius * 0.46f));
                 /* (the game writes the key's own name, not the name of the action it was bound to -- a rebind
                  * kept showing the old word here and the pad did not) */
                 String text = mEditor.shortFor(id);
                 if (mEditor.mComboKind[id])
                     text = COMBO_SHORT[mEditor.mCombo[id]];
                 if (mEditor.mPadTheme == 2 && id >= 3 && id <= 6) {
-                    psMark(canvas, id, cx, cy, Math.min(radius * 0.58f, radius), mPaint);
+                    psMark(canvas, id, cx, cy, Math.min(radius * 0.50f, radius), mPaint);
                 } else if (!(id == 0 || id == 1)) {
                     canvas.drawText(text, cx, cy + radius * 0.18f, mPaint);
                 }
