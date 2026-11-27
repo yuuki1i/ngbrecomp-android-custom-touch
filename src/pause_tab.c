@@ -434,7 +434,7 @@ int ngb_menu_row_get(int row) {
 }
 void ngb_menu_row_value(int row, char *out, size_t n) {
     static const char *const presets[] = { "Default", "Classic", "Custom" };
-    static const char *const combos[] = { "A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360Y" };
+    static const char *const combos[] = { "A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y" };
     if (!n) return;
     if (row == NGB_MENU_TOUCH_BASE) { snprintf(out, n, "OPEN"); return; }
     if (row == NGB_MENU_TOUCH_BASE + 1) {

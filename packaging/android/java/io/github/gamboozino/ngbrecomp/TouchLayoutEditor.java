@@ -58,9 +58,9 @@ public class TouchLayoutEditor extends FrameLayout {
     /* 0-5 draw a ring over the pad's own art; 6-8 replace it with a plate of the control's own (src/touch_pad.c,
      * draw_plain): a wide rectangle, a circle, a rounded square -- the plain pad the default layout uses. */
     private static final String[] SHAPES = {"圆形", "方形", "菱形", "圆角方", "六边形", "八角形", "长方形", "圆盘", "圆角方框"};
-    private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆转圈+Y"};
+    private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
     /* What a combo control shows on its plate: the short name. */
-    private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360"};
+    private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
 
     private final NgbActivity mActivity;
     private final float mDp;

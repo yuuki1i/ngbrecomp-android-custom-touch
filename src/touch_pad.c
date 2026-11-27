@@ -98,7 +98,7 @@ static const Ctrl s_ctrl[NCTRL] = {
     [SWAP]    = { BUTTON, 0, 0.05f,  0.36f,  0.035f, "layout", "<>", 0xE6E6E6, "swap" },
     [NINPO]   = { COMBO, 1, 0.52f, 0.46f, 0.060f, "NINPO", "N", 0xD8DDE4, "button_y" },
     [WINDRUN] = { COMBO, 1, 0.52f, 0.62f, 0.060f, "WIND RUN", "W", 0xD8DDE4, "button_x" },
-    [CUSTOM1] = { COMBO, 1, 0.300f, 0.865f, 0.055f, "C1", "360", 0xD8DDE4, "button_a" },   /* (under the face
+    [CUSTOM1] = { COMBO, 1, 0.300f, 0.865f, 0.055f, "C1", "C1", 0xD8DDE4, "button_a" },   /* (under the face
                                                        buttons: where the thumb already is) */
     [CUSTOM2] = { COMBO, 1, 0.52f, 0.44f, 0.055f, "C2", "C2", 0xD8DDE4, "button_b" },
     [CUSTOM3] = { COMBO, 1, 0.52f, 0.56f, 0.055f, "C3", "C3", 0x4C9BEA, "button_x" },
@@ -345,9 +345,7 @@ static void layout_defaults(void) {
         [SWAP]=PA_NONE,
     };
     for (int i=0;i<NCTRL;i++) { s_layout_x[i]=s_ctrl[i].x; s_layout_y[i]=s_ctrl[i].y; s_layout_r[i]=s_ctrl[i].r; s_layout_asp[i]=1.f; s_layout_alpha[i]=0.58f; s_layout_custom[i]=false; s_layout_color[i]=s_layout_skin[i]=s_layout_combo[i]=0; s_layout_shape[i]= (s_ctrl[i].kind==BUTTON || s_ctrl[i].kind==COMBO) ? 6 : 0;   /* (plain plates: a dark see-through rectangle and a hairline, the name inside -- no art behind) */ s_layout_enabled[i]= i<=START || i==SWAP || i==OPACITY;   /* (1.0.3: the opacity button shows by default) */   /* (the pad as the hand wants it: no stick clicks, combos or badges unless the editor adds them) */ s_layout_action[i]= s_ctrl[i].kind==BUTTON ? own[i] : PA_NONE; }
-    /* The 360 charge, one tap: the stick sweeps a full turn and Y follows (combo 6), beside the face buttons
-     * where the right thumb already is. It starts out on the pad -- it is a move, not a setting. */
-    s_layout_enabled[CUSTOM1]=true; s_layout_combo[CUSTOM1]=6; s_layout_alpha[CUSTOM1]=0.6f;
+    /* The combos the pad starts with: NINPO and WIND RUN (user 2026-11-27: the 360 sweep and its Y are gone). */
     s_layout_combo[NINPO]=4; s_layout_combo[WINDRUN]=1;
 }
 static void layout_load(void) {
@@ -362,7 +360,7 @@ static void layout_load(void) {
     if(!fp)return; char line[192]; bool legacy_ids=true;
     if(!fgets(line,sizeof line,fp)||!strstr(line,"NGB_TOUCH_LAYOUT_V5")){fclose(fp);return;}   /* (a layout from the first editor: the hand-made default beats its scatter) */
     rewind(fp);
-    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>6?6:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;}
+    while(fgets(line,sizeof line,fp)){if(line[0]=='#'){if(strstr(line,"NGB_TOUCH_LAYOUT_V5")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V5 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V3")){legacy_ids=false;int h=1,c=1;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V3 %d %d",&h,&c)>=1){s_haptics=h!=0;s_camera_swipe=c!=0;}}else if(strstr(line,"NGB_TOUCH_LAYOUT_V2")){legacy_ids=false;int h;if(sscanf(line,"# NGB_TOUCH_LAYOUT_V2 %d",&h)==1)s_haptics=h!=0;}else if(strstr(line,"SKIN ")){int sk=0;char sp[256]={0};if(sscanf(line,"# SKIN %d %255s",&sk,&sp[0])==2&&sk>=0&&sk<NCTRL)snprintf(s_skin_path[sk],sizeof s_skin_path[sk],"%s",sp);else if(sscanf(line,"# SKIN %255s",sp)==1)for(int q=0;q<NCTRL;q++)if(s_layout_skin[q])snprintf(s_skin_path[q],sizeof s_skin_path[q],"%s",sp);}else if(strstr(line,"TEXDUMP ")){sscanf(line,"# TEXDUMP %d",&ngb_texture_dump_on);}else if(strstr(line,"FILTER ")){sscanf(line,"# FILTER %511s",s_filter_path);}else if(strstr(line,"VIDEO ")){int b=100,g=100,t=0,co=100,sa=100;if(sscanf(line,"# VIDEO %d %d %d %d %d",&b,&g,&t,&co,&sa)>=2){ngb_video_brightness=b/100.f;ngb_video_gamma=g/100.f;ngb_video_tint=t;if(co>0)ngb_video_contrast=co/100.f;if(sa>=0)ngb_video_saturation=sa/100.f;}}continue;}int id,custom,color=0,shape=0,skin=0,combo=0,enabled=1,action=PA_NONE;float x,y,r,a,asp=1.f;int n=sscanf(line,"%d %f %f %f %f %d %d %d %d %d %d %d %f",&id,&x,&y,&r,&a,&custom,&color,&shape,&skin,&enabled,&combo,&action,&asp);if(n<6||id<0)continue;if(legacy_ids&&id>=15)id++;if(id>=NCTRL)continue;s_layout_x[id]=x;s_layout_y[id]=y;s_layout_r[id]=r;s_layout_alpha[id]=a;s_layout_custom[id]=custom!=0;if(n>=7)s_layout_color[id]=(uint8_t)(color<0?0:color>5?5:color);if(n>=8)s_layout_shape[id]=(uint8_t)(shape<0?0:shape>8?8:shape);if(n>=9)s_layout_skin[id]=(uint8_t)(skin!=0);if(n>=10)s_layout_enabled[id]=enabled!=0;if(n>=11)s_layout_combo[id]=(uint8_t)(combo<0?0:combo>5?5:combo);if(n>=12)s_layout_action[id]=(action>=0&&action<PA_COUNT)?action:PA_NONE;if(n>=13)s_layout_asp[id]=asp<0.4f?0.4f:asp>4.f?4.f:asp;if(id==CUSTOM1&&n>=11&&combo==6)s_layout_enabled[id]=false;}
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
@@ -575,7 +573,6 @@ static void finger_on(int ctrl, float x, float y)
         s_dpad = dpad_dirs(x, y);
     else {
         s_down[ctrl] = true;
-        if (ctrl >= NINPO && s_layout_combo[ctrl] == 6) { s_combo_active[ctrl] = true; s_combo_started[ctrl] = SDL_GetTicks(); s_combo_y_until[ctrl] = 0; }
         if (s_ctrl[ctrl].kind == BUTTON || s_ctrl[ctrl].kind == COMBO) touch_vibrate();
     }
     if (ctrl == LSTICK || ctrl == RSTICK || ctrl == DPAD_ID)
@@ -651,7 +648,10 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     (void)unused;
     /* Do not consume menu touches here: let SDL queue them so the
      * in-game menu can route them through its native hit-testing path. */
-    if (ngb_menu_touch_blocked()) return 1;
+    /* The menus take the touches themselves: one the controls never saw lifted -- a stick left turned under a
+     * finger that went up on a menu -- kept driving the menu's tab left and right until another touch reset it
+     * (user 2026-11-27). Every touch the menus take lets the controls go. */
+    if (ngb_menu_touch_blocked()) { clear_touch_state(); return 1; }
     if(ev->type!=SDL_FINGERDOWN&&ev->type!=SDL_FINGERMOTION&&ev->type!=SDL_FINGERUP)return 0;
     if(ev->type!=SDL_FINGERUP&&xbox_InputControllerPresent())return 0;
     if(ev->type==SDL_FINGERDOWN&&!__atomic_load_n(&s_art_shown,__ATOMIC_ACQUIRE))return 0;
@@ -776,8 +776,6 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
         if (s_layout_combo[i] < 6) {
             if (s_down[i]) { int p=s_layout_combo[i]; st->Gamepad.bAnalogButtons[combo_buttons[p][0]]=255; st->Gamepad.bAnalogButtons[combo_buttons[p][1]]=255; }
         } else if (s_combo_active[i]) {
-            /* The 360's turn and its Y are put in after the bindings are rebuilt (ngb_touch_360, below):
-             * inside this state they were lost, and the Y held here would keep the next attack from starting. */
             if (!s_down[i]) {
                 s_combo_active[i] = false;
                 s_combo_y_until[i] = 0;
@@ -786,55 +784,6 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
     }
 
     pthread_mutex_unlock(&s_lock);
-}
-
-/* The 360 key (combo 6), read beside the pad's state so the sweep and the Y go in after the bindings are
- * rebuilt -- a stick fed into that rebuild came out at zero, and the move with it. 1 while it has something. */
-/* The menus take the pad as a pointer: a 360 already under way would keep pressing Y into them, and a menu
- * that keeps taking Y flickers and cannot be driven. The turn is dropped when the menu comes up. */
-void ngb_touch_360_cancel(void)
-{
-    pthread_mutex_lock(&s_lock);
-    memset(s_combo_active, 0, sizeof s_combo_active);
-    memset(s_combo_y_until, 0, sizeof s_combo_y_until);
-    pthread_mutex_unlock(&s_lock);
-}
-
-int ngb_touch_360(float *lx, float *ly, int *y_down)
-{
-    int out = 0;
-    if (!lx || !ly || !y_down) return 0;
-    *lx = *ly = 0.f;
-    *y_down = 0;
-    pthread_mutex_lock(&s_lock);
-    Uint32 now = SDL_GetTicks();
-    for (int i = NINPO; i < NCTRL; i++) {
-        /* The finger may already be up: one press is one full 360Y, the turn and the strike finish on their
-         * own. Holding it down does not repeat, a fresh press does. */
-        if (s_layout_combo[i] != 6 || !s_combo_active[i]) continue;
-        Uint32 elapsed = now - s_combo_started[i];
-        const Uint32 sweep = 110;   /* (a full turn of the stick, quick: the strike must not wait for it) */
-        const Uint32 pulse = 90;    /* (Y down this long, then up: held, it would swallow the next attack) */
-        if (elapsed < sweep) {
-            float t = (float)elapsed / (float)sweep;   /* (an even turn: even steps for the game to see) */
-            float angle = t * 2.0f * (float)M_PI;
-            *lx = cosf(angle);
-            *ly = -sinf(angle);
-        } else {
-            if (!s_combo_y_until[i]) s_combo_y_until[i] = now + pulse;
-            if (now < s_combo_y_until[i]) {
-                *y_down = 1;
-                out = 1;
-            } else {                     /* done: the key rests, so a fresh press is a fresh 360 */
-                s_combo_active[i] = false;
-                s_combo_y_until[i] = 0;
-            }
-            continue;
-        }
-        out = 1;
-    }
-    pthread_mutex_unlock(&s_lock);
-    return out;
 }
 
 /* ---- the picture ---- */
@@ -1302,7 +1251,6 @@ static const char *combo_second(int id) {
 }
 static void draw_combo(const Ctrl *c, int id, float cx, float cy, float r, float a) {
     float ar = d_layout_asp[id];
-    if (d_layout_combo[id] == 6) { const Sprite *skin=d_layout_skin[id]?user_skin(id):NULL; if(skin) draw_sprite(skin,cx,cy,2.5f*r*ar,2.5f*r,a); else if(s_art==ART_GAME) draw_piece("button_y",cx,cy,2.5f*r,2.5f*r,a); else draw_sprite(standin_button(id),cx,cy,2.5f*r,2.5f*r,a); draw_badge_text("360Y",(int)cx,(int)(cy-9),46); return; }
     if (s_art == ART_GAME && !d_layout_skin[id]) {
         draw_piece(combo_first(id), cx - 0.38f*r*ar, cy, 1.65f*r*ar, 1.65f*r, a);
         draw_piece(combo_second(id), cx + 0.38f*r*ar, cy, 1.65f*r*ar, 1.65f*r, a);

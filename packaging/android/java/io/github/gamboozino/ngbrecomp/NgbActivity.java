@@ -91,7 +91,7 @@ public class NgbActivity extends SDLActivity {
             case 7: return v + "%";
             case 8: return new String[] {"白色","蓝色","红色","绿色","金色","紫色"}[Math.max(0, Math.min(5, v))];
             case 9: return new String[] {"圆形","方形","菱形"}[Math.max(0, Math.min(2, v))];
-            default: return new String[] {"A+B","A+X","A+Y","B+X","B+Y","X+Y","摇杆转圈 + Y（360Y）"}[Math.max(0, Math.min(6, v))];
+            default: return new String[] {"A+B","A+X","A+Y","B+X","B+Y","X+Y"}[Math.max(0, Math.min(5, v))];
         }
     }
 

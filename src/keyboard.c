@@ -170,26 +170,17 @@ int xbox_keyboard_map(const Uint8 *k, Uint32 mouse, XBOX_INPUT_STATE *st)
         for (int i = 0; i < 8; i++)
             if (t.Gamepad.bAnalogButtons[i] > st->Gamepad.bAnalogButtons[i])
                 st->Gamepad.bAnalogButtons[i] = t.Gamepad.bAnalogButtons[i];
-        if (tlx || tly) {
-            st->Gamepad.sThumbLX = tlx;
-            st->Gamepad.sThumbLY = tly;
-        }
-        if (trx || try_) {
-            st->Gamepad.sThumbRX = trx;
-            st->Gamepad.sThumbRY = try_;
-        }
-        /* The 360 key, again after the remap: its stick's turn and its Y have to reach the game whatever the
-         * bindings did to the state they were built into. */
-        extern int ngb_touch_360(float *lx, float *ly, int *y_down);
-        extern void ngb_touch_360_cancel(void);
-        float sx = 0, sy = 0;
-        int y = 0;
-        if (ngb_menu_up_controls()) {
-            ngb_touch_360_cancel();   /* (the menus: no Y pressed under the player's finger) */
-        } else if (ngb_touch_360(&sx, &sy, &y)) {
-            st->Gamepad.sThumbLX = (SHORT)(sx * 32767.f);
-            st->Gamepad.sThumbLY = (SHORT)(sy * 32767.f);
-            if (y) st->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] = 255;
+        /* (the menus take the pad as a pointer: the touch sticks press nothing there, or a stick left turned
+         * ran the menu's tab along until another touch reset it -- user 2026-11-27) */
+        if (!ngb_menu_up_controls()) {
+            if (tlx || tly) {
+                st->Gamepad.sThumbLX = tlx;
+                st->Gamepad.sThumbLY = tly;
+            }
+            if (trx || try_) {
+                st->Gamepad.sThumbRX = trx;
+                st->Gamepad.sThumbRY = try_;
+            }
         }
     }
 #endif

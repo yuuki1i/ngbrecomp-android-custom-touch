@@ -48,7 +48,7 @@ public class NgbSettingsMenu extends FrameLayout {
         "左摇杆按下", "右摇杆按下", "不绑定",
     };
     private static final String[] COMBOS = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "摇杆整圈+Y"};
-    private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y", "360"};
+    private static final String[] COMBO_SHORT = {"A+B", "A+X", "A+Y", "B+X", "B+Y", "X+Y"};
 
     /* The picture, as the page's own words for it. */
     private static final String[] TINTS = {"原色", "偏暖", "偏冷"};
