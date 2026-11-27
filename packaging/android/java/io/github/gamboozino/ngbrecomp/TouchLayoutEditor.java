@@ -496,7 +496,7 @@ public class TouchLayoutEditor extends FrameLayout {
         alphaRow.addView(alphaTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         alphaRow.addView(step("−", () -> fade(-0.02f)));
         mAlphaValue = valueView(64);
-        mAlphaValue.setOnClickListener(v -> askNumber("透明度（%）", mAlpha[mSelected] * 100f, 10, 100,
+        mAlphaValue.setOnClickListener(v -> askNumber("透明度（%）", mAlpha[mSelected] * 100f, 0, 100,
                                                     pct -> { mAlpha[mSelected] = pct / 100f; refresh(); }));
         alphaRow.addView(mAlphaValue);
         alphaRow.addView(step("+", () -> fade(0.02f)));
@@ -962,7 +962,7 @@ public class TouchLayoutEditor extends FrameLayout {
     }
 
     private void fade(float d) {
-        mAlpha[mSelected] = Math.max(0.15f, Math.min(1.0f, mAlpha[mSelected] + d));
+        mAlpha[mSelected] = Math.max(0f, Math.min(1.0f, mAlpha[mSelected] + d));   /* (0: the key is gone, still on the page to be found again) */
         refresh();
     }
 

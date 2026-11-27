@@ -332,6 +332,7 @@ static char s_skin_path[NCTRL][256], d_skin_path[NCTRL][256];   /* one picture p
 static int s_selected = -1, d_selected = -1;
 static int s_preset, d_preset;
 static unsigned s_layout_revision, d_layout_revision;
+static int s_menu_dim, d_menu_dim;   /* (a menu is up: the pad is drawn faint -- it still works) */
 static char s_layout_path[512];
 static bool s_down[NCTRL];
 static float s_stick[2][2];                   /* each stick's knob, -1..1 (y down) */
@@ -368,7 +369,7 @@ static void layout_load(void) {
     fclose(fp);
     filter_curve_build();
     filter_cube_build();
-    for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(.15f,s_layout_alpha[i]));}
+    for(int i=0;i<NCTRL;i++){s_layout_r[i]=fminf(.25f,fmaxf(.035f,s_layout_r[i]));s_layout_x[i]=fminf(8.f,fmaxf(s_ctrl[i].edge==2?-8.f:.04f,s_layout_x[i]));s_layout_y[i]=fminf(.97f,fmaxf(.03f,s_layout_y[i]));s_layout_alpha[i]=fminf(1.f,fmaxf(0.f,s_layout_alpha[i]));}
 }
 static void layout_save(void) {
     if(!s_layout_path[0]){char *dir=SDL_GetPrefPath("NinjaGaidenBlack","touch-controls");if(!dir)return;snprintf(s_layout_path,sizeof s_layout_path,"%s/touch-controls-preset-%d.cfg",dir,s_preset);SDL_free(dir);}
@@ -657,14 +658,10 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
      * there. Only the lift is ours: a stick left turned under a finger that went up inside a menu kept driving
      * the menu's tab left and right until another touch reset it -- and clearing everything on every touch
      * left the pad's dpad unable to walk the menu at all, which read as the menu being frozen (user 2026-11-27). */
-    if (ngb_menu_touch_blocked()) {
-        if (ev->type == SDL_FINGERUP)
-            clear_touch_state();   /* (a finger up in a menu: nothing of the controls stays held) */
-        /* NOT consumed: ingame_menu.c turns these fingers into the settings page's clicks. Returning 1 here
-         * ate them, and the settings page sat there taking no touch at all -- the freeze the player saw
-         * (user 2026-11-27). */
-        return 0;
-    }
+    /* A menu does not switch the pad off: its dpad walks the rows, A chooses and B goes back -- and the page
+     * under it is clicked too (ingame_menu.c turns the same fingers into its mouse). Only the empty-screen
+     * swipe is off there, so a drag over the page does not turn the camera (user 2026-11-27). */
+    int menu_up = ngb_menu_touch_blocked();
     if(ev->type!=SDL_FINGERDOWN&&ev->type!=SDL_FINGERMOTION&&ev->type!=SDL_FINGERUP)return 0;
     if(ev->type!=SDL_FINGERUP&&xbox_InputControllerPresent())return 0;
     if(ev->type==SDL_FINGERDOWN&&!__atomic_load_n(&s_art_shown,__ATOMIC_ACQUIRE))return 0;
@@ -683,7 +680,7 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
         int hit_id=hit(x,y,false);for(f=0;f<MAX_FINGERS&&s_finger[f].used;f++);
         if(f<MAX_FINGERS&&s_edit_mode){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].down_timestamp=ev->tfinger.timestamp;s_finger[f].ctrl=hit_id;s_finger[f].x0=x;s_finger[f].y0=y;s_finger[f].moved=false;s_finger[f].was_selected=hit_id==s_selected;if(hit_id>=0)s_selected=hit_id;s_serial++;}
         else if(hit_id>=0&&f<MAX_FINGERS){xbox_InputTouchUsed();s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=hit_id;finger_on(hit_id,x,y);s_serial++;}
-        else if(!s_edit_mode&&hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;s_cam_hold=true;s_cam_px=s_cam_py=0;}
+        else if(!s_edit_mode&&!menu_up&&hit_id<0&&f<MAX_FINGERS&&s_camera_swipe){s_finger[f].used=true;s_finger[f].id=ev->tfinger.fingerId;s_finger[f].ctrl=-2;s_finger[f].x0=x;s_finger[f].y0=y;s_cam_hold=true;s_cam_px=s_cam_py=0;}
     }else if(ev->type==SDL_FINGERMOTION&&f<MAX_FINGERS){
         int id=s_finger[f].ctrl;
         if(!s_edit_mode&&id==-2){float dx=x-s_finger[f].x0,dy=y-s_finger[f].y0;if(fabsf(dx)+fabsf(dy)>.001f){s_cam_px+=dx;s_cam_py+=dy;xbox_InputTouchUsed();s_finger[f].x0=x;s_finger[f].y0=y;s_serial++;}}
@@ -727,6 +724,16 @@ void ngb_touch_map(XBOX_INPUT_STATE *st)
 {
     touch_init();
     let_go();
+    {   /* (a menu up: the pad goes faint, and comes back when it closes) */
+        int md = ngb_menu_touch_blocked() ? 1 : 0;
+        pthread_mutex_lock(&s_lock);
+        if (md != s_menu_dim) {
+            s_menu_dim = md;
+            s_layout_revision++;
+            s_serial++;
+        }
+        pthread_mutex_unlock(&s_lock);
+    }
     /* the layout and the opacity written here, on the game's side, not on Android's UI thread; one caller at a time
      * (play and the quick menu both come here), each writing what is current, so a later tap is never overwritten
      * by an earlier one */
@@ -1155,7 +1162,7 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
  * fill, a hairline in the button's colour, its name inside. 6 a wide rectangle, 7 a circle, 8 a rounded square.
  * The default layout uses 6 on every button and combo: one plate, one size, aligned, nothing behind them. */
 static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);   /* (drawn further down) */
-static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected);
+static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected, float a);
 
 static bool plain_shape(int shape) { return shape >= 6; }
 
@@ -1329,6 +1336,9 @@ static float s_bg_opacity = -1;
 static void draw_idle(void)
 {
     float u = (float)s_h;
+    /* (a menu or the settings page is up: the keys go faint so its words read through them, and they are still
+     * there to be pressed -- user 2026-11-27) */
+    float dim = d_menu_dim ? 0.26f : 1.f;
     memset(s_px, 0, sizeof(uint32_t) * (size_t)s_w * s_h);
     for (int i = 0; i < NCTRL; i++) {
         if (!d_layout_enabled[i]) continue;
@@ -1337,7 +1347,7 @@ static void draw_idle(void)
         if (d_layout_custom[i]) { at.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i]; at.y=d_anim_y[i]; at.r=d_anim_r[i]; }
         float cx = at.x * u, cy = at.y * u, r = at.r * u;
         if (plain_shape(d_layout_shape[i]) && (c->kind == BUTTON || c->kind == COMBO)) {
-            float a1 = d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i];
+            float a1 = (d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]) * dim;
             const Sprite *sk = d_layout_skin[i] ? user_skin(i) : NULL;
             if (sk) {                                  /* (the picture the player picked wins over the plate) */
                 float h2 = 2.5f * r, w2 = h2 * d_layout_asp[i];
@@ -1350,21 +1360,21 @@ static void draw_idle(void)
         else if (c->kind == STICK) {
             /* (the same ring the keys wear, in the same colour: the stick was a grey Kenney disc beside white
              * keys -- user 2026-11-27) */
-            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false);
-            draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false);
-            draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false);
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim);
+            draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false, dim);
+            draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false, dim);
         } else if (c->kind == DPAD) {
-            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false);
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim);
             for (int q = 0; q < 4; q++) {
                 float dx = q == 0 ? 0 : q == 1 ? 0 : q == 2 ? -0.55f : 0.55f;
                 float dy = q == 2 || q == 3 ? 0 : q == 0 ? -0.55f : 0.55f;
-                draw_style_outline(cx + dx * r, cy + dy * r, r * 0.16f, 1.f, d_layout_color[i], 7, false);
+                draw_style_outline(cx + dx * r, cy + dy * r, r * 0.16f, 1.f, d_layout_color[i], 7, false, dim);
             }
         }
         else if (c->kind == COMBO)
-            draw_combo(c, i, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
+            draw_combo(c, i, cx, cy, r, (d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]) * dim);
         else
-            draw_button(c, false, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);   /* (the face buttons
+            draw_button(c, false, cx, cy, r, (d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]) * dim);   /* (the face buttons
                                                        a little less see-through: X and A were faint) */
     }
 }
@@ -1384,7 +1394,7 @@ static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a
 }
 
 
-static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected)
+static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected, float a)
 {
     if (!selected && color == 0 && shape == 0) return;
     /* (the editor's own palette: a ring that stays the colour the player picked -- it was a fixed blue, and
@@ -1408,7 +1418,7 @@ static void draw_style_outline(float cx, float cy, float r, float asp, int color
             else if (shape == 8) d = powf(dx * dx * dx * dx + dy * dy * dy * dy, 0.25f);   /* rounded square */
             else d = hypotf(dx, dy);
             if (d >= inner && d <= outer)
-                badge_pixel(x, y, cr, cg, cb, 230);
+                badge_pixel(x, y, cr, cg, cb, (uint8_t)(230.f * a));
         }
 }
 
@@ -1537,7 +1547,7 @@ static void draw_all(void)
             draw_button(c, true, cx, cy, r, 1.0f);   /* (the game's pieces: their own held picture) */
         }
     }
-    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_asp[i],d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected); }
+    for (int i=0;i<NCTRL;i++) { if(!d_layout_enabled[i]) continue; const Ctrl *c=&s_ctrl[i]; Place p=place_at(c,d_aspect,s_art==ART_STANDIN,d_layout); if(d_layout_custom[i]){p.x=c->edge==2?d_aspect/2+d_anim_x[i]:c->edge?d_aspect-d_anim_x[i]:d_anim_x[i];p.y=d_anim_y[i];p.r=d_anim_r[i];} float cx=p.x*u,cy=p.y*u,r=p.r*u; if(!plain_shape(d_layout_shape[i])&&d_layout_skin[i]&&c->kind==BUTTON) draw("touch_button_lit",cx,cy,2.2f*r,2.2f*r,0.30f); if(!plain_shape(d_layout_shape[i])||(d_edit_mode&&i==d_selected)) draw_style_outline(cx,cy,r,d_layout_asp[i],d_layout_color[i],d_layout_shape[i],d_edit_mode&&i==d_selected,(d_edit_mode&&i==d_selected)?1.f:(float)d_layout_alpha[i]); }
     s_rec = NULL;
     s_px = out;
     /* Into the presenter's buffer: where it differs from the picture that buffer holds (drawn some frames ago) */
@@ -1626,7 +1636,7 @@ void ngb_touch_menu_change(int item,int dir)
     case 4: s_selected=(id+(dir<0?NCTRL-1:1))%NCTRL; break;
     case 5: s_layout_enabled[id]=!s_layout_enabled[id]; break;
     case 6: s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,s_layout_r[id]/s_ctrl[id].r+(dir<0?-.1f:.1f)));s_layout_custom[id]=true;break;
-    case 7: s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,s_layout_alpha[id]+(dir<0?-.05f:.05f)));break;
+    case 7: s_layout_alpha[id]=fminf(1.f,fmaxf(0.f,s_layout_alpha[id]+(dir<0?-.05f:.05f)));break;
     case 8: s_layout_color[id]=(uint8_t)((s_layout_color[id]+(dir<0?5:1))%6);break;
     case 9: s_layout_shape[id]=(uint8_t)((s_layout_shape[id]+(dir<0?8:1))%9);break;
     case 10: s_layout_skin[id]^=1;break;
@@ -1651,7 +1661,7 @@ void ngb_touch_menu_set(int item,int value)
     else if(item==4)s_selected=value<0?0:value>=NCTRL?NCTRL-1:value;
     else if(item==5)s_layout_enabled[id]=value!=0;
     else if(item==6){s_layout_r[id]=s_ctrl[id].r*fminf(2.f,fmaxf(.5f,(float)value/100.f));s_layout_custom[id]=true;}
-    else if(item==7)s_layout_alpha[id]=fminf(1.f,fmaxf(.15f,(float)value/100.f));
+    else if(item==7)s_layout_alpha[id]=fminf(1.f,fmaxf(0.f,(float)value/100.f));
     else if(item==8)s_layout_color[id]=(uint8_t)((value%6+6)%6);
     else if(item==9)s_layout_shape[id]=(uint8_t)((value%9+9)%9);
     else if(item==10)s_layout_skin[id]=value!=0;
@@ -1751,7 +1761,7 @@ void ngb_touch_layout_apply(const char *text)
                     s_layout_x[id] = fminf(aspect - 0.04f, fmaxf(0.04f, s_layout_x[id]));
                 s_layout_y[id] = fminf(.97f, fmaxf(.03f, y));
                 s_layout_r[id] = fminf(.25f, fmaxf(.012f, r));
-                s_layout_alpha[id] = fminf(1.f, fmaxf(.15f, alpha));
+                s_layout_alpha[id] = fminf(1.f, fmaxf(0.f, alpha));
                 s_layout_color[id] = (uint8_t)(colour < 0 ? 0 : colour > 5 ? 5 : colour);
                 s_layout_shape[id] = (uint8_t)(shape < 0 ? 0 : shape > 8 ? 8 : shape);
                 s_layout_action[id] = action >= 0 && action < PA_COUNT ? action : PA_NONE;
@@ -2161,7 +2171,7 @@ bool nv2a_overlay_picture(uint32_t win_w, uint32_t win_h, uint32_t *px, size_t m
         memcpy(d_stick, s_stick, sizeof d_stick);
         d_dpad = s_dpad;
         memcpy(d_layout_x,s_layout_x,sizeof d_layout_x); memcpy(d_layout_y,s_layout_y,sizeof d_layout_y); memcpy(d_layout_r,s_layout_r,sizeof d_layout_r); memcpy(d_layout_alpha,s_layout_alpha,sizeof d_layout_alpha); memcpy(d_layout_custom,s_layout_custom,sizeof d_layout_custom); memcpy(d_layout_color,s_layout_color,sizeof d_layout_color); memcpy(d_layout_shape,s_layout_shape,sizeof d_layout_shape); memcpy(d_layout_asp,s_layout_asp,sizeof d_layout_asp); memcpy(d_layout_skin,s_layout_skin,sizeof d_layout_skin); memcpy(d_layout_combo,s_layout_combo,sizeof d_layout_combo); memcpy(d_layout_enabled,s_layout_enabled,sizeof d_layout_enabled);
-        d_edit_mode=s_edit_mode; d_haptics=s_haptics; memcpy(d_skin_path,s_skin_path,sizeof d_skin_path); d_selected=s_selected; d_preset=s_preset; d_layout_revision=s_layout_revision;
+        d_edit_mode=s_edit_mode; d_haptics=s_haptics; memcpy(d_skin_path,s_skin_path,sizeof d_skin_path); d_selected=s_selected; d_preset=s_preset; d_layout_revision=s_layout_revision; d_menu_dim=s_menu_dim;
         d_aspect = s_aspect;
         d_layout = s_layout == 1;   /* (known: layout_known above) */
         if (!d_anim_ready) {
