@@ -660,7 +660,10 @@ static int SDLCALL touch_watch(void *unused, SDL_Event *ev)
     if (ngb_menu_touch_blocked()) {
         if (ev->type == SDL_FINGERUP)
             clear_touch_state();   /* (a finger up in a menu: nothing of the controls stays held) */
-        return 1;
+        /* NOT consumed: ingame_menu.c turns these fingers into the settings page's clicks. Returning 1 here
+         * ate them, and the settings page sat there taking no touch at all -- the freeze the player saw
+         * (user 2026-11-27). */
+        return 0;
     }
     if(ev->type!=SDL_FINGERDOWN&&ev->type!=SDL_FINGERMOTION&&ev->type!=SDL_FINGERUP)return 0;
     if(ev->type!=SDL_FINGERUP&&xbox_InputControllerPresent())return 0;
@@ -1152,6 +1155,7 @@ static void draw_piece(const char *name, float cx, float cy, float bw, float bh,
  * fill, a hairline in the button's colour, its name inside. 6 a wide rectangle, 7 a circle, 8 a rounded square.
  * The default layout uses 6 on every button and combo: one plate, one size, aligned, nothing behind them. */
 static void badge_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);   /* (drawn further down) */
+static void draw_style_outline(float cx, float cy, float r, float asp, int color, int shape, bool selected);
 
 static bool plain_shape(int shape) { return shape >= 6; }
 
@@ -1343,10 +1347,20 @@ static void draw_idle(void)
             } else
                 draw_plain(i, cx, cy, r, a1, false);
         }
-        else if (c->kind == STICK)
-            draw_piece("pad", cx, cy, 2 * r, 2 * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
-        else if (c->kind == DPAD)
-            draw_piece("dpad", cx, cy, 2.2f * r, 2.2f * r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
+        else if (c->kind == STICK) {
+            /* (the same ring the keys wear, in the same colour: the stick was a grey Kenney disc beside white
+             * keys -- user 2026-11-27) */
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false);
+            draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false);
+            draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false);
+        } else if (c->kind == DPAD) {
+            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false);
+            for (int q = 0; q < 4; q++) {
+                float dx = q == 0 ? 0 : q == 1 ? 0 : q == 2 ? -0.55f : 0.55f;
+                float dy = q == 2 || q == 3 ? 0 : q == 0 ? -0.55f : 0.55f;
+                draw_style_outline(cx + dx * r, cy + dy * r, r * 0.16f, 1.f, d_layout_color[i], 7, false);
+            }
+        }
         else if (c->kind == COMBO)
             draw_combo(c, i, cx, cy, r, d_edit_mode && i == d_selected ? 0.98f : d_layout_alpha[i]);
         else
