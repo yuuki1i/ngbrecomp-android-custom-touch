@@ -29,6 +29,10 @@ extern "C" int ngb_render_threaded;  // src/pc_menu.c reads it: the Multithreade
 extern "C" { int ngb_render_threaded = 0; }
 extern "C" int ngb_pc_setting(int which);   // src/ingame_menu.c
 extern "C" void ngb_pc_set_setting(int which, int value);
+/* Effects > Effect Capture (src/fx_dump.c): the draws recorded for the trails' tuning, and its on/off mirror */
+extern "C" void ngb_fx_note(unsigned code, unsigned tex, unsigned blend, unsigned src, unsigned dst,
+                            unsigned count, unsigned vs, unsigned node);
+extern "C" volatile int ngb_fx_dump_on;
 
 using kernel::HostPtr;
 using kernel::R32;
@@ -271,9 +275,6 @@ bool Before(int fn, Call c) {
         }
         gpu::g_draw_stack_n = n;
         /* Effects > Effect Capture (src/fx_dump.c): one scene of draws to fx-dump.txt, for the trails' tuning */
-        extern "C" void ngb_fx_note(unsigned code, unsigned tex, unsigned blend, unsigned src, unsigned dst,
-                                    unsigned count, unsigned vs, unsigned node);
-        extern "C" volatile int ngb_fx_dump_on;
         if (ngb_fx_dump_on) {
             const unsigned count = fn == D3DF_D3DDevice_DrawVertices ? c.r[EAX] : c.a(1);
             ngb_fx_note(fn, g_state.textures[0],
