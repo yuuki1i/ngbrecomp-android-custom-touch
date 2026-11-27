@@ -188,6 +188,7 @@ void ngb_touch_editor_open(void);   /* the Android touch editor (NgbActivity), s
 void ngb_settings_open(void);       /* the Android settings page: 画面 and 按键 */
 void ngb_pc_set_setting(int which, int value);
 int ngb_fx_trail(void);                            /* src/ingame_menu.c: 50 the trail and the weapon's ghost, 0..200 */
+extern volatile int ngb_fx_hits;                   /* src/fx_dump.c: how many draws the trail's pass took */
 int ngb_fx_tint(int which);                        /* src/ingame_menu.c: the trail's r, g, b, alpha, glow */
 void ngb_fx_tint_set(int which, int value);
 int ngb_fx_dump(void);                             /* src/ingame_menu.c: 51 what the game draws, written out */
@@ -2164,6 +2165,7 @@ JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxG
     (void)env; (void)activity;
     if (which == 0) return (jint)ngb_fx_trail();
     if (which == 1) return (jint)ngb_fx_dump();
+    if (which == 7) return (jint)ngb_fx_hits;
     return (jint)ngb_fx_tint((int)which - 2);   /* 2 R, 3 G, 4 B, 5 alpha, 6 glow */
 }
 JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxSet(

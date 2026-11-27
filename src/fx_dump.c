@@ -12,6 +12,8 @@
  */
 #include <SDL.h>
 #include <stdint.h>
+
+volatile int ngb_fx_hits;   /* how many times the trail's blend-back or its geometry was seen (the menu reads it) */
 #include <stdio.h>
 
 void ngb_fx_dump_done(void);   /* src/ingame_menu.c: turns the setting off (a pass is one scene) */

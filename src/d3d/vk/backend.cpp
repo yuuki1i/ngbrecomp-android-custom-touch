@@ -12,6 +12,7 @@
 
 extern "C" int ngb_fx_trail(void);   /* src/ingame_menu.c: 50, the afterimages' and trails' share, percent */
 extern "C" int ngb_fx_tint(int which);   /* src/ingame_menu.c: its r, g, b, alpha and glow, percent */
+extern "C" volatile int ngb_fx_hits;     /* src/fx_dump.c: how many draws the trail's pass took */
 #ifdef __ANDROID__
 #include <sys/resource.h>
 #endif
@@ -3873,8 +3874,6 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         ngb_fx_tint(2) == 100 && ngb_fx_tint(3) == 100 && ngb_fx_tint(4) == 100;
     bool trail_pass = !glow_pass && !trail_default && rt && a.pretransformed && !prog && !s.ps && count == 4 &&
         from_target[0] && !info[0].shadow && k.blend && !k.zen && k.wmask == 15 &&
-        ((k.src == 1 && k.dst == 1) || (k.src == 5 && k.dst == 6)) &&
-        s.tss[0][kTssColorOp] == 5 && s.tss[0][kTssColorArg1] == 2 && s.tss[0][kTssColorArg2] == 3 &&
         Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
         trail_desc.width < 640;
     if (trail_pass) {
@@ -3894,10 +3893,17 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
             }
         }
     }
-    if (trail_pass) {
+    /* The trail as geometry too: the blade's strip and the charge's flare are triangles that sample an effect
+       target and blend over the picture, not a full-screen quad. Same numbers, scaled where they land. */
+    bool trail_geo = !trail_pass && !trail_default && !glow_pass && rt && k.blend && !a.pretransformed &&
+        from_target[0] && !info[0].shadow &&
+        Describe(s.textures[0],trail_desc) && trail_desc.width >= 256 && trail_desc.height >= 128 &&
+        trail_desc.width < 640;
+    if (trail_pass || trail_geo) {
         async_now_ = false;
+        ++ngb_fx_hits;
         const bool additive = k.dst == 1;
-        pkey ^= 0x674C4F5753540200ull ^ (additive ? 0x10000ull : 0);   /* (one shader per blend: the numbers ride the constants) */
+        pkey ^= (trail_geo ? 0x674C4F5753540300ull : 0x674C4F5753540200ull) ^ (additive ? 0x10000ull : 0);   /* (one shader per blend: the numbers ride the constants) */
         k.ps = pkey;
         pmod = Module(pkey,[&] {return TrailTintHlsl(PixelHlsl(pk), additive);},false);
     }
@@ -4010,7 +4016,7 @@ void VulkanBackend::Draw(const State& s, uint32_t prim, uint32_t start, uint32_t
         c.bumpl[i][3] = float(t[kTssMaxMipLevel]);
     }
     if (glow_pass) c.bump[3][2]=GlowStrength(); // unused by this single-texture draw
-    if (trail_pass) {   // (unused by this single-texture draw: the trail's colour, opacity, glow and share)
+    if (trail_pass || trail_geo) {   // (unused by these single-texture draws: the trail's colour, opacity, glow and share)
         c.bump[2][0] = float(ngb_fx_tint(0)) / 100.f;
         c.bump[2][1] = float(ngb_fx_tint(1)) / 100.f;
         c.bump[2][2] = float(ngb_fx_tint(2)) / 100.f;
