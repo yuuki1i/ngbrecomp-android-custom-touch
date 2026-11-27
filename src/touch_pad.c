@@ -187,6 +187,9 @@ int ngb_pc_setting(int which);                    /* src/ingame_menu.c (48: the 
 void ngb_touch_editor_open(void);   /* the Android touch editor (NgbActivity), src/touch_pad.c below */
 void ngb_settings_open(void);       /* the Android settings page: 画面 and 按键 */
 void ngb_pc_set_setting(int which, int value);
+int ngb_fx_trail(void);                            /* src/ingame_menu.c: 50 the trail and the weapon's ghost, 0..200 */
+int ngb_fx_dump(void);                             /* src/ingame_menu.c: 51 what the game draws, written out */
+enum { NGB_SET_FXTRAIL = 50, NGB_SET_FXDUMP = 51 };   /* (src/pause_tab.c: the two settings' numbers) */
 #pragma weak ngb_pc_setting
 #pragma weak ngb_pc_set_setting
 static int s_layout = -1, s_layout_save;          /* 0 the default, 1 Classic (under s_lock); to be saved */
@@ -2152,6 +2155,22 @@ JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeVid
     layout_save();
     pthread_mutex_unlock(&s_lock);
     ngb_video_filter_refresh();
+}
+/* The effects page of the phone's settings menu: the trail as a percentage, the capture as a switch. */
+JNIEXPORT jint JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxGet(
+    JNIEnv *env, jobject activity, jint which) {
+    (void)env; (void)activity;
+    return which == 0 ? (jint)ngb_fx_trail() : (jint)ngb_fx_dump();
+}
+JNIEXPORT void JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeFxSet(
+    JNIEnv *env, jobject activity, jint which, jint value) {
+    (void)env; (void)activity;
+    if (which == 0) {
+        int v = value < 0 ? 0 : value > 200 ? 200 : (int)value;
+        ngb_pc_set_setting(NGB_SET_FXTRAIL, v);
+    } else {
+        ngb_pc_set_setting(NGB_SET_FXDUMP, value != 0);
+    }
 }
 JNIEXPORT jstring JNICALL Java_io_github_gamboozino_ngbrecomp_NgbActivity_nativeTextureDir(
     JNIEnv *env, jobject activity) {

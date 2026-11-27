@@ -183,7 +183,7 @@ public class NgbSettingsMenu extends FrameLayout {
 
     private void fillTabs() {
         mTabBox.removeAllViews();
-        String[] names = {"画面", "按键"};
+        String[] names = {"画面", "按键", "特效"};
         for (int i = 0; i < names.length; i++) {
             final int tab = i;
             LinearLayout line = new LinearLayout(mActivity);
@@ -220,10 +220,14 @@ public class NgbSettingsMenu extends FrameLayout {
             mTitle.setText("设置 ◆ 画面");
             mSub.setText("亮度 · 伽马 · 色调");
             buildPictureRows();
-        } else {
+        } else if (mTab == 1) {
             mTitle.setText("设置 ◆ 按键");
             mSub.setText("触控布局 · " + NAMES[mSel]);
             buildPadRows();
+        } else {
+            mTitle.setText("设置 ◆ 特效");
+            mSub.setText("残影 · 拖影 · 抓取");
+            buildEffectsRows();
         }
         if (mFocus >= mRows.size())
             mFocus = mRows.isEmpty() ? 0 : mRows.size() - 1;
@@ -335,6 +339,26 @@ public class NgbSettingsMenu extends FrameLayout {
                 })
                 .setNegativeButton("关闭", null)
                 .show();
+    }
+
+    private void buildEffectsRows() {
+        addHead("特效");
+        addChoice("残影浓度", "残影与武器拖影的强弱，按比例缩放。100% 为游戏原本，0 则完全消失。",
+                  percents(0, 200, 25), mFxTrail / 25, v -> {
+                      mFxTrail = v * 25;
+                      mActivity.setFxValue(0, mFxTrail);
+                  });
+        addToggle("特效抓取", "把游戏这一帧画的特效记下来，写进存档目录的 fx/fx-dump.txt。开着 10 秒后自己关。",
+                  mFxDump != 0, v -> {                       /* (the sink hands over a choice index: 0 开, 1 关) */
+                      mFxDump = v == 0 ? 1 : 0;
+                      mActivity.setFxValue(1, mFxDump);
+                  });
+        addHead("说明");
+        addAction("抓到的文件在哪", "存档目录下的 fx 文件夹。抓一次、放飞燕和蓄力，再把 fx-dump.txt 传来，就能按它定位。",
+                  () -> {
+                      android.widget.Toast
+                          .makeText(mActivity, "存档目录/fx/fx-dump.txt", android.widget.Toast.LENGTH_LONG).show();
+                  });
     }
 
     private void buildPadRows() {
@@ -640,8 +664,12 @@ public class NgbSettingsMenu extends FrameLayout {
         }
     }
 
+    private int mFxTrail = 100, mFxDump;
+
     private void loadPicture() {
         try {
+            mFxTrail = mActivity.getFxValue(0);
+            mFxDump = mActivity.getFxValue(1);
             mBright = mActivity.getVideoValue(0);
             mGamma = mActivity.getVideoValue(1);
             mTint = mActivity.getVideoValue(2);
