@@ -346,6 +346,8 @@ static int pop_key(void)
 #define MOUSE_UP    0x08000000
 #define MOUSE_DRAG  0x04000000
 
+static bool s_tab_click_fwd;              /* a click handed to the game's menu under our page: its lift follows */
+
 static void push_mouse(int kind, const SDL_Event *ev, int x, int y)
 {
     SDL_Window *w = SDL_GetWindowFromID(kind == MOUSE_MOVE ? ev->motion.windowID
@@ -1294,7 +1296,7 @@ static bool game_mouse(const SDL_Event *ev)
         s_move_seq++;
         s_move_ms = mono_ms();
     }
-    if (s_open)
+    if (s_open && !tab_shown())
         return false;
     /* The Options page is ours, not the game's: it is clicked whatever ngb_menu_up_controls() says. That reads
      * the game's own frames (#218) and the hurricane title's rebuilt .text made it read "not in a menu" -- so
@@ -1317,6 +1319,12 @@ static bool game_mouse(const SDL_Event *ev)
             s_move_ms = mono_ms();
             return row >= 0 || (s_tab_focus && ngb_pause_tab_page() == 3);
         }
+        /* a tab clicked in play: the game's menu under the page gets the lift as well as the press */
+        if (s_open && s_tab_click_fwd && ev->type == SDL_MOUSEBUTTONUP && ev->button.button == SDL_BUTTON_LEFT) {
+            push_mouse(MOUSE_UP, ev, ev->button.x, ev->button.y);
+            s_tab_click_fwd = false;
+            return true;
+        }
         if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT &&
             ngb_pause_tab_page() != 2) {
             game_point(ev->button.windowID, ev->button.x, ev->button.y, &gx, &gy);
@@ -1332,6 +1340,10 @@ static bool game_mouse(const SDL_Event *ev)
                 s_mx = (int)gx;
                 s_my = (int)gy;
                 s_click_seq++;
+                if (s_open) {                      /* the game's own menu is under the page: it takes the tab */
+                    push_mouse(MOUSE_CLICK, ev, ev->button.x, ev->button.y);
+                    s_tab_click_fwd = true;
+                }
                 return true;
             }
         }
@@ -1503,15 +1515,19 @@ void nv2a_window_event_hook(const void *sdl_event)
         if (ev->type == SDL_MOUSEMOTION && (ngb_mouse_settling() || SDL_GetRelativeMouseMode()))
             return;
     }
-    if (s_open && ev->type == SDL_MOUSEMOTION) {
+    /* In play the game's own pause menu is up (s_open) and the mice went to it whole: on its Options page --
+     * which is ours -- a tap was swallowed there, the page never saw one, and the menu could not be left
+     * either. The page comes first now; what it does not use, the game still gets (user 2026-11-27). */
+    const bool page = tab_shown();
+    if (s_open && !page && ev->type == SDL_MOUSEMOTION) {   /* (with the page up, the page hovers) */
         push_mouse((ev->motion.state & SDL_BUTTON_LMASK) ? MOUSE_DRAG : MOUSE_MOVE, ev, ev->motion.x, ev->motion.y);
         return;
     }
-    if (s_open && ev->type == SDL_MOUSEBUTTONUP && ev->button.button == SDL_BUTTON_LEFT) {
+    if (s_open && !page && ev->type == SDL_MOUSEBUTTONUP && ev->button.button == SDL_BUTTON_LEFT) {
         push_mouse(MOUSE_UP, ev, ev->button.x, ev->button.y);
         return;
     }
-    if (s_open && ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT) {
+    if (s_open && !page && ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT) {
         push_mouse(MOUSE_CLICK, ev, ev->button.x, ev->button.y);
         return;
     }
@@ -1519,7 +1535,7 @@ void nv2a_window_event_hook(const void *sdl_event)
         push_key(KEY_BACK);
         return;
     }
-    if (s_open && ev->type == SDL_MOUSEWHEEL) {
+    if (s_open && !page && ev->type == SDL_MOUSEWHEEL) {
         if (wheel_dir(ev)) push_key(MOUSE_WHEEL | (wheel_dir(ev) > 0 ? 1 : 0));
         return;
     }
