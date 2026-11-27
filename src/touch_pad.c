@@ -55,7 +55,8 @@ unsigned char *stbi_load_from_memory(const unsigned char *buf, int len, int *x, 
 void stbi_image_free(void *p);
 extern const struct { const char *name; const unsigned char *data; const unsigned int *len; } ngb_touch_pngs[];
 extern const int ngb_touch_png_count;   /* (CMakeLists.txt: the stand-in pieces by file name) */
-#include "launcher_font.h"              /* (the stand-in buttons' letters) */
+#include "launcher_font.h"
+#include "ui_zh.h"              /* (the stand-in buttons' letters) */
 /* (weak: the arcade programs, built with this file, have no src/game_prompts.c) */
 __attribute__((weak)) const NgbPic *ngb_gp_touch(const char *piece);
 
@@ -1208,6 +1209,46 @@ static void plain_letter(const char *t, float cx, float cy, float maxw, float ma
 {
     if (!t || !*t || a <= 0.02f)
         return;
+    /* In the same face as the rest of the recomp's words (user 2026-11-27: the dot matrix, a key's size on a
+     * phone, came out ragged). Drawn once into a coverage box, then placed by its own bounds. */
+    {
+        static uint8_t cov[256 * 256];
+        float px = maxh * 1.16f, w = ngb_ui_text(NULL, 0, 0, t, px, 1.f, 0, 0);
+        if (w <= 0)
+            goto dotted;
+        if (maxw > 0 && w > maxw) {
+            px *= maxw / w;
+            w = maxw;
+        }
+        memset(cov, 0, sizeof cov);
+        ngb_ui_text(cov, 256, 256, t, px, 1.f, 16.f, 210.f);
+        int bx0 = 256, by0 = 256, bx1 = -1, by1 = -1;
+        for (int y = 0; y < 256; y++)
+            for (int x = 0; x < 256; x++)
+                if (cov[y * 256 + x]) {
+                    if (x < bx0) bx0 = x;
+                    if (y < by0) by0 = y;
+                    if (x > bx1) bx1 = x;
+                    if (y > by1) by1 = y;
+                }
+        if (bx1 < 0)
+            return;
+        float bw = (float)(bx1 - bx0 + 1), bh = (float)(by1 - by0 + 1);
+        float k = fminf(1.f, fminf(maxw > 0 ? maxw / bw : 1.f, maxh / bh));
+        float ow = bw * k, oh = bh * k;
+        float ox = cx - ow / 2 - bx0 * k, oy = cy - oh / 2 - by0 * k;   /* (its own box, centred) */
+        for (int Y = (int)floorf(oy + by0 * k); Y < (int)ceilf(oy + (by1 + 1) * k); Y++)
+            for (int X = (int)floorf(ox + bx0 * k); X < (int)ceilf(ox + (bx1 + 1) * k); X++) {
+                int sx = (int)floorf((X + 0.5f - ox) / k), sy = (int)floorf((Y + 0.5f - oy) / k);
+                if (sx < 0 || sy < 0 || sx > 255 || sy > 255)
+                    continue;
+                uint8_t v = cov[sy * 256 + sx];
+                if (v)
+                    badge_pixel(X, Y, cr, cg, cb, (uint8_t)lroundf(v * a));
+            }
+        return;
+    }
+dotted:;
     int n = (int)strlen(t), total = 0;
     for (int i = 0; i < n; i++) {
         int g = t[i] - 32;
@@ -1350,18 +1391,22 @@ static void draw_plain(int id, float cx, float cy, float r, float a, bool lit)
             if (d > 0)
                 continue;
             /* (the hairline has no plate at all, the glass a dark one -- user 2026-11-27) */
-            float plate = s_pad_style == 3 ? (lit ? 0.94f : 0.86f)
-                        : s_pad_style == 1 ? (lit ? 0.70f : 0.48f)
+            float plate = s_pad_style == 3 ? (lit ? 0.97f : 0.92f)
+                        : s_pad_style == 1 ? (lit ? 0.78f : 0.62f)
                         : s_pad_style == 2 ? 0.f
-                        : (lit ? 0.16f : 0.07f);
-            badge_pixel(x, y, 8, 10, 14, (uint8_t)lroundf(plate * a * 255));
+                        : (lit ? 0.18f : 0.09f);
+            badge_pixel(x, y, 10, 11, 14, (uint8_t)lroundf(plate * a * 255));
             if (d > -edge)                                                                    /* its ring */
-                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 1.f : 0.88f) * a * 255));
+                badge_pixel(x, y, cr, cg, cb, (uint8_t)lroundf((lit ? 0.95f : 0.72f) * a * 255));
+            else if (d > -edge * 3.0f)     /* (a thin light inside the ring: a pad's keys sit in a dish) */
+                badge_pixel(x, y, 255, 255, 255, (uint8_t)lroundf(0.10f * a * 255));
         }
+    /* (white on the dark plate, as the console's own keys have it -- the key's colour stays on its ring) */
     if (s_pad_theme == 2 && id >= BA && id <= BY)
-        mark_shape(id, cx, cy, fminf(hw, hh) * 0.52f, cr, cg, cb, fminf(1.f, a + 0.2f));
+        mark_shape(id, cx, cy, fminf(hw, hh) * 0.56f, 240, 243, 249, fminf(1.f, a + 0.2f));
     else if (c->label)
-        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.6f, hh * 0.90f, cr, cg, cb, fminf(1.f, a + 0.2f));
+        plain_letter(theme_label(id, c->label), cx, cy, hw * 1.7f, hh * 0.94f, 240, 243, 249,
+                     fminf(1.f, a + 0.25f));
 }
 
 static void draw_badge_text(const char *label, int centre, int y0, int bw);
@@ -1457,8 +1502,8 @@ static void draw_idle(void)
         else if (c->kind == STICK) {
             /* (the same ring the keys wear, in the same colour: the stick was a grey Kenney disc beside white
              * keys -- user 2026-11-27) */
-            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim);
-            draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false, dim);
+            draw_style_outline(cx, cy, r, 1.f, 0, 7, false, dim);
+            draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, dim * 0.45f);   /* (one look for both) */
             draw_style_outline(cx, cy, r * 0.12f, 1.f, d_layout_color[i], 7, false, dim);
         } else if (c->kind == DPAD) {
             draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, dim);
@@ -1635,12 +1680,11 @@ static void draw_all(void)
             /* (the ring is in the idle picture; only the knob moves, a disc in the key's own colour -- the grey
              * Kenney pad and nub were the one thing on the pad that did not match, user 2026-11-27) */
             int s = i == RSTICK;
-            uint8_t kr, kg, kb;
-            plain_tint(d_layout_color[i], &kr, &kg, &kb);
             float nx = cx + d_stick[s][0] * r * 0.52f, ny = cy + d_stick[s][1] * r * 0.52f;
-            fill_disc(nx, ny, r * (on ? 0.24f : 0.20f), kr, kg, kb, on ? 0.90f : 0.45f);
+            /* (the centre was a pinhead -- user 2026-11-27: a stick's cap is most of its inside) */
+            fill_disc(nx, ny, r * (on ? 0.42f : 0.36f), 232, 236, 243, on ? 0.95f : 0.70f);
             if (on)
-                draw_style_outline(cx, cy, r * 0.52f, 1.f, d_layout_color[i], 7, false, 0.90f);
+                draw_style_outline(cx, cy, r * 0.66f, 1.f, 0, 7, false, 0.90f);
         } else if (c->kind == DPAD && on) {
             static const struct { int bit; float dx, dy; } arms[] = {
                 { XBOX_GAMEPAD_DPAD_UP, 0, -1 },
@@ -1648,12 +1692,11 @@ static void draw_all(void)
                 { XBOX_GAMEPAD_DPAD_LEFT, -1, 0 },
                 { XBOX_GAMEPAD_DPAD_RIGHT, 1, 0 },
             };
-            uint8_t kr, kg, kb;
-            plain_tint(d_layout_color[i], &kr, &kg, &kb);
-            draw_style_outline(cx, cy, r, 1.f, d_layout_color[i], 7, false, 0.55f);
+            draw_style_outline(cx, cy, r, 1.f, 0, 7, false, 0.55f);   /* (white, as the sticks: one look) */
             for (int a = 0; a < 4; a++)
                 if (d_dpad & arms[a].bit)
-                    fill_disc(cx + arms[a].dx * r * 0.55f, cy + arms[a].dy * r * 0.55f, r * 0.17f, kr, kg, kb, 0.95f);
+                    fill_disc(cx + arms[a].dx * r * 0.55f, cy + arms[a].dy * r * 0.55f, r * 0.17f, 232, 236, 243,
+                              0.95f);
         } else if (c->kind == COMBO && on) {
             draw_combo(c, i, cx, cy, r, fmaxf(d_layout_alpha[i], 0.85f));
             draw("touch_button_lit", cx, cy, 2.1f*r, 2.1f*r, 0.9f);
