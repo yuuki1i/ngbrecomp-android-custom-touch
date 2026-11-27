@@ -595,18 +595,24 @@ public class TouchLayoutEditor extends FrameLayout {
                 return;
             }
             float x = clampDrawer(mDrawerBase + dx, room);
-            if (x > room + w * 0.5f) {       /* (pushed out past its edge: it goes away) */
-                mDrawerBase = room;
+            if (x > dp(150)) {               /* (pushed out past the right edge: it goes away) */
+                mDrawerBase = 0f;
                 closeDrawer();
+                saveDrawer();
                 return;
             }
-            /* A flick crosses the screen in one go: the hand does not have to carry the drawer the whole way. */
+            /* A flick crosses the screen in one go: the hand does not have to carry the drawer the whole way.
+             * (to the right is the way out; to the left it parks on the left edge) */
             if (Math.abs(velocity) > 900) {
-                float step = velocity > 0 ? w : -w;
-                float target = clampDrawer(x + step, room);
-                mDrawerBase = target;
-                mDockLeft = target < -room / 3f;
-                mDrawer.animate().translationX(target).setDuration(200).start();
+                if (velocity > 0) {
+                    mDrawerBase = 0f;
+                    closeDrawer();
+                    saveDrawer();
+                    return;
+                }
+                mDrawerBase = -room;
+                mDockLeft = true;
+                mDrawer.animate().translationX(mDrawerBase).setDuration(200).start();
                 saveDrawer();
                 return;
             }
@@ -722,9 +728,10 @@ public class TouchLayoutEditor extends FrameLayout {
         return Math.max(0, (parent == null ? 0 : parent.getWidth()) - w);
     }
 
-    /* Anywhere between parked at the right (0) and past the left edge it may stop, and it stays there. */
+    /* Anywhere between parked at the right (0) and parked at the left (-room) it may stop, and it stays there;
+     * a little past the right edge is how it is sent away. */
     private float clampDrawer(float x, float room) {
-        return Math.min(room + dp(340), Math.max(-room - dp(340) * 0.35f, x));
+        return Math.min(dp(340), Math.max(-room - dp(120), x));
     }
 
     /* Where the drawer was left, as a share of its room (-1 the far left, 1 the far right): the next time the
@@ -732,22 +739,29 @@ public class TouchLayoutEditor extends FrameLayout {
     private void saveDrawer() {
         float room = drawerRoom();
         if (room <= 0) return;
-        float share = Math.max(-1f, Math.min(1f, mDrawerBase / room));
+        /* (1 the right edge, 0 the left -- the drawer's own x runs the other way, 0 at the right and -room
+         * at the left) */
+        float share = 1f + Math.max(-1f, Math.min(0f, mDrawerBase / room));
         mActivity.getSharedPreferences("ngb_touch_editor", 0).edit()
                 .putFloat("drawer_share", share).apply();
     }
 
     private void restoreDrawer() {
         float share = mActivity.getSharedPreferences("ngb_touch_editor", 0).getFloat("drawer_share", 1f);
-        mDrawerBase = share * drawerRoom();
-        mDockLeft = share < 0f;
+        share = Math.max(0f, Math.min(1f, share));
+        float room = drawerRoom();
+        /* 0 is the right edge and -room the left: a share of 1 is the right, 0 the left. (It used to be taken
+         * as a positive push, so the drawer opened off the right edge of the glass and never showed at all --
+         * user 2026-11-27.) */
+        mDrawerBase = -(1f - share) * room;
+        mDockLeft = share < 0.5f;
     }
 
     private void openDrawer() {
         if (mDrawer == null) return;
-        if (mScrim != null) mScrim.setVisibility(View.VISIBLE);
-        restoreDrawer();
+        restoreDrawer();   /* (no scrim: the keys stay in sight while a drawer is open over them) */
         mDrawer.setVisibility(View.VISIBLE);
+        mDrawer.animate().cancel();
         mDrawer.setTranslationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)));
         mDrawer.animate().translationX(mDrawerBase).setDuration(180).start();
     }
@@ -755,6 +769,7 @@ public class TouchLayoutEditor extends FrameLayout {
     private void closeDrawer() {
         if (mDrawer == null) return;
         if (mScrim != null) mScrim.setVisibility(View.GONE);
+        mDrawer.animate().cancel();
         mDrawer.animate().translationX(mDrawerBase + (mDockLeft ? -dp(340) : dp(340)))
             .setDuration(180)
             .withEndAction(() -> mDrawer.setVisibility(View.GONE)).start();
